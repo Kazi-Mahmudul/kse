@@ -18,6 +18,7 @@ export const opportunityCreateSchema = z.object({
   eligibility: z.string().trim().max(2000).nullable().optional(),
   application_url: z.string().url('Enter a valid application URL').nullable().optional(),
   deadline: isoDateString.nullable().optional(),
+  category_id: z.string().uuid().nullable().optional(),
   featured: z.boolean().optional(),
   verified: z.boolean().optional(),
   source_name: z.string().trim().max(150).nullable().optional(),

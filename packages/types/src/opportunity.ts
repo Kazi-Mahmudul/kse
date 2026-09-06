@@ -48,10 +48,13 @@ export interface Opportunity {
   eligibility: string | null;
   application_url: string | null;
   deadline: string | null;
+  category_id: string | null;
   published_at: string | null;
   status: OpportunityStatus;
   featured: boolean;
   verified: boolean;
+  verified_at: string | null;
+  verified_by: string | null;
   source_name: string | null;
   source_url: string | null;
   created_by: string | null;
@@ -70,6 +73,7 @@ export interface OpportunitySummary {
   location: string | null;
   opportunity_mode: OpportunityMode | null;
   deadline: string | null;
+  category_id: string | null;
   status: OpportunityStatus;
   featured: boolean;
   verified: boolean;

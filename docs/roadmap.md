@@ -5,7 +5,7 @@ Build order from CLAUDE.md §30. Update as steps complete.
 | # | Step | Status |
 |---|---|---|
 | 1 | Repository + Supabase setup | ✅ Done |
-| 2 | Database schema | ⬜ |
+| 2 | Database schema | ✅ Done |
 | 3 | Authentication | ⬜ |
 | 4 | Mobile navigation / design system | ⬜ |
 | 5 | Student profile | ⬜ |
