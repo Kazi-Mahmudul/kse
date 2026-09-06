@@ -1,0 +1,10 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+
+# Build scripts are intentionally disabled for these native deps
+# (moved from apps/admin so the workspace root stays authoritative).
+allowBuilds:
+  sharp: false
+  unrs-resolver: false
+

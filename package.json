@@ -1,0 +1,17 @@
+{
+  "name": "kse",
+  "version": "0.1.0",
+  "private": true,
+  "description": "KSE (Khulna Student Ecosystem) — mobile-first student platform for discovering and managing opportunities.",
+  "packageManager": "pnpm@12.3.4",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "lint": "pnpm -r run lint",
+    "typecheck": "pnpm -r run typecheck",
+    "test": "pnpm -r run test",
+    "build": "pnpm -r run build",
+    "clean": "pnpm -r exec rm -rf node_modules dist && rm -rf node_modules"
+  }
+}

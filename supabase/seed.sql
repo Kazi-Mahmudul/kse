@@ -1,0 +1,5 @@
+-- KSE seed data
+--
+-- Loaded by `supabase db reset` after migrations.
+-- Master data (universities, departments, subjects, skills, categories, tags)
+-- is added here in step 2 (Database schema).
