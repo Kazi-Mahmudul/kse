@@ -5,17 +5,23 @@
 -- sets that config with the user's UUID and assumes the `authenticated` role.
 
 begin;
-select plan(17);
+-- pgTAP is not part of any migration; install it per-run so `db test` is
+-- self-contained after `db reset` (extension installs don't survive resets).
+create extension if not exists pgtap with schema extensions;
+select plan(19);
 
 -- ── Fixtures (created as postgres, which bypasses RLS) ─────────────────────
 
+-- The handle_new_user trigger already inserts bare profiles for these rows,
+-- so upsert the friendly names instead of plain-inserting (would duplicate).
 insert into auth.users (id, email) values
   ('00000000-0000-0000-0000-0000000000aa', 'a@test.kse'),
   ('00000000-0000-0000-0000-0000000000bb', 'b@test.kse');
 
 insert into public.profiles (id, full_name) values
   ('00000000-0000-0000-0000-0000000000aa', 'Student A'),
-  ('00000000-0000-0000-0000-0000000000bb', 'Student B');
+  ('00000000-0000-0000-0000-0000000000bb', 'Student B')
+on conflict (id) do update set full_name = excluded.full_name;
 
 -- A draft opportunity that must never be visible to clients.
 insert into public.opportunities (type, title, organization_name, status) values
@@ -235,6 +241,26 @@ select is(
    where search_vector @@ to_tsquery('simple', 'react')),
   1::bigint,
   'search_vector finds the React internship'
+);
+
+-- ── Signup auto-provisions profile + student role (spec §9) ────────────────
+
+insert into auth.users (id, email, raw_user_meta_data)
+values ('00000000-0000-0000-0000-0000000000cc', 'c@test.kse',
+        '{"full_name": "Student C"}');
+
+select is(
+  (select full_name from public.profiles
+   where id = '00000000-0000-0000-0000-0000000000cc'),
+  'Student C',
+  'signup creates a profile with the provided full name'
+);
+
+select is(
+  (select count(*) from public.user_roles
+   where user_id = '00000000-0000-0000-0000-0000000000cc' and role = 'student'),
+  1::bigint,
+  'signup grants the default student role'
 );
 
 select finish();

@@ -14,6 +14,13 @@ export const Colors = {
     backgroundElement: '#F0F0F3',
     backgroundSelected: '#E0E1E6',
     textSecondary: '#60646C',
+    // Brand (docs/design/tokens.md)
+    primary: '#4F46E5',
+    primaryDark: '#7C3AED',
+    onPrimary: '#ffffff',
+    success: '#10B981',
+    warning: '#F59E0B',
+    danger: '#F43F5E',
   },
   dark: {
     text: '#ffffff',
@@ -21,6 +28,13 @@ export const Colors = {
     backgroundElement: '#212225',
     backgroundSelected: '#2E3135',
     textSecondary: '#B0B4BA',
+    // Brand (docs/design/tokens.md)
+    primary: '#6366F1',
+    primaryDark: '#8B5CF6',
+    onPrimary: '#ffffff',
+    success: '#34D399',
+    warning: '#FBBF24',
+    danger: '#FB7185',
   },
 } as const;
 
