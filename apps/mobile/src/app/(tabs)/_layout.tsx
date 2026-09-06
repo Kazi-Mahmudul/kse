@@ -1,12 +1,19 @@
-import { AnimatedSplashOverlay } from '@/components/animated-icon';
-import AppTabs from '@/components/app-tabs';
+import { Tabs } from 'expo-router';
 
-/** Main app (signed-in) tabs: Home + Explore today; more arrive in step 4. */
+import { AnimatedSplashOverlay } from '@/components/animated-icon';
+import { TabsBar } from '@/components/tabs-bar';
+
+/** Main app tabs: Home, Explore, (+ quick actions), Community, Profile (§32). */
 export default function TabsLayout() {
   return (
     <>
       <AnimatedSplashOverlay />
-      <AppTabs />
+      <Tabs screenOptions={{ headerShown: false }} tabBar={(props) => <TabsBar {...props} />}>
+        <Tabs.Screen name="index" />
+        <Tabs.Screen name="explore" />
+        <Tabs.Screen name="community" />
+        <Tabs.Screen name="profile" />
+      </Tabs>
     </>
   );
 }

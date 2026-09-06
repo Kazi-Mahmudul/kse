@@ -1,81 +1,108 @@
+import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
+import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { AnimatedIcon } from '@/components/animated-icon';
-import { PrimaryButton } from '@/components/ui/primary-button';
 import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
-import { signOut } from '@/features/auth/service';
+import { Card } from '@/components/ui/card';
+import { EmptyState } from '@/components/ui/empty-state';
+import { PrimaryButton } from '@/components/ui/primary-button';
+import { Screen } from '@/components/ui/screen';
+import { SearchBar } from '@/components/ui/search-bar';
+import { SectionHeader } from '@/components/ui/section-header';
+import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useAuthStore } from '@/store/auth-store';
 
 /**
- * Placeholder home — the real feed (recommended opportunities, quick access)
- * arrives with step 6+. Proves the auth loop end to end.
+ * Home shell — greeting, search, promo banner, recommendations slot.
+ * Live opportunity data lands in step 8 (opportunity list).
  */
 export default function HomeScreen() {
   const colors = useTheme();
   const session = useAuthStore((s) => s.session);
-  const email = session?.user.email ?? 'student';
-  const firstName = email.split('@')[0];
+  const [query, setQuery] = useState('');
+
+  const fullName = (session?.user.user_metadata?.full_name as string | undefined) ?? '';
+  const firstName = fullName.trim().split(/\s+/)[0] || session?.user.email?.split('@')[0] || 'there';
 
   return (
-    <ThemedView style={styles.container}>
-      <SafeAreaView style={styles.safeArea}>
-        <View style={styles.hero}>
-          <AnimatedIcon />
-          <ThemedText type="title">Hi {firstName} 👋</ThemedText>
-          <ThemedText type="default" style={{ color: colors.textSecondary }}>
-            Signed in as {email}
+    <Screen>
+      <View style={styles.greeting}>
+        <View>
+          <ThemedText type="small" themeColor="textSecondary">
+            Welcome back
           </ThemedText>
+          <ThemedText type="subtitle">Hi {firstName} 👋</ThemedText>
         </View>
+        <View style={[styles.avatar, { backgroundColor: `${colors.primary}1A` }]}>
+          <Ionicons name="person" size={20} color={colors.primary} />
+        </View>
+      </View>
 
-        <ThemedView type="backgroundElement" style={styles.card}>
-          <ThemedText type="smallBold">You&apos;re all set</ThemedText>
-          <ThemedText type="small" style={{ color: colors.textSecondary }}>
-            Your personalized opportunity feed is coming in the next step.
-          </ThemedText>
-        </ThemedView>
+      <SearchBar
+        value={query}
+        onChangeText={setQuery}
+        onSubmitEditing={() => router.push('/(tabs)/explore')}
+      />
 
-        <PrimaryButton
-          label="Sign out"
-          variant="outline"
-          onPress={() => {
-            void signOut();
-          }}
-        />
-      </SafeAreaView>
-    </ThemedView>
+      <Card tint="primary">
+        <View style={styles.banner}>
+          <View style={styles.bannerText}>
+            <ThemedText type="subtitle" themeColor="onPrimary">
+              Internship Opportunities
+            </ThemedText>
+            <ThemedText type="small" themeColor="onPrimary">
+              Handpicked internships from verified organizations — find one that fits you.
+            </ThemedText>
+          </View>
+          <PrimaryButton
+            label="Browse"
+            onPress={() => router.push('/(tabs)/explore/internship')}
+            style={styles.bannerButton}
+          />
+        </View>
+      </Card>
+
+      <SectionHeader
+        title="Recommended for you"
+        actionLabel="See all"
+        onAction={() => router.push('/(tabs)/explore')}
+      />
+      <EmptyState
+        icon="sparkles-outline"
+        title="Personalized picks are coming"
+        message="Complete your profile in the next step and we'll match opportunities to your skills and interests."
+        actionLabel="Set up my profile"
+        onAction={() => router.push('/(tabs)/profile')}
+      />
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
+  greeting: {
     flexDirection: 'row',
-    justifyContent: 'center',
-  },
-  safeArea: {
-    flex: 1,
-    paddingHorizontal: Spacing.four,
     alignItems: 'center',
-    gap: Spacing.three,
-    paddingBottom: BottomTabInset + Spacing.three,
-    maxWidth: MaxContentWidth,
+    justifyContent: 'space-between',
   },
-  hero: {
+  avatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 999,
     alignItems: 'center',
     justifyContent: 'center',
-    flex: 1,
-    gap: Spacing.two,
   },
-  card: {
-    alignSelf: 'stretch',
+  banner: {
+    gap: Spacing.two + 4,
+  },
+  bannerText: {
     gap: Spacing.one,
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.three,
-    borderRadius: Spacing.four,
-    marginBottom: Spacing.two,
+  },
+  bannerButton: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: Spacing.four,
+    minHeight: 42,
+    backgroundColor: '#ffffff',
   },
 });
