@@ -1,10 +1,12 @@
 import type {
+  AcademicLevel,
   OpportunityMode,
   OpportunityStatus,
   OpportunityType,
   UserRole,
 } from '@kse/types';
 import {
+  ACADEMIC_LEVELS,
   OPPORTUNITY_MODES,
   OPPORTUNITY_STATUSES,
   OPPORTUNITY_TYPES,
@@ -46,6 +48,14 @@ export const USER_ROLE_LABELS: Record<UserRole, string> = {
   super_admin: 'Super Admin',
 };
 
+export const ACADEMIC_LEVEL_LABELS: Record<AcademicLevel, string> = {
+  undergraduate: 'Undergraduate',
+  postgraduate: 'Postgraduate',
+  hsc: 'HSC',
+  ssc: 'SSC',
+  other: 'Other',
+};
+
 /** Iterating enum options in UI (filters, admin selects). */
 export const OPPORTUNITY_TYPE_OPTIONS = OPPORTUNITY_TYPES.map((value) => ({
   value,
@@ -60,6 +70,11 @@ export const OPPORTUNITY_MODE_OPTIONS = OPPORTUNITY_MODES.map((value) => ({
 export const OPPORTUNITY_STATUS_OPTIONS = OPPORTUNITY_STATUSES.map((value) => ({
   value,
   label: OPPORTUNITY_STATUS_LABELS[value],
+}));
+
+export const ACADEMIC_LEVEL_OPTIONS = ACADEMIC_LEVELS.map((value) => ({
+  value,
+  label: ACADEMIC_LEVEL_LABELS[value],
 }));
 
 /** Bottom navigation tabs (CLAUDE.md §32). */

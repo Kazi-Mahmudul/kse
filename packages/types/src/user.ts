@@ -13,12 +13,15 @@ export const USER_ROLES = [
 
 export type UserRole = (typeof USER_ROLES)[number];
 
-export type AcademicLevel =
-  | 'undergraduate'
-  | 'postgraduate'
-  | 'hsc'
-  | 'ssc'
-  | 'other';
+export const ACADEMIC_LEVELS = [
+  'undergraduate',
+  'postgraduate',
+  'hsc',
+  'ssc',
+  'other',
+] as const;
+
+export type AcademicLevel = (typeof ACADEMIC_LEVELS)[number];
 
 /** Public + private profile fields; sensitive fields are private by default (CLAUDE.md §34). */
 export interface Profile {

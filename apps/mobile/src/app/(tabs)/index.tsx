@@ -72,7 +72,7 @@ export default function HomeScreen() {
       <EmptyState
         icon="sparkles-outline"
         title="Personalized picks are coming"
-        message="Complete your profile in the next step and we'll match opportunities to your skills and interests."
+        message="Add your university, skills and interests to your profile and we'll match opportunities to you."
         actionLabel="Set up my profile"
         onAction={() => router.push('/(tabs)/profile')}
       />
