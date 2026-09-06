@@ -1,5 +1,4 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Link } from 'expo-router';
 import { useForm } from 'react-hook-form';
 import {
   KeyboardAvoidingView,
@@ -12,6 +11,7 @@ import {
 
 import { PrimaryButton } from '@/components/ui/primary-button';
 import { TextField } from '@/components/ui/text-field';
+import { TextLink } from '@/components/ui/text-link';
 import { AuthError, signUp } from '@/features/auth/service';
 import { useTheme } from '@/hooks/use-theme';
 import { registerSchema } from '@kse/validation';
@@ -91,9 +91,7 @@ export default function RegisterScreen() {
 
         <View style={styles.footer}>
           <Text style={{ color: colors.textSecondary }}>Already have an account? </Text>
-          <Link href="/(auth)/login" asChild>
-            <Text style={[styles.link, { color: colors.primary }]}>Sign in</Text>
-          </Link>
+          <TextLink href="/(auth)/login">Sign in</TextLink>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -121,10 +119,6 @@ const styles = StyleSheet.create({
   },
   formError: {
     fontSize: 14,
-  },
-  link: {
-    fontSize: 15,
-    fontWeight: '600',
   },
   footer: {
     flexDirection: 'row',

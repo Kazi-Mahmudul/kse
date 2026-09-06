@@ -1,5 +1,4 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Link } from 'expo-router';
 import { useForm } from 'react-hook-form';
 import {
   KeyboardAvoidingView,
@@ -12,6 +11,7 @@ import {
 
 import { PrimaryButton } from '@/components/ui/primary-button';
 import { TextField } from '@/components/ui/text-field';
+import { TextLink } from '@/components/ui/text-link';
 import { AuthError, requestPasswordReset } from '@/features/auth/service';
 import { useTheme } from '@/hooks/use-theme';
 import { forgotPasswordSchema } from '@kse/validation';
@@ -68,9 +68,9 @@ export default function ForgotPasswordScreen() {
 
         <PrimaryButton label="Send reset link" loading={formState.isSubmitting} onPress={onSubmit} />
 
-        <Link href="/(auth)/login" asChild>
-          <Text style={[styles.link, { color: colors.primary }]}>Back to sign in</Text>
-        </Link>
+        <TextLink href="/(auth)/login" style={styles.backLink}>
+          Back to sign in
+        </TextLink>
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -98,9 +98,7 @@ const styles = StyleSheet.create({
   formError: {
     fontSize: 14,
   },
-  link: {
-    fontSize: 15,
-    fontWeight: '600',
+  backLink: {
     textAlign: 'center',
   },
 });

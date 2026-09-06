@@ -1,5 +1,4 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Link } from 'expo-router';
 import { useForm } from 'react-hook-form';
 import {
   KeyboardAvoidingView,
@@ -12,6 +11,7 @@ import {
 
 import { PrimaryButton } from '@/components/ui/primary-button';
 import { TextField } from '@/components/ui/text-field';
+import { TextLink } from '@/components/ui/text-link';
 import { AuthError, signIn } from '@/features/auth/service';
 import { useTheme } from '@/hooks/use-theme';
 import { loginSchema } from '@kse/validation';
@@ -77,15 +77,11 @@ export default function LoginScreen() {
           onPress={onSubmit}
         />
 
-        <Link href="/(auth)/forgot-password" asChild>
-          <Text style={[styles.link, { color: colors.primary }]}>Forgot password?</Text>
-        </Link>
+        <TextLink href="/(auth)/forgot-password">Forgot password?</TextLink>
 
         <View style={styles.footer}>
           <Text style={{ color: colors.textSecondary }}>New to KSE? </Text>
-          <Link href="/(auth)/register" asChild>
-            <Text style={[styles.link, { color: colors.primary }]}>Create an account</Text>
-          </Link>
+          <TextLink href="/(auth)/register">Create an account</TextLink>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -113,10 +109,6 @@ const styles = StyleSheet.create({
   },
   formError: {
     fontSize: 14,
-  },
-  link: {
-    fontSize: 15,
-    fontWeight: '600',
   },
   footer: {
     flexDirection: 'row',
