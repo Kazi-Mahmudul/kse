@@ -1,52 +1,86 @@
-import { Ionicons } from '@expo/vector-icons';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
-import { Pressable, StyleSheet, View } from 'react-native';
 
-import { ThemedText } from '@/components/themed-text';
+import { BackHeader } from '@/components/back-header';
+import { OpportunityCard } from '@/components/opportunity-card';
 import { EmptyState } from '@/components/ui/empty-state';
+import { PrimaryButton } from '@/components/ui/primary-button';
 import { Screen } from '@/components/ui/screen';
 import { Spacing } from '@/constants/theme';
-import { useTheme } from '@/hooks/use-theme';
 import { findCategory } from '@/features/explore/categories';
+import { useOpportunities } from '@/features/opportunities/queries';
+import { useTheme } from '@/hooks/use-theme';
+import { OPPORTUNITY_TYPES, type OpportunityType } from '@kse/types';
 
-/**
- * Per-category placeholder — real listings (Supabase + TanStack Query,
- * pagination, filters) arrive with step 8 "Mobile opportunity list".
- */
+/** Per-type listing (step 8). Tuition/tutor discovery arrives with step 15. */
 export default function ExploreTypeScreen() {
   const colors = useTheme();
   const { type } = useLocalSearchParams<{ type: string }>();
   const category = type ? findCategory(type) : undefined;
+  const isOpportunityType = OPPORTUNITY_TYPES.includes(type as OpportunityType);
 
-  return (
-    <Screen>
-      <View style={styles.header}>
-        <Pressable
-          onPress={() => router.back()}
-          accessibilityRole="button"
-          accessibilityLabel="Go back"
-          style={({ pressed }) => [styles.back, pressed && styles.pressed]}
-        >
-          <Ionicons name="chevron-back" size={24} color={colors.text} />
-        </Pressable>
-        <ThemedText type="subtitle">{category?.label ?? 'Explore'}</ThemedText>
-      </View>
+  const query = useOpportunities(type as OpportunityType);
+  const rows = query.data?.pages.flatMap((page) => page.rows) ?? [];
 
-      {category ? (
+  // Tuition has its own tutors module (step 15) — no opportunity rows.
+  if (category && !isOpportunityType) {
+    return (
+      <Screen>
+        <BackHeader title={category.label} />
         <EmptyState
           icon={category.icon}
-          title={`${category.label} listings are coming`}
-          message="Verified, hand-managed listings appear here once the opportunities module ships."
+          title={`${category.label} discovery is coming`}
+          message="Tutor profiles, subjects and requests land with the tuition module."
           actionLabel="Back to categories"
           onAction={() => router.back()}
         />
-      ) : (
+      </Screen>
+    );
+  }
+
+  return (
+    <Screen>
+      <BackHeader title={category?.label ?? 'Explore'} />
+
+      {query.isPending && (
+        <View style={styles.centered}>
+          <ActivityIndicator size="large" color={colors.primary} />
+        </View>
+      )}
+
+      {query.isError && (
         <EmptyState
-          icon="alert-circle-outline"
-          title="Unknown section"
-          message="This explore section does not exist yet."
-          actionLabel="Back to categories"
-          onAction={() => router.back()}
+          icon="cloud-offline-outline"
+          title="Could not load listings"
+          message={(query.error as Error).message}
+          actionLabel="Try again"
+          onAction={() => query.refetch()}
+        />
+      )}
+
+      {query.isSuccess && rows.length === 0 && (
+        <EmptyState
+          icon={category?.icon ?? 'search-outline'}
+          title={`No ${category?.label.toLowerCase() ?? 'listings'} right now`}
+          message="New verified listings are added regularly — check back soon."
+          actionLabel="Refresh"
+          onAction={() => query.refetch()}
+        />
+      )}
+
+      {rows.length > 0 && (
+        <View style={styles.list}>
+          {rows.map((opportunity) => (
+            <OpportunityCard key={opportunity.id} opportunity={opportunity} />
+          ))}
+        </View>
+      )}
+
+      {query.hasNextPage && (
+        <PrimaryButton
+          label={query.isFetchingNextPage ? 'Loading…' : 'Load more'}
+          loading={query.isFetchingNextPage}
+          onPress={() => query.fetchNextPage()}
         />
       )}
     </Screen>
@@ -54,16 +88,11 @@ export default function ExploreTypeScreen() {
 }
 
 const styles = StyleSheet.create({
-  header: {
-    flexDirection: 'row',
+  centered: {
     alignItems: 'center',
-    gap: Spacing.two,
+    paddingVertical: Spacing.six,
   },
-  back: {
-    padding: Spacing.one,
-    marginLeft: -Spacing.one + 2,
-  },
-  pressed: {
-    opacity: 0.7,
+  list: {
+    gap: Spacing.two + 2,
   },
 });

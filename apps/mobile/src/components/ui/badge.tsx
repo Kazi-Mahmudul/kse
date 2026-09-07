@@ -3,7 +3,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { ThemeColor } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
-type BadgeTone = Extract<ThemeColor, 'primary' | 'success' | 'warning' | 'danger'>;
+type BadgeTone = Extract<ThemeColor, 'primary' | 'success' | 'warning' | 'danger'> | 'neutral';
 
 interface BadgeProps {
   label: string;
@@ -13,7 +13,7 @@ interface BadgeProps {
 /** Small tinted pill ("Remote", "New", deadline markers). */
 export function Badge({ label, tone = 'primary' }: BadgeProps) {
   const colors = useTheme();
-  const color = colors[tone];
+  const color = tone === 'neutral' ? colors.textSecondary : colors[tone];
 
   return (
     <View style={[styles.badge, { backgroundColor: `${color}22` }]}>

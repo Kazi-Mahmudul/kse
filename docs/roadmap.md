@@ -11,7 +11,7 @@ Build order from CLAUDE.md §30. Update as steps complete.
 | 5 | Student profile | ✅ Done |
 | 6 | Admin authentication | ✅ Done |
 | 7 | Admin opportunity CRUD | ✅ Done |
-| 8 | Mobile opportunity list/detail | ⬜ |
+| 8 | Mobile opportunity list/detail | ✅ Done |
 | 9 | Search / filter | ⬜ |
 | 10 | Bookmark | ⬜ |
 | 11 | Dashboard | ⬜ |

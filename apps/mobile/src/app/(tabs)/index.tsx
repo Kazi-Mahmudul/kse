@@ -1,8 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
+import { OpportunityCard } from '@/components/opportunity-card';
 import { ThemedText } from '@/components/themed-text';
 import { Card } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -11,17 +12,20 @@ import { Screen } from '@/components/ui/screen';
 import { SearchBar } from '@/components/ui/search-bar';
 import { SectionHeader } from '@/components/ui/section-header';
 import { Spacing } from '@/constants/theme';
+import { useLatestOpportunities } from '@/features/opportunities/queries';
 import { useTheme } from '@/hooks/use-theme';
 import { useAuthStore } from '@/store/auth-store';
 
 /**
- * Home shell — greeting, search, promo banner, recommendations slot.
- * Live opportunity data lands in step 8 (opportunity list).
+ * Home shell — greeting, search, promo banner, latest published
+ * opportunities (step 8) and the recommendations slot (step 9+).
  */
 export default function HomeScreen() {
   const colors = useTheme();
   const session = useAuthStore((s) => s.session);
   const [query, setQuery] = useState('');
+  const latestQuery = useLatestOpportunities(4);
+  const latest = latestQuery.data ?? [];
 
   const fullName = (session?.user.user_metadata?.full_name as string | undefined) ?? '';
   const firstName = fullName.trim().split(/\s+/)[0] || session?.user.email?.split('@')[0] || 'there';
@@ -65,10 +69,40 @@ export default function HomeScreen() {
       </Card>
 
       <SectionHeader
-        title="Recommended for you"
+        title="Latest opportunities"
         actionLabel="See all"
         onAction={() => router.push('/(tabs)/explore')}
       />
+      {latestQuery.isPending && (
+        <View style={styles.centered}>
+          <ActivityIndicator color={colors.primary} />
+        </View>
+      )}
+      {latestQuery.isError && (
+        <EmptyState
+          icon="cloud-offline-outline"
+          title="Could not load opportunities"
+          message={(latestQuery.error as Error).message}
+          actionLabel="Try again"
+          onAction={() => latestQuery.refetch()}
+        />
+      )}
+      {latestQuery.isSuccess && latest.length === 0 && (
+        <EmptyState
+          icon="sparkles-outline"
+          title="Nothing published yet"
+          message="Verified listings are on their way — check back soon."
+          actionLabel="Explore categories"
+          onAction={() => router.push('/(tabs)/explore')}
+        />
+      )}
+      <View style={styles.latestList}>
+        {latest.map((opportunity) => (
+          <OpportunityCard key={opportunity.id} opportunity={opportunity} showType />
+        ))}
+      </View>
+
+      <SectionHeader title="Recommended for you" />
       <EmptyState
         icon="sparkles-outline"
         title="Personalized picks are coming"
@@ -104,5 +138,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.four,
     minHeight: 42,
     backgroundColor: '#ffffff',
+  },
+  centered: {
+    alignItems: 'center',
+    paddingVertical: Spacing.three,
+  },
+  latestList: {
+    gap: Spacing.two + 2,
   },
 });
