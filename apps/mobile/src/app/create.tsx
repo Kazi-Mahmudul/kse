@@ -17,6 +17,12 @@ const ACTIONS: {
   href: Href;
 }[] = [
   {
+    label: 'My dashboard',
+    description: 'Profile score, saved opportunities and upcoming deadlines',
+    icon: 'grid-outline',
+    href: '/(tabs)/dashboard',
+  },
+  {
     label: 'Browse internships',
     description: 'Curated internships from verified organizations',
     icon: 'briefcase-outline',

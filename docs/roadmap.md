@@ -14,7 +14,7 @@ Build order from CLAUDE.md §30. Update as steps complete.
 | 8 | Mobile opportunity list/detail | ✅ Done |
 | 9 | Search / filter | ✅ Done |
 | 10 | Bookmark | ✅ Done |
-| 11 | Dashboard | ⬜ |
+| 11 | Dashboard | ✅ Done |
 | 12 | Events | ⬜ |
 | 13 | Scholarship | ⬜ |
 | 14 | Internship | ⬜ |

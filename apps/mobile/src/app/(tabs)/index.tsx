@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 
 import { OpportunityCard } from '@/components/opportunity-card';
 import { ThemedText } from '@/components/themed-text';
@@ -39,9 +39,14 @@ export default function HomeScreen() {
           </ThemedText>
           <ThemedText type="subtitle">Hi {firstName} 👋</ThemedText>
         </View>
-        <View style={[styles.avatar, { backgroundColor: `${colors.primary}1A` }]}>
+        <Pressable
+          onPress={() => router.push('/(tabs)/dashboard')}
+          accessibilityRole="button"
+          accessibilityLabel="Dashboard"
+          style={[styles.avatar, { backgroundColor: `${colors.primary}1A` }]}
+        >
           <Ionicons name="person" size={20} color={colors.primary} />
-        </View>
+        </Pressable>
       </View>
 
       <SearchBar

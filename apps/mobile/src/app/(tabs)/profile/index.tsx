@@ -149,6 +149,20 @@ export default function ProfileScreen() {
       )}
 
       <SectionHeader title="Quick links" />
+      <Card onPress={() => router.push('/(tabs)/dashboard')}>
+        <View style={styles.infoRow}>
+          <View style={[styles.infoIcon, { backgroundColor: `${colors.primary}1A` }]}>
+            <Ionicons name="grid-outline" size={16} color={colors.primary} />
+          </View>
+          <View style={styles.infoText}>
+            <ThemedText type="smallBold">My dashboard</ThemedText>
+            <ThemedText type="small" themeColor="textSecondary">
+              Completion, deadlines and communities at a glance
+            </ThemedText>
+          </View>
+          <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
+        </View>
+      </Card>
       <Card onPress={() => router.push('/(tabs)/saved')}>
         <View style={styles.infoRow}>
           <View style={[styles.infoIcon, { backgroundColor: `${colors.primary}1A` }]}>
