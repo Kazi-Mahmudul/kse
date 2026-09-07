@@ -47,7 +47,12 @@ export default function HomeScreen() {
       <SearchBar
         value={query}
         onChangeText={setQuery}
-        onSubmitEditing={() => router.push('/(tabs)/explore')}
+        onSubmitEditing={() =>
+          router.push({
+            pathname: '/(tabs)/search',
+            params: query.trim() ? { q: query.trim() } : {},
+          })
+        }
       />
 
       <Card tint="primary">

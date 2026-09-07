@@ -1,6 +1,7 @@
 import { supabase } from '@/lib/supabase';
 import type {
   Opportunity,
+  OpportunityMode,
   OpportunitySummary,
   OpportunityType,
 } from '@kse/types';
@@ -17,44 +18,79 @@ export interface OpportunityPage {
   hasMore: boolean;
 }
 
+/** Filter set shared by the search screen and per-type listings. */
+export interface OpportunityFilters {
+  /** Free-text query → search_vector full-text search. */
+  q?: string;
+  type?: OpportunityType;
+  mode?: OpportunityMode;
+  /** Only opportunities whose deadline falls within N days (and is ahead). */
+  deadlineWithinDays?: number | null;
+}
+
 export class OpportunityError extends Error {}
 
 function fail(context: string, message: string): never {
   throw new OpportunityError(`${context}: ${message}`);
 }
 
-/** One page of a type listing, soonest deadlines first. */
-export async function listOpportunities(options: {
-  type: OpportunityType;
-  page: number;
-  pageSize?: number;
-}): Promise<OpportunityPage> {
-  const pageSize = options.pageSize ?? 10;
-  const from = (options.page - 1) * pageSize;
+/** Strips tsquery operators; \p{L} keeps Bangla and English words. */
+export function sanitizeSearchQuery(q: string): string {
+  return q.replace(/[^\p{L}\p{N}\s]/gu, ' ').trim();
+}
 
-  const { data, error } = await supabase
+const SUMMARY_SELECT =
+  'id, type, title, organization_name, summary, image_url, location, opportunity_mode, deadline, featured, verified';
+
+/** One page of opportunities matching text + filters, soonest deadline first. */
+export async function fetchOpportunities(
+  filters: OpportunityFilters,
+  page: number,
+  pageSize = 10,
+): Promise<OpportunityPage> {
+  const from = (page - 1) * pageSize;
+
+  let query = supabase
     .from('opportunities')
-    .select(
-      'id, type, title, organization_name, summary, image_url, location, opportunity_mode, deadline, featured, verified',
-    )
-    .eq('status', 'published')
-    .eq('type', options.type)
+    .select(SUMMARY_SELECT)
+    .eq('status', 'published');
+
+  if (filters.type) {
+    query = query.eq('type', filters.type);
+  }
+  if (filters.mode) {
+    query = query.eq('opportunity_mode', filters.mode);
+  }
+  if (filters.deadlineWithinDays) {
+    const now = new Date().toISOString();
+    const until = new Date(
+      Date.now() + filters.deadlineWithinDays * 24 * 60 * 60 * 1000,
+    ).toISOString();
+    query = query.gte('deadline', now).lte('deadline', until);
+  }
+  const sanitized = filters.q ? sanitizeSearchQuery(filters.q) : '';
+  if (sanitized) {
+    // PostgREST v16 parenthesizes the tsquery config (`plfts(simple).q`);
+    // postgrest-js textSearch() still emits the old dot form, which silently
+    // matches nothing there — so build the operator ourselves.
+    query = query.filter('search_vector', 'plfts(simple)', sanitized);
+  }
+
+  const { data, error } = await query
     .order('deadline', { ascending: true, nullsFirst: false })
     .order('published_at', { ascending: false })
     .range(from, from + pageSize - 1);
 
   if (error) fail('Could not load opportunities', error.message);
   const rows = (data ?? []) as OpportunitySummary[];
-  return { rows, page: options.page, hasMore: rows.length === pageSize };
+  return { rows, page, hasMore: rows.length === pageSize };
 }
 
 /** Newest published opportunities across types (home "Latest"). */
 export async function listLatestOpportunities(limit = 4): Promise<OpportunitySummary[]> {
   const { data, error } = await supabase
     .from('opportunities')
-    .select(
-      'id, type, title, organization_name, summary, image_url, location, opportunity_mode, deadline, featured, verified',
-    )
+    .select(SUMMARY_SELECT)
     .eq('status', 'published')
     .order('published_at', { ascending: false })
     .limit(limit);

@@ -9,6 +9,7 @@ interface SearchBarProps {
   onChangeText: (text: string) => void;
   onSubmitEditing?: () => void;
   placeholder?: string;
+  autoFocus?: boolean;
 }
 
 /** Pill search field (tokens "Shape"). Debouncing is the caller's job (spec §33). */
@@ -17,6 +18,7 @@ export function SearchBar({
   onChangeText,
   onSubmitEditing,
   placeholder = 'Search opportunities, tutors…',
+  autoFocus = false,
 }: SearchBarProps) {
   const colors = useTheme();
 
@@ -27,6 +29,7 @@ export function SearchBar({
         value={value}
         onChangeText={onChangeText}
         onSubmitEditing={onSubmitEditing}
+        autoFocus={autoFocus}
         placeholder={placeholder}
         placeholderTextColor={colors.textSecondary}
         returnKeyType="search"
