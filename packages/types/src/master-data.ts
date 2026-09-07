@@ -34,3 +34,8 @@ export interface Subject {
   created_at: string;
   updated_at: string;
 }
+
+/** Lifecycle of user-generated/content rows (tutors, communities, …). */
+export const CONTENT_STATUSES = ['active', 'hidden', 'removed'] as const;
+
+export type ContentStatus = (typeof CONTENT_STATUSES)[number];

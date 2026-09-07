@@ -236,3 +236,95 @@ where id = '22222222-2222-2222-2222-222222222203';
 update public.opportunities set
   degree_level = 'undergraduate', funding_type = 'partial', country = 'Multiple countries'
 where id = '22222222-2222-2222-2222-222222222204';
+
+-- ── Tutor demo data (roadmap step 15) ────────────────────────────────────────
+-- Password: tutor12345 — local dev only; do not use in production.
+
+insert into auth.users (
+  id, instance_id, aud, role, email,
+  encrypted_password, email_confirmed_at,
+  raw_app_meta_data, raw_user_meta_data,
+  created_at, updated_at,
+  confirmation_token, recovery_token, email_change, email_change_token_new
+) values
+  ('22222222-2222-2222-2222-222222222211', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated',
+   'tutor1@kse.local', extensions.crypt('tutor12345', extensions.gen_salt('bf')), now(),
+   '{"provider":"email","providers":["email"]}', '{"full_name":"Tanvir Ahmed"}', now(), now(), '', '', '', ''),
+  ('22222222-2222-2222-2222-222222222212', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated',
+   'tutor2@kse.local', extensions.crypt('tutor12345', extensions.gen_salt('bf')), now(),
+   '{"provider":"email","providers":["email"]}', '{"full_name":"Nusrat Jahan"}', now(), now(), '', '', '', ''),
+  ('22222222-2222-2222-2222-222222222213', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated',
+   'tutor3@kse.local', extensions.crypt('tutor12345', extensions.gen_salt('bf')), now(),
+   '{"provider":"email","providers":["email"]}', '{"full_name":"Rafiul Islam"}', now(), now(), '', '', '', '')
+on conflict (id) do update
+  set encrypted_password = excluded.encrypted_password,
+      email_confirmed_at = excluded.email_confirmed_at;
+
+insert into auth.identities (
+  id, user_id, provider_id, identity_data, provider, last_sign_in_at, created_at, updated_at
+) values
+  ('22222222-2222-2222-2222-222222222211', '22222222-2222-2222-2222-222222222211',
+   '22222222-2222-2222-2222-222222222211',
+   '{"sub":"22222222-2222-2222-2222-222222222211","email":"tutor1@kse.local","email_verified":true}'::jsonb,
+   'email', now(), now(), now()),
+  ('22222222-2222-2222-2222-222222222212', '22222222-2222-2222-2222-222222222212',
+   '22222222-2222-2222-2222-222222222212',
+   '{"sub":"22222222-2222-2222-2222-222222222212","email":"tutor2@kse.local","email_verified":true}'::jsonb,
+   'email', now(), now(), now()),
+  ('22222222-2222-2222-2222-222222222213', '22222222-2222-2222-2222-222222222213',
+   '22222222-2222-2222-2222-222222222213',
+   '{"sub":"22222222-2222-2222-2222-222222222213","email":"tutor3@kse.local","email_verified":true}'::jsonb,
+   'email', now(), now(), now())
+on conflict (id) do update set identity_data = excluded.identity_data;
+
+-- The signup trigger granted 'student'; swap it for the tutor role.
+insert into public.user_roles (user_id, role)
+values
+  ('22222222-2222-2222-2222-222222222211', 'tutor'),
+  ('22222222-2222-2222-2222-222222222212', 'tutor'),
+  ('22222222-2222-2222-2222-222222222213', 'tutor')
+on conflict (user_id, role) do nothing;
+
+delete from public.user_roles
+where user_id in ('22222222-2222-2222-2222-222222222211',
+                  '22222222-2222-2222-2222-222222222212',
+                  '22222222-2222-2222-2222-222222222213')
+  and role = 'student';
+
+update public.profiles set full_name = 'Tanvir Ahmed'
+where id = '22222222-2222-2222-2222-222222222211';
+update public.profiles set full_name = 'Nusrat Jahan'
+where id = '22222222-2222-2222-2222-222222222212';
+update public.profiles set full_name = 'Rafiul Islam'
+where id = '22222222-2222-2222-2222-222222222213';
+
+insert into public.tutors (id, headline, bio, university_id, location, expected_fee_min, expected_fee_max, availability, is_verified, status) values
+  ('22222222-2222-2222-2222-222222222211', 'CSE undergrad teaching programming fundamentals',
+   'Third-year KUET CSE student. I run small-group sessions for C, DSA and OOP with hands-on problem solving.',
+   '11111111-1111-1111-1111-111111111102', 'Khulna', 3000, 5000, 'Evenings & weekends', true, 'active'),
+  ('22222222-2222-2222-2222-222222222212', 'Math & physics tutor for HSC and first-year students',
+   'EEE student at KUET with 3 years of tutoring experience. Focus on concept building and exam preparation.',
+   '11111111-1111-1111-1111-111111111102', 'Khulna', 2000, 3500, 'After 5pm, weekdays', true, 'active'),
+  ('22222222-2222-2222-2222-222222222213', 'Biology & chemistry tutor (Bangla medium)',
+   'MBBS student offering biology and chemistry classes for SSC/HSC candidates near Sonadanga.',
+   null, 'Khulna (Sonadanga)', 2500, 4000, 'Fridays & Saturdays', true, 'active')
+on conflict (id) do update
+  set headline = excluded.headline, bio = excluded.bio, university_id = excluded.university_id,
+      location = excluded.location, expected_fee_min = excluded.expected_fee_min,
+      expected_fee_max = excluded.expected_fee_max, availability = excluded.availability,
+      is_verified = excluded.is_verified, status = excluded.status;
+
+insert into public.tutor_subjects (tutor_id, subject_id)
+select '22222222-2222-2222-2222-222222222211', id from public.subjects
+where name in ('Programming in C', 'Data Structures and Algorithms', 'Object-Oriented Programming')
+on conflict do nothing;
+
+insert into public.tutor_subjects (tutor_id, subject_id)
+select '22222222-2222-2222-2222-222222222212', id from public.subjects
+where name in ('Mathematics', 'Physics')
+on conflict do nothing;
+
+insert into public.tutor_subjects (tutor_id, subject_id)
+select '22222222-2222-2222-2222-222222222213', id from public.subjects
+where name in ('Chemistry', 'Biology')
+on conflict do nothing;

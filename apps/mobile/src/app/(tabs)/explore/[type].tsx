@@ -19,7 +19,7 @@ import type { OpportunityFilters } from '@/features/opportunities/service';
 import { useTheme } from '@/hooks/use-theme';
 import { OPPORTUNITY_TYPES, type OpportunityType } from '@kse/types';
 
-/** Per-type listing with mode + deadline filters (steps 8–9). Tuition lands with step 15. */
+/** Per-type listing with mode + deadline filters (steps 8–9). Tuition has its own screen. */
 export default function ExploreTypeScreen() {
   const colors = useTheme();
   const { type } = useLocalSearchParams<{ type: string }>();
@@ -39,7 +39,7 @@ export default function ExploreTypeScreen() {
   );
   const rows = query.data?.pages.flatMap((page) => page.rows) ?? [];
 
-  // Tuition has its own tutors module (step 15) — no opportunity rows.
+  // Only mentorship still routes here without a listing module (step 15+).
   if (category && !isOpportunityType) {
     return (
       <Screen>
@@ -47,7 +47,7 @@ export default function ExploreTypeScreen() {
         <EmptyState
           icon={category.icon}
           title={`${category.label} discovery is coming`}
-          message="Tutor profiles, subjects and requests land with the tuition module."
+          message="Mentor profiles and mentorship requests arrive in a later release."
           actionLabel="Back to categories"
           onAction={() => router.back()}
         />
