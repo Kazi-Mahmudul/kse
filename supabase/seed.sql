@@ -206,3 +206,23 @@ where user_id = '22222222-2222-2222-2222-222222222201' and role = 'student';
 
 update public.profiles set full_name = 'KSE Admin'
 where id = '22222222-2222-2222-2222-222222222201';
+
+-- ── Opportunity categories + starter tags (roadmap step 7) ──────────────────
+
+insert into public.opportunity_categories (name, opportunity_type, sort_order) values
+  ('Internship', 'internship', 1),
+  ('Full-time Track', 'internship', 2),
+  ('Local Scholarship', 'scholarship', 1),
+  ('International Scholarship', 'scholarship', 2),
+  ('Tech Event', 'event', 1),
+  ('Campus Event', 'event', 2),
+  ('Skill Workshop', 'workshop', 1),
+  ('Career Workshop', 'workshop', 2),
+  ('Mentorship Program', 'mentorship', 1)
+on conflict (name) do nothing;
+
+insert into public.tags (name) values
+  ('software'), ('data'), ('design'), ('marketing'), ('finance'),
+  ('research'), ('engineering'), ('remote-friendly'), ('freshman-friendly'),
+  ('women-in-tech'), ('freelancing'), ('higher-study')
+on conflict (name) do nothing;
