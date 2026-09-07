@@ -19,7 +19,7 @@ Build order from CLAUDE.md §30. Update as steps complete.
 | 13 | Scholarship | ✅ Done |
 | 14 | Internship | ✅ Done |
 | 15 | Tuition / tutors | ✅ Done |
-| 16 | Community basic version | ⬜ |
+| 16 | Community basic version | ✅ Done |
 | 17 | Notifications | ⬜ |
 | 18 | Portfolio | ⬜ |
 | 19 | Analytics | ⬜ |

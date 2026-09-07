@@ -328,3 +328,51 @@ insert into public.tutor_subjects (tutor_id, subject_id)
 select '22222222-2222-2222-2222-222222222213', id from public.subjects
 where name in ('Chemistry', 'Biology')
 on conflict do nothing;
+
+-- ── Community demo data (roadmap step 16) ────────────────────────────────────
+
+insert into public.communities (id, name, slug, description, university_id, cover_image_url, status) values
+  ('33333333-3333-3333-3333-333333333301', 'Khulna Writers Circle', 'khulna-writers',
+   'Short story, poetry and essay workshops for students from any university in Khulna.',
+   null, null, 'active'),
+  ('33333333-3333-3333-3333-333333333302', 'KU Robotics Society', 'kuet-robotics',
+   'Line follower, Sumo bot, drone + Arduino practice sessions every other Friday.',
+   '11111111-1111-1111-1111-111111111102', null, 'active'),
+  ('33333333-3333-3333-3333-333333333303', 'North Western BCS Prep', 'nwu-bcs-prep',
+   'BCS preliminary + written prep group running since 2022.',
+   '11111111-1111-1111-1111-111111111103', null, 'active')
+on conflict (id) do update
+  set name = excluded.name, description = excluded.description, status = excluded.status;
+
+insert into public.community_members (community_id, user_id, role) values
+  ('33333333-3333-3333-3333-333333333301', '63068bb0-e8f5-4cd6-94b3-745730fc74ce', 'member'),
+  ('33333333-3333-3333-3333-333333333302', '63068bb0-e8f5-4cd6-94b3-745730fc74ce', 'member'),
+  ('33333333-3333-3333-3333-333333333302', '22222222-2222-2222-2222-222222222201', 'owner'),
+  ('33333333-3333-3333-3333-333333333303', '63068bb0-e8f5-4cd6-94b3-745730fc74ce', 'member')
+on conflict (community_id, user_id) do update
+  set role = excluded.role;
+
+-- Posts: 2 announcements (announcement=true via the kiosk role 'owner') + 3 regular posts.
+insert into public.community_posts (id, community_id, author_id, content, is_announcement, status) values
+  ('44444444-4444-4444-4444-444444444401',
+   '33333333-3333-3333-3333-333333333301',
+   '22222222-2222-2222-2222-222222222201',
+   'Welcome to Khulna Writers Circle! Drop a topic you want to workshop next week.', true, 'active'),
+  ('44444444-4444-4444-4444-444444444402',
+   '33333333-3333-3333-3333-333333333302',
+   '22222222-2222-2222-2222-222222222201',
+   'Robotics session moved to Sat 5pm in EE lab 2. Bring your hardware kits.', true, 'active'),
+  ('44444444-4444-4444-4444-444444444403',
+   '33333333-3333-3333-3333-333333333301',
+   '63068bb0-e8f5-4cd6-94b3-745730fc74ce',
+   'Anyone open to beta-reading a 1500-word short story this weekend?', false, 'active'),
+  ('44444444-4444-4444-4444-444444444404',
+   '33333333-3333-3333-3333-333333333302',
+   '63068bb0-e8f5-4cd6-94b3-745730fc74ce',
+   'Got the IR sensor working today thanks to Nusrat''s wiring tip.', false, 'active'),
+  ('44444444-4444-4444-4444-444444444405',
+   '33333333-3333-3333-3333-333333333303',
+   '63068bb0-e8f5-4cd6-94b3-745730fc74ce',
+   'Sharing my BCS Bangla notes (math + GK) to the group email tonight.', false, 'active')
+on conflict (id) do update
+  set content = excluded.content, is_announcement = excluded.is_announcement;
