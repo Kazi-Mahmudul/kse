@@ -2,7 +2,10 @@ import { StyleSheet, View } from 'react-native';
 
 import { Chip } from '@/components/ui/chip';
 import { Spacing } from '@/constants/theme';
-import type { OpportunityFilters } from '@/features/opportunities/service';
+import type {
+  OpportunityCategoryInfo,
+  OpportunityFilters,
+} from '@/features/opportunities/service';
 import { OPPORTUNITY_MODES, OPPORTUNITY_TYPES } from '@kse/types';
 import {
   OPPORTUNITY_MODE_LABELS,
@@ -20,16 +23,42 @@ interface OpportunityFilterBarProps {
   onChange: (patch: Partial<OpportunityFilters>) => void;
   /** Type chips only on the search screen — type lists already fix the type. */
   showType?: boolean;
+  /** Type-scoped category chips when a listing wants them (spec §6). */
+  categories?: OpportunityCategoryInfo[];
 }
 
-/** Horizontal chip rows for mode + deadline (step 9). Chips toggle off. */
+/** Horizontal chip rows for category / type / mode / deadline. Chips toggle off. */
 export function OpportunityFilterBar({
   filters,
   onChange,
   showType = false,
+  categories,
 }: OpportunityFilterBarProps) {
   return (
     <View style={styles.wrap}>
+      {categories && categories.length > 0 && (
+        <View style={styles.row}>
+          <Chip
+            label="All categories"
+            selected={!filters.categoryId}
+            onPress={() => onChange({ categoryId: undefined })}
+          />
+          {categories.map((category) => (
+            <Chip
+              key={category.id}
+              label={category.name}
+              selected={filters.categoryId === category.id}
+              onPress={() =>
+                onChange({
+                  categoryId:
+                    filters.categoryId === category.id ? undefined : category.id,
+                })
+              }
+            />
+          ))}
+        </View>
+      )}
+
       {showType && (
         <View style={styles.row}>
           <Chip

@@ -24,6 +24,8 @@ export interface OpportunityFilters {
   q?: string;
   type?: OpportunityType;
   mode?: OpportunityMode;
+  /** Type-scoped category (spec §6: "event type", "internship category", …). */
+  categoryId?: string;
   /** Only opportunities whose deadline falls within N days (and is ahead). */
   deadlineWithinDays?: number | null;
 }
@@ -39,7 +41,7 @@ export function sanitizeSearchQuery(q: string): string {
   return q.replace(/[^\p{L}\p{N}\s]/gu, ' ').trim();
 }
 
-const SUMMARY_SELECT =
+export const SUMMARY_SELECT =
   'id, type, title, organization_name, summary, image_url, location, opportunity_mode, deadline, featured, verified';
 
 /** One page of opportunities matching text + filters, soonest deadline first. */
@@ -60,6 +62,9 @@ export async function fetchOpportunities(
   }
   if (filters.mode) {
     query = query.eq('opportunity_mode', filters.mode);
+  }
+  if (filters.categoryId) {
+    query = query.eq('category_id', filters.categoryId);
   }
   if (filters.deadlineWithinDays) {
     const now = new Date().toISOString();
@@ -84,6 +89,29 @@ export async function fetchOpportunities(
   if (error) fail('Could not load opportunities', error.message);
   const rows = (data ?? []) as OpportunitySummary[];
   return { rows, page, hasMore: rows.length === pageSize };
+}
+
+export interface OpportunityCategoryInfo {
+  id: string;
+  name: string;
+}
+
+/** Type-scoped categories for the filter chips (public read, spec §6). */
+export async function listOpportunityCategories(
+  type?: OpportunityType,
+): Promise<OpportunityCategoryInfo[]> {
+  let query = supabase
+    .from('opportunity_categories')
+    .select('id, name')
+    .order('sort_order');
+
+  if (type) {
+    query = query.eq('opportunity_type', type);
+  }
+
+  const { data, error } = await query;
+  if (error) fail('Could not load categories', error.message);
+  return (data ?? []) as OpportunityCategoryInfo[];
 }
 
 /** Newest published opportunities across types (home "Latest"). */

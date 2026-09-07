@@ -10,7 +10,7 @@ import { PrimaryButton } from '@/components/ui/primary-button';
 import { Screen } from '@/components/ui/screen';
 import { Spacing } from '@/constants/theme';
 import { findCategory } from '@/features/explore/categories';
-import { useOpportunityFeed } from '@/features/opportunities/queries';
+import { useOpportunityCategories, useOpportunityFeed } from '@/features/opportunities/queries';
 import type { OpportunityFilters } from '@/features/opportunities/service';
 import { useTheme } from '@/hooks/use-theme';
 import { OPPORTUNITY_TYPES, type OpportunityType } from '@kse/types';
@@ -27,6 +27,9 @@ export default function ExploreTypeScreen() {
     ...filters,
     type: type as OpportunityType,
   });
+  const categoriesQuery = useOpportunityCategories(
+    isOpportunityType ? (type as OpportunityType) : undefined,
+  );
   const rows = query.data?.pages.flatMap((page) => page.rows) ?? [];
 
   // Tuition has its own tutors module (step 15) — no opportunity rows.
@@ -54,6 +57,7 @@ export default function ExploreTypeScreen() {
       <OpportunityFilterBar
         filters={filters}
         onChange={(patch) => setFilters((current) => ({ ...current, ...patch }))}
+        categories={categoriesQuery.data}
       />
 
       {query.isPending && (

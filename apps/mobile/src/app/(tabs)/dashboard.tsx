@@ -15,6 +15,7 @@ import { Spacing, ThemeColor } from '@/constants/theme';
 import { useMyCommunities } from '@/features/dashboard/queries';
 import { profileCompletion } from '@/features/profile/completion';
 import { useMyProfile, useMySkillIds } from '@/features/profile/queries';
+import { useMyRegistrations } from '@/features/registrations/queries';
 import { useSavedOpportunities } from '@/features/saved/queries';
 import { useTheme } from '@/hooks/use-theme';
 import { deadlineLabel, deadlineTone, formatDate } from '@/lib/dates';
@@ -32,6 +33,7 @@ export default function DashboardScreen() {
   const profileQuery = useMyProfile();
   const skillIdsQuery = useMySkillIds();
   const savedQuery = useSavedOpportunities();
+  const registrationsQuery = useMyRegistrations();
   const communitiesQuery = useMyCommunities();
 
   if (profileQuery.isPending) {
@@ -73,6 +75,7 @@ export default function DashboardScreen() {
     .sort((a, b) => (a.deadline ?? '').localeCompare(b.deadline ?? ''))
     .slice(0, 5);
   const communities = communitiesQuery.data ?? [];
+  const registrations = (registrationsQuery.data ?? []).map((row) => row.opportunity);
 
   return (
     <Screen>
@@ -161,6 +164,26 @@ export default function DashboardScreen() {
             <DeadlineRow key={opportunity.id} opportunity={opportunity} />
           ))}
         </View>
+      )}
+
+      {registrationsQuery.isError && (
+        <EmptyState
+          icon="cloud-offline-outline"
+          title="Could not load registrations"
+          message={(registrationsQuery.error as Error).message}
+          actionLabel="Try again"
+          onAction={() => registrationsQuery.refetch()}
+        />
+      )}
+      {registrations.length > 0 && (
+        <>
+          <SectionHeader title="Registered events" />
+          <View style={styles.deadlineList}>
+            {registrations.slice(0, 5).map((opportunity) => (
+              <DeadlineRow key={opportunity.id} opportunity={opportunity} />
+            ))}
+          </View>
+        </>
       )}
 
       <SectionHeader title="Your communities" />

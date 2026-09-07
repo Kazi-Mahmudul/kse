@@ -15,7 +15,7 @@ Build order from CLAUDE.md §30. Update as steps complete.
 | 9 | Search / filter | ✅ Done |
 | 10 | Bookmark | ✅ Done |
 | 11 | Dashboard | ✅ Done |
-| 12 | Events | ⬜ |
+| 12 | Events | ✅ Done |
 | 13 | Scholarship | ⬜ |
 | 14 | Internship | ⬜ |
 | 15 | Tuition / tutors | ⬜ |

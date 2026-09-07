@@ -6,6 +6,7 @@ import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
 import { BackHeader } from '@/components/back-header';
 import { BookmarkButton } from '@/components/bookmark-button';
+import { RegisterButton } from '@/components/register-button';
 import { ThemedText } from '@/components/themed-text';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
@@ -174,6 +175,10 @@ export default function OpportunityDetailScreen() {
       )}
 
       <BookmarkButton opportunityId={opportunity.id} variant="button" />
+
+      {(opportunity.type === 'event' || opportunity.type === 'workshop') && (
+        <RegisterButton opportunityId={opportunity.id} />
+      )}
 
       {opportunity.application_url ? (
         <PrimaryButton
