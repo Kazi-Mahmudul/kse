@@ -418,3 +418,101 @@ insert into public.notification_deliveries (notification_id, channel, status, se
   ('55555555-5555-5555-5555-555555555503', 'in_app', 'sent',     now() - interval '1 day'),
   ('55555555-5555-5555-5555-555555555504', 'in_app', 'sent',     now() - interval '30 minute')
 on conflict do nothing;
+
+-- ── Portfolio demo data (roadmap step 18) ────────────────────────────────
+
+-- A handful of skills attached to the demo student.
+insert into public.user_skills (user_id, skill_id, level) values
+  ('22222222-2222-2222-2222-222222222201',
+     (select id from public.skills where name = 'React Native'), 'advanced'),
+  ('22222222-2222-2222-2222-222222222201',
+     (select id from public.skills where name = 'TypeScript'),  'advanced'),
+  ('22222222-2222-2222-2222-222222222201',
+     (select id from public.skills where name = 'Python'),      'intermediate')
+on conflict (user_id, skill_id) do update
+  set level = excluded.level;
+
+-- Projects, certificates, achievements, research, resumes + links.
+insert into public.user_projects (id, user_id, title, description, url, tech_stack, started_on, completed_on) values
+  ('66666666-6666-6666-6666-666666666601',
+   '22222222-2222-2222-2222-222222222201',
+   'Khulna Bus Tracker',
+   'Live GPS feed of Khulna city buses using Expo + a 200-line Crowdsourced route API.',
+   'https://github.com/demo/khulna-bus-tracker',
+   array['React Native','Node.js','PostgreSQL'],
+   '2026-02-12', '2026-04-30'),
+  ('66666666-6666-6666-6666-666666666602',
+   '22222222-2222-2222-2222-222222222201',
+   'KUET Course Review',
+   'A directory + rating site for KUET courses, built during a hackathon.',
+   'https://github.com/demo/kuet-courses',
+   array['Next.js','Tailwind','Supabase'],
+   '2026-05-01', null)
+on conflict (id) do update
+  set title = excluded.title, description = excluded.description, url = excluded.url,
+      tech_stack = excluded.tech_stack, started_on = excluded.started_on,
+      completed_on = excluded.completed_on;
+
+insert into public.user_certificates (id, user_id, title, issuer, issued_on, file_url) values
+  ('66666666-6666-6666-6666-666666666610',
+   '22222222-2222-2222-2222-222222222201',
+   'AWS Cloud Practitioner Essentials',
+   'AWS Training', '2026-03-22',
+   'https://drive.google.com/file/d/sample-aws-ccp/view'),
+  ('66666666-6666-6666-6666-666666666611',
+   '22222222-2222-2222-2222-222222222201',
+   'HSC Board Scholarship',
+   'Ministry of Education, Bangladesh', '2024-05-10', null)
+on conflict (id) do update
+  set title = excluded.title, issuer = excluded.issuer, issued_on = excluded.issued_on,
+      file_url = excluded.file_url;
+
+insert into public.user_achievements (id, user_id, title, description, achieved_on) values
+  ('66666666-6666-6666-6666-666666666620',
+   '22222222-2222-2222-2222-222222222201',
+   'Top 5 finish — Khulna AI Hackathon 2026',
+   'Built a Bangla voice assistant for local news in under 48 hours.',
+   '2026-06-15'),
+  ('66666666-6666-6666-6666-666666666621',
+   '22222222-2222-2222-2222-222222222201',
+   'Volunteer of the year — KUET IEEE Branch',
+   'Organized 12 sessions on web dev basics for first-year students.',
+   '2025-12-20')
+on conflict (id) do update
+  set title = excluded.title, description = excluded.description,
+      achieved_on = excluded.achieved_on;
+
+insert into public.user_research (id, user_id, title, abstract, role, collaborators, url, published_on) values
+  ('66666666-6666-6666-6666-666666666630',
+   '22222222-2222-2222-2222-222222222201',
+   'Edge-deployable keyword spotting for Bangla speech',
+   'A study comparing quantized CNN vs RNN keyword spotters running on a Raspberry Pi 4 for Bangla voice commands.',
+   'First author',
+   array['Nusrat Jahan','Rafiul Islam'],
+   'https://doi.org/10.0000/demo.kwspot',
+   '2026-05-30')
+on conflict (id) do update
+  set title = excluded.title, abstract = excluded.abstract, role = excluded.role,
+      collaborators = excluded.collaborators, url = excluded.url,
+      published_on = excluded.published_on;
+
+insert into public.user_resumes (id, user_id, file_url, is_primary) values
+  ('66666666-6666-6666-6666-666666666640',
+   '22222222-2222-2222-2222-222222222201',
+   'https://drive.google.com/file/d/sample-resume-v2/view',
+   true)
+on conflict (id) do update
+  set file_url = excluded.file_url, is_primary = excluded.is_primary;
+
+insert into public.user_portfolio_links (id, user_id, label, url, position) values
+  ('66666666-6666-6666-6666-666666666650',
+   '22222222-2222-2222-2222-222222222201',
+   'GitHub',  'https://github.com/demo-student', 0),
+  ('66666666-6666-6666-6666-666666666651',
+   '22222222-2222-2222-2222-222222222201',
+   'LinkedIn','https://www.linkedin.com/in/demo-student', 1),
+  ('66666666-6666-6666-6666-666666666652',
+   '22222222-2222-2222-2222-222222222201',
+   'Personal site', 'https://demo.student.dev', 2)
+on conflict (id) do update
+  set label = excluded.label, url = excluded.url, position = excluded.position;

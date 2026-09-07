@@ -18,6 +18,14 @@ import {
   useMySkillIds,
   useSkills,
 } from '@/features/profile/queries';
+import {
+  useMyAchievements,
+  useMyCertificates,
+  useMyPortfolioLinks,
+  useMyProjects,
+  useMyResearch,
+  useMyResumes,
+} from '@/features/portfolio/queries';
 import { useSavedOpportunityIds } from '@/features/saved/queries';
 import { ACADEMIC_LEVEL_LABELS } from '@kse/shared';
 import { useTheme } from '@/hooks/use-theme';
@@ -32,6 +40,21 @@ export default function ProfileScreen() {
   const skillIdsQuery = useMySkillIds();
   const skillsQuery = useSkills();
   const savedQuery = useSavedOpportunityIds();
+
+  const projectsQ = useMyProjects();
+  const certificatesQ = useMyCertificates();
+  const achievementsQ = useMyAchievements();
+  const researchQ = useMyResearch();
+  const resumesQ = useMyResumes();
+  const linksQ = useMyPortfolioLinks();
+
+  const portfolioCount =
+    (projectsQ.data?.length ?? 0) +
+    (certificatesQ.data?.length ?? 0) +
+    (achievementsQ.data?.length ?? 0) +
+    (researchQ.data?.length ?? 0) +
+    (resumesQ.data?.length ?? 0) +
+    (linksQ.data?.length ?? 0);
 
   if (profileQuery.isPending) {
     return (
@@ -180,12 +203,29 @@ export default function ProfileScreen() {
         </View>
       </Card>
 
-      <SectionHeader title="My portfolio" />
-      <EmptyState
-        icon="folder-open-outline"
-        title="Your portfolio starts here"
-        message="Projects, certificates, achievements and research will be showcased on your profile."
+      <SectionHeader
+        title="My portfolio"
+        actionLabel={portfolioCount === 0 ? 'Build' : 'Manage'}
+        onAction={() => router.push('/(tabs)/portfolio')}
       />
+      <Card onPress={() => router.push('/(tabs)/portfolio')}>
+        <View style={styles.infoRow}>
+          <View style={[styles.infoIcon, { backgroundColor: `${colors.primary}1A` }]}>
+            <Ionicons name="folder-open-outline" size={16} color={colors.primary} />
+          </View>
+          <View style={styles.infoText}>
+            <ThemedText type="smallBold">
+              {portfolioCount === 0
+                ? 'Your portfolio is empty'
+                : `${portfolioCount} portfolio ${portfolioCount === 1 ? 'item' : 'items'}`}
+            </ThemedText>
+            <ThemedText type="small" themeColor="textSecondary">
+              Projects, certificates, achievements, research, resumes and links
+            </ThemedText>
+          </View>
+          <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
+        </View>
+      </Card>
 
       <PrimaryButton
         label="Sign out"

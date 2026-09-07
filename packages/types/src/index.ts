@@ -4,3 +4,4 @@ export * from './user';
 export * from './tuition';
 export * from './community';
 export * from './notification';
+export * from './portfolio';
