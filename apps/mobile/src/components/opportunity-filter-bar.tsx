@@ -27,6 +27,9 @@ interface OpportunityFilterBarProps {
   showType?: boolean;
   /** Type-scoped category chips when a listing wants them (spec §6). */
   categories?: OpportunityCategoryInfo[];
+  /** Distinct facet values for location / company chips (spec §6). */
+  locations?: string[];
+  organizations?: string[];
   /** Degree-level + funding chips — scholarship listings only (spec §6). */
   showScholarshipFilters?: boolean;
 }
@@ -37,6 +40,8 @@ export function OpportunityFilterBar({
   onChange,
   showType = false,
   categories,
+  locations,
+  organizations,
   showScholarshipFilters = false,
 }: OpportunityFilterBarProps) {
   return (
@@ -100,6 +105,51 @@ export function OpportunityFilterBar({
                 onChange({
                   categoryId:
                     filters.categoryId === category.id ? undefined : category.id,
+                })
+              }
+            />
+          ))}
+        </View>
+      )}
+
+      {locations && locations.length > 0 && (
+        <View style={styles.row}>
+          <Chip
+            label="Any location"
+            selected={!filters.location}
+            onPress={() => onChange({ location: undefined })}
+          />
+          {locations.map((location) => (
+            <Chip
+              key={location}
+              label={location}
+              selected={filters.location === location}
+              onPress={() =>
+                onChange({
+                  location: filters.location === location ? undefined : location,
+                })
+              }
+            />
+          ))}
+        </View>
+      )}
+
+      {organizations && organizations.length > 1 && (
+        <View style={styles.row}>
+          <Chip
+            label="All companies"
+            selected={!filters.organization}
+            onPress={() => onChange({ organization: undefined })}
+          />
+          {organizations.map((organization) => (
+            <Chip
+              key={organization}
+              label={organization}
+              selected={filters.organization === organization}
+              onPress={() =>
+                onChange({
+                  organization:
+                    filters.organization === organization ? undefined : organization,
                 })
               }
             />

@@ -31,6 +31,9 @@ export interface OpportunityFilters {
   /** Scholarship filters (spec §6). */
   degreeLevel?: DegreeLevel;
   fundingType?: FundingType;
+  /** Free-text facets filtered by exact value (spec §6: location, company). */
+  location?: string;
+  organization?: string;
   /** Only opportunities whose deadline falls within N days (and is ahead). */
   deadlineWithinDays?: number | null;
 }
@@ -76,6 +79,12 @@ export async function fetchOpportunities(
   }
   if (filters.fundingType) {
     query = query.eq('funding_type', filters.fundingType);
+  }
+  if (filters.location) {
+    query = query.eq('location', filters.location);
+  }
+  if (filters.organization) {
+    query = query.eq('organization_name', filters.organization);
   }
   if (filters.deadlineWithinDays) {
     const now = new Date().toISOString();
@@ -123,6 +132,57 @@ export async function listOpportunityCategories(
   const { data, error } = await query;
   if (error) fail('Could not load categories', error.message);
   return (data ?? []) as OpportunityCategoryInfo[];
+}
+
+/** Facet values for a listing's chip rows (spec §6: location, company). */
+export interface OpportunityFacets {
+  locations: string[];
+  organizations: string[];
+}
+
+const FACET_MAX = 12;
+
+async function listDistinctValues(
+  column: 'location' | 'organization_name',
+  type?: OpportunityType,
+): Promise<string[]> {
+  let query = supabase
+    .from('opportunities')
+    .select(column)
+    .eq('status', 'published')
+    .not(column, 'is', null)
+    .order(column);
+
+  if (type) {
+    query = query.eq('type', type);
+  }
+
+  const { data, error } = await query;
+  if (error) fail('Could not load filters', error.message);
+
+  const seen = new Set<string>();
+  const values: string[] = [];
+  for (const row of (data ?? []) as Record<string, string | null>[]) {
+    const value = row[column];
+    if (!value) continue;
+    const key = value.trim().toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    values.push(value.trim());
+    if (values.length >= FACET_MAX) break;
+  }
+  return values.sort((a, b) => a.localeCompare(b));
+}
+
+/** Distinct locations + organizations among published listings (step 14). */
+export async function listOpportunityFacets(
+  type?: OpportunityType,
+): Promise<OpportunityFacets> {
+  const [locations, organizations] = await Promise.all([
+    listDistinctValues('location', type),
+    listDistinctValues('organization_name', type),
+  ]);
+  return { locations, organizations };
 }
 
 /** Newest published opportunities across types (home "Latest"). */

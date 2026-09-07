@@ -11,8 +11,10 @@ import {
   getOpportunity,
   listLatestOpportunities,
   listOpportunityCategories,
+  listOpportunityFacets,
   type OpportunityCategoryInfo,
   type OpportunityDetail,
+  type OpportunityFacets,
   type OpportunityFilters,
 } from './service';
 
@@ -28,12 +30,16 @@ export const opportunityKeys = {
       filters.categoryId ?? null,
       filters.degreeLevel ?? null,
       filters.fundingType ?? null,
+      filters.location ?? null,
+      filters.organization ?? null,
       filters.deadlineWithinDays ?? null,
     ] as const,
   latest: (limit: number) => [...opportunityKeys.all, 'latest', limit] as const,
   detail: (id: string) => [...opportunityKeys.all, 'detail', id] as const,
   categories: (type: OpportunityType | undefined) =>
     [...opportunityKeys.all, 'categories', type ?? null] as const,
+  facets: (type: OpportunityType | undefined) =>
+    [...opportunityKeys.all, 'facets', type ?? null] as const,
 };
 
 /** Paginated feed shared by search and per-type listings (step 9). */
@@ -61,6 +67,14 @@ export function useOpportunityCategories(type?: OpportunityType) {
     queryKey: opportunityKeys.categories(type),
     queryFn: () => listOpportunityCategories(type),
   } satisfies UseQueryOptions<OpportunityCategoryInfo[], Error>);
+}
+
+/** Distinct location/organization values for the facet chip rows. */
+export function useOpportunityFacets(type?: OpportunityType) {
+  return useQuery({
+    queryKey: opportunityKeys.facets(type),
+    queryFn: () => listOpportunityFacets(type),
+  } satisfies UseQueryOptions<OpportunityFacets, Error>);
 }
 
 export function useOpportunity(id: string) {

@@ -10,7 +10,11 @@ import { PrimaryButton } from '@/components/ui/primary-button';
 import { Screen } from '@/components/ui/screen';
 import { Spacing } from '@/constants/theme';
 import { findCategory } from '@/features/explore/categories';
-import { useOpportunityCategories, useOpportunityFeed } from '@/features/opportunities/queries';
+import {
+  useOpportunityCategories,
+  useOpportunityFacets,
+  useOpportunityFeed,
+} from '@/features/opportunities/queries';
 import type { OpportunityFilters } from '@/features/opportunities/service';
 import { useTheme } from '@/hooks/use-theme';
 import { OPPORTUNITY_TYPES, type OpportunityType } from '@kse/types';
@@ -28,6 +32,9 @@ export default function ExploreTypeScreen() {
     type: type as OpportunityType,
   });
   const categoriesQuery = useOpportunityCategories(
+    isOpportunityType ? (type as OpportunityType) : undefined,
+  );
+  const facetsQuery = useOpportunityFacets(
     isOpportunityType ? (type as OpportunityType) : undefined,
   );
   const rows = query.data?.pages.flatMap((page) => page.rows) ?? [];
@@ -48,7 +55,15 @@ export default function ExploreTypeScreen() {
     );
   }
 
-  const hasFilters = Boolean(filters.mode || filters.deadlineWithinDays);
+  const hasFilters = Boolean(
+    filters.mode ||
+      filters.deadlineWithinDays ||
+      filters.categoryId ||
+      filters.degreeLevel ||
+      filters.fundingType ||
+      filters.location ||
+      filters.organization,
+  );
 
   return (
     <Screen>
@@ -58,6 +73,8 @@ export default function ExploreTypeScreen() {
         filters={filters}
         onChange={(patch) => setFilters((current) => ({ ...current, ...patch }))}
         categories={categoriesQuery.data}
+        locations={facetsQuery.data?.locations}
+        organizations={facetsQuery.data?.organizations}
         showScholarshipFilters={type === 'scholarship'}
       />
 
@@ -83,7 +100,7 @@ export default function ExploreTypeScreen() {
           title={hasFilters ? 'No matches in this category' : `No ${category?.label.toLowerCase() ?? 'listings'} right now`}
           message={
             hasFilters
-              ? 'Try loosening the mode or deadline filters.'
+              ? 'Try loosening the filters — category, mode, location or deadline.'
               : 'New verified listings are added regularly — check back soon.'
           }
           actionLabel={hasFilters ? 'Clear filters' : 'Refresh'}
