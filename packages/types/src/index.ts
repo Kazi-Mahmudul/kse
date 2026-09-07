@@ -3,3 +3,4 @@ export * from './opportunity';
 export * from './user';
 export * from './tuition';
 export * from './community';
+export * from './notification';

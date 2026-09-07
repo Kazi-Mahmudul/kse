@@ -376,3 +376,45 @@ insert into public.community_posts (id, community_id, author_id, content, is_ann
    'Sharing my BCS Bangla notes (math + GK) to the group email tonight.', false, 'active')
 on conflict (id) do update
   set content = excluded.content, is_announcement = excluded.is_announcement;
+
+-- ── Notification demo data (roadmap step 17) ────────────────────────────────
+
+insert into public.notifications (id, user_id, type, title, body, data, opportunity_id) values
+  ('55555555-5555-5555-5555-555555555501',
+   '22222222-2222-2222-2222-222222222201',
+   'deadline_reminder',
+   'Deadline approaching: Brain Station 23 Internship 2026',
+   'The application for the Brain Station 23 Summer Internship closes in 5 days. Tap to review the requirements and submit.',
+   '{"opportunity_type":"internship"}'::jsonb,
+   '22222222-2222-2222-2222-222222222201'),
+  ('55555555-5555-5555-5555-555555555502',
+   '22222222-2222-2222-2222-222222222201',
+   'community_announcement',
+   'Robotics session moved to Saturday 5pm',
+   'KU Robotics Society owner posted a new announcement. Join in EE Lab 2 with your hardware kits.',
+   '{"opportunity_type":"event","community_id":"33333333-3333-3333-3333-333333333302"}'::jsonb,
+   '22222222-2222-2222-2222-222222222206'),
+  ('55555555-5555-5555-5555-555555555503',
+   '22222222-2222-2222-2222-222222222201',
+   'new_opportunity',
+   'New scholarship match: DAAD WISE 2026',
+   'A new scholarship matching your Computer Science profile was published yesterday. Application closes in 11 days.',
+   '{"opportunity_type":"scholarship"}'::jsonb,
+   '22222222-2222-2222-2222-222222222204'),
+  ('55555555-5555-5555-5555-555555555504',
+   '22222222-2222-2222-2222-222222222201',
+   'event_upcoming',
+   'Cloud Native Khulna meetup happening Friday',
+   'Tomorrow''s monthly meetup at KUET auditorium covers Kubernetes 1.31. RSVP opens at noon.',
+   '{"opportunity_type":"event"}'::jsonb,
+   '22222222-2222-2222-2222-222222222206')
+on conflict (id) do update
+  set title = excluded.title, body = excluded.body, data = excluded.data,
+      opportunity_id = excluded.opportunity_id;
+
+insert into public.notification_deliveries (notification_id, channel, status, sent_at) values
+  ('55555555-5555-5555-5555-555555555501', 'in_app', 'sent',     now() - interval '2 hour'),
+  ('55555555-5555-5555-5555-555555555502', 'in_app', 'sent',     now() - interval '6 hour'),
+  ('55555555-5555-5555-5555-555555555503', 'in_app', 'sent',     now() - interval '1 day'),
+  ('55555555-5555-5555-5555-555555555504', 'in_app', 'sent',     now() - interval '30 minute')
+on conflict do nothing;

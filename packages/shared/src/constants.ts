@@ -118,3 +118,22 @@ export const STORAGE_BUCKETS = {
   resumes: 'resumes',
   communityMedia: 'community-media',
 } as const;
+
+export const NOTIFICATION_TYPE_LABELS: Record<
+  import('@kse/types').NotificationType,
+  string
+> = {
+  deadline_reminder: 'Deadline reminder',
+  new_opportunity: 'New opportunity',
+  event_upcoming: 'Upcoming event',
+  community_announcement: 'Community announcement',
+  platform_announcement: 'Platform announcement',
+  custom: 'Other',
+};
+
+import type { NotificationType } from '@kse/types';
+export const NOTIFICATION_TYPE_OPTIONS: { value: NotificationType; label: string }[] =
+  Object.entries(NOTIFICATION_TYPE_LABELS).map(([value, label]) => ({
+    value: value as NotificationType,
+    label,
+  }));

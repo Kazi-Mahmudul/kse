@@ -13,6 +13,7 @@ import { SearchBar } from '@/components/ui/search-bar';
 import { SectionHeader } from '@/components/ui/section-header';
 import { Spacing } from '@/constants/theme';
 import { useLatestOpportunities } from '@/features/opportunities/queries';
+import { useUnreadNotificationCount } from '@/features/notifications/queries';
 import { useTheme } from '@/hooks/use-theme';
 import { useAuthStore } from '@/store/auth-store';
 
@@ -26,6 +27,8 @@ export default function HomeScreen() {
   const [query, setQuery] = useState('');
   const latestQuery = useLatestOpportunities(4);
   const latest = latestQuery.data ?? [];
+  const unreadQuery = useUnreadNotificationCount();
+  const unreadCount = unreadQuery.data ?? 0;
 
   const fullName = (session?.user.user_metadata?.full_name as string | undefined) ?? '';
   const firstName = fullName.trim().split(/\s+/)[0] || session?.user.email?.split('@')[0] || 'there';
@@ -39,14 +42,31 @@ export default function HomeScreen() {
           </ThemedText>
           <ThemedText type="subtitle">Hi {firstName} 👋</ThemedText>
         </View>
-        <Pressable
-          onPress={() => router.push('/(tabs)/dashboard')}
-          accessibilityRole="button"
-          accessibilityLabel="Dashboard"
-          style={[styles.avatar, { backgroundColor: `${colors.primary}1A` }]}
-        >
-          <Ionicons name="person" size={20} color={colors.primary} />
-        </Pressable>
+        <View style={styles.headerActions}>
+          <Pressable
+            onPress={() => router.push('/(tabs)/notifications')}
+            accessibilityRole="button"
+            accessibilityLabel="Notifications"
+            style={[styles.iconButton, { backgroundColor: `${colors.primary}1A` }]}
+          >
+            <Ionicons
+              name={unreadCount > 0 ? 'notifications' : 'notifications-outline'}
+              size={20}
+              color={colors.primary}
+            />
+            {unreadCount > 0 && (
+              <View style={[styles.badge, { backgroundColor: colors.danger }]} />
+            )}
+          </Pressable>
+          <Pressable
+            onPress={() => router.push('/(tabs)/dashboard')}
+            accessibilityRole="button"
+            accessibilityLabel="Dashboard"
+            style={[styles.iconButton, { backgroundColor: `${colors.primary}1A` }]}
+          >
+            <Ionicons name="grid-outline" size={20} color={colors.primary} />
+          </Pressable>
+        </View>
       </View>
 
       <SearchBar
@@ -130,12 +150,25 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  avatar: {
+  iconButton: {
     width: 40,
     height: 40,
     borderRadius: 999,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.two,
+  },
+  badge: {
+    position: 'absolute',
+    top: 6,
+    right: 6,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
   },
   banner: {
     gap: Spacing.two + 4,
