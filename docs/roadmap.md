@@ -22,8 +22,7 @@ Build order from CLAUDE.md §30. Update as steps complete.
 | 16 | Community basic version | ✅ Done |
 | 17 | Notifications | ✅ Done |
 | 18 | Portfolio | ✅ Done |
-| 18 | Portfolio | ⬜ |
-| 19 | Analytics | ⬜ |
+| 19 | Analytics | ✅ Done |
 | 20 | Security review | ⬜ |
 | 21 | Testing | ⬜ |
 | 22 | Production release | ⬜ |

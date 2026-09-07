@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, router } from 'expo-router';
+import { useEffect } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
 import { BackHeader } from '@/components/back-header';
@@ -13,6 +14,7 @@ import { Screen } from '@/components/ui/screen';
 import { SectionHeader } from '@/components/ui/section-header';
 import { Spacing } from '@/constants/theme';
 import { useTutor } from '@/features/tuition/queries';
+import { analytics } from '@/lib/analytics';
 import { useTheme } from '@/hooks/use-theme';
 
 function initialsOf(name: string): string {
@@ -32,6 +34,13 @@ export default function TutorDetailScreen() {
   const colors = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
   const query = useTutor(id);
+
+  // Step 19 analytics: track tutor view (per spec §20).
+  useEffect(() => {
+    if (query.data?.id) {
+      analytics.tutorViewed(query.data.id);
+    }
+  }, [query.data?.id]);
 
   if (query.isPending) {
     return (

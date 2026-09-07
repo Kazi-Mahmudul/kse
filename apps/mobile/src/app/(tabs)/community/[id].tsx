@@ -16,6 +16,7 @@ import { Screen } from '@/components/ui/screen';
 import { SectionHeader } from '@/components/ui/section-header';
 import { TextField } from '@/components/ui/text-field';
 import { Spacing } from '@/constants/theme';
+import { analytics } from '@/lib/analytics';
 import {
   useCommunity,
   useCommunityPosts,
@@ -88,11 +89,17 @@ export default function CommunityDetailScreen() {
     if (joinMutation.isPending || leaveMutation.isPending) return;
     if (isMember) {
       leaveMutation.mutate(community.id, {
-        onSuccess: () => communityQuery.refetch(),
+        onSuccess: () => {
+          communityQuery.refetch();
+          analytics.communityJoined(community.id, false);
+        },
       });
     } else {
       joinMutation.mutate(community.id, {
-        onSuccess: () => communityQuery.refetch(),
+        onSuccess: () => {
+          communityQuery.refetch();
+          analytics.communityJoined(community.id, true);
+        },
       });
     }
   };

@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Spacing } from '@/constants/theme';
 import { useSavedOpportunityIds, useToggleSavedOpportunity } from '@/features/saved/queries';
+import { analytics } from '@/lib/analytics';
 import { useTheme } from '@/hooks/use-theme';
 
 interface BookmarkButtonProps {
@@ -25,8 +26,11 @@ export function BookmarkButton({ opportunityId, variant = 'icon' }: BookmarkButt
   const icon = saved ? 'bookmark' : 'bookmark-outline';
   const tint = saved ? colors.primary : colors.textSecondary;
 
-  const onPress = () =>
-    toggle.mutate({ opportunityId, saved: !saved });
+  const onPress = () => {
+    const next = !saved;
+    toggle.mutate({ opportunityId, saved: next });
+    analytics.opportunitySaved(opportunityId, next);
+  };
 
   if (variant === 'button') {
     return (

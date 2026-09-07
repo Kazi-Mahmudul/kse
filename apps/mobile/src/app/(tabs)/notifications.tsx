@@ -15,6 +15,7 @@ import {
   useMarkNotificationRead,
   useMyNotifications,
 } from '@/features/notifications/queries';
+import { analytics } from '@/lib/analytics';
 import { useTheme } from '@/hooks/use-theme';
 import { formatDate } from '@/lib/dates';
 import { NOTIFICATION_TYPE_LABELS } from '@kse/shared';
@@ -32,6 +33,7 @@ export default function NotificationsScreen() {
   const openNotification = (id: string, opportunityId: string | null, data: Record<string, unknown>) => {
     if (markReadMutation.isPending) return;
     markReadMutation.mutate(id);
+    analytics.notificationOpened(id);
     if (!opportunityId) return;
     // notifications.data may carry an `opportunity_type` for type-aware
     // deep linking; fall back to 'event' if not present.

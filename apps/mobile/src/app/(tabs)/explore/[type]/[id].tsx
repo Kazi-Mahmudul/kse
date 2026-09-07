@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as WebBrowser from 'expo-web-browser';
 import { Image } from 'expo-image';
 import { useLocalSearchParams } from 'expo-router';
+import { useEffect } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
 import { BackHeader } from '@/components/back-header';
@@ -19,6 +20,7 @@ import { Spacing, ThemeColor } from '@/constants/theme';
 import { findCategory } from '@/features/explore/categories';
 import { useOpportunity } from '@/features/opportunities/queries';
 import { daysUntil, deadlineLabel, deadlineTone, formatDate } from '@/lib/dates';
+import { analytics } from '@/lib/analytics';
 import { useTheme } from '@/hooks/use-theme';
 import {
   DEGREE_LEVEL_LABELS,
@@ -33,6 +35,14 @@ export default function OpportunityDetailScreen() {
   const { id, type } = useLocalSearchParams<{ id: string; type: string }>();
   const query = useOpportunity(id);
   const category = type ? findCategory(type) : undefined;
+
+  // Track view (step 19 analytics). Fire once per successful fetch.
+  const trackedId = query.data?.id;
+  useEffect(() => {
+    if (trackedId && query.data?.type) {
+      analytics.opportunityViewed(trackedId, query.data.type);
+    }
+  }, [trackedId, query.data?.type]);
 
   if (query.isPending) {
     return (
@@ -207,7 +217,12 @@ export default function OpportunityDetailScreen() {
         <PrimaryButton
           label={expired ? 'Deadline passed' : 'Apply now'}
           disabled={expired}
-          onPress={() => void openUrl(opportunity.application_url!)}
+          onPress={() => {
+            if (opportunity.application_url) {
+              analytics.applyClicked(opportunity.id, opportunity.type);
+              void openUrl(opportunity.application_url);
+            }
+          }}
         />
       ) : (
         <Card tint="warning">
