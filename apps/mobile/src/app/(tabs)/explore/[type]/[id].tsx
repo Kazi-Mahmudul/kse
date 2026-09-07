@@ -5,6 +5,7 @@ import { useLocalSearchParams } from 'expo-router';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
 import { BackHeader } from '@/components/back-header';
+import { BookmarkButton } from '@/components/bookmark-button';
 import { ThemedText } from '@/components/themed-text';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
@@ -171,6 +172,8 @@ export default function OpportunityDetailScreen() {
           </Card>
         </>
       )}
+
+      <BookmarkButton opportunityId={opportunity.id} variant="button" />
 
       {opportunity.application_url ? (
         <PrimaryButton

@@ -18,6 +18,7 @@ import {
   useMySkillIds,
   useSkills,
 } from '@/features/profile/queries';
+import { useSavedOpportunityIds } from '@/features/saved/queries';
 import { ACADEMIC_LEVEL_LABELS } from '@kse/shared';
 import { useTheme } from '@/hooks/use-theme';
 import type { IconName } from '@/types/icon';
@@ -30,6 +31,7 @@ export default function ProfileScreen() {
   const profileQuery = useMyProfile();
   const skillIdsQuery = useMySkillIds();
   const skillsQuery = useSkills();
+  const savedQuery = useSavedOpportunityIds();
 
   if (profileQuery.isPending) {
     return (
@@ -145,6 +147,24 @@ export default function ProfileScreen() {
           onAction={() => router.push('/(tabs)/profile/edit')}
         />
       )}
+
+      <SectionHeader title="Quick links" />
+      <Card onPress={() => router.push('/(tabs)/saved')}>
+        <View style={styles.infoRow}>
+          <View style={[styles.infoIcon, { backgroundColor: `${colors.primary}1A` }]}>
+            <Ionicons name="bookmark-outline" size={16} color={colors.primary} />
+          </View>
+          <View style={styles.infoText}>
+            <ThemedText type="smallBold">Saved opportunities</ThemedText>
+            <ThemedText type="small" themeColor="textSecondary">
+              {savedQuery.data
+                ? `${savedQuery.data.size} ${savedQuery.data.size === 1 ? 'bookmark' : 'bookmarks'}`
+                : 'Your bookmarked listings'}
+            </ThemedText>
+          </View>
+          <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
+        </View>
+      </Card>
 
       <SectionHeader title="My portfolio" />
       <EmptyState

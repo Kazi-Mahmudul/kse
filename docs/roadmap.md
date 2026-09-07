@@ -13,7 +13,7 @@ Build order from CLAUDE.md §30. Update as steps complete.
 | 7 | Admin opportunity CRUD | ✅ Done |
 | 8 | Mobile opportunity list/detail | ✅ Done |
 | 9 | Search / filter | ✅ Done |
-| 10 | Bookmark | ⬜ |
+| 10 | Bookmark | ✅ Done |
 | 11 | Dashboard | ⬜ |
 | 12 | Events | ⬜ |
 | 13 | Scholarship | ⬜ |

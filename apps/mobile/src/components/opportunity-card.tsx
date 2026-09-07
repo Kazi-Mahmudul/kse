@@ -3,6 +3,7 @@ import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
 
+import { BookmarkButton } from '@/components/bookmark-button';
 import { ThemedText } from '@/components/themed-text';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
@@ -109,10 +110,13 @@ export function OpportunityCard({ opportunity, showType = false }: OpportunityCa
           </View>
         </View>
 
-        <Badge
-          label={deadlineLabel(opportunity.deadline)}
-          tone={expired ? 'danger' : tone === 'warning' ? 'warning' : 'neutral'}
-        />
+        <View style={styles.side}>
+          <Badge
+            label={deadlineLabel(opportunity.deadline)}
+            tone={expired ? 'danger' : tone === 'warning' ? 'warning' : 'neutral'}
+          />
+          <BookmarkButton opportunityId={opportunity.id} />
+        </View>
       </View>
       {opportunity.summary && (
         <ThemedText type="small" themeColor="textSecondary" numberOfLines={2}>
@@ -168,5 +172,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 2,
     flexShrink: 1,
+  },
+  side: {
+    alignItems: 'flex-end',
+    gap: Spacing.one,
   },
 });
