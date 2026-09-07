@@ -32,13 +32,22 @@ export interface MyProfile extends Profile {
 
 export async function getMyProfile(): Promise<MyProfile> {
   const userId = await requireUserId();
+  // `phone` is a private column (spec §34): it has no column-level SELECT for
+  // the client role, so it is excluded here and fetched via my_phone() below.
   const { data, error } = await supabase
     .from('profiles')
-    .select('*, university:universities(id, name, short_name), department:departments(id, name)')
+    .select(
+      'id, full_name, avatar_url, university_id, department_id, academic_level, bio, interests, is_verified, status, created_at, updated_at, university:universities(id, name, short_name), department:departments(id, name)',
+    )
     .eq('id', userId)
     .single();
   fail(error);
-  return data as MyProfile;
+
+  const { data: phone, error: phoneError } = await supabase.rpc('my_phone');
+  if (phoneError) fail(phoneError);
+
+  const row = data as unknown as Omit<MyProfile, 'phone'>;
+  return { ...row, phone: (phone as string | null) ?? null };
 }
 
 export async function updateMyProfile(input: ProfileUpdateInput): Promise<void> {
