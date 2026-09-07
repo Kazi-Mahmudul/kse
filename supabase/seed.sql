@@ -164,3 +164,45 @@ insert into public.app_settings (key, value, description) values
   ('min_app_version', '"1.0.0"', 'Minimum supported mobile app version.'),
   ('feature_flags', '{}', 'Client feature toggles.')
 on conflict (key) do nothing;
+
+-- ── Local admin account for the admin panel (roadmap step 6) ────────────────
+-- Password: admin12345 — local dev only; do not use in production.
+
+insert into auth.users (
+  id, instance_id, aud, role, email,
+  encrypted_password, email_confirmed_at,
+  raw_app_meta_data, raw_user_meta_data,
+  created_at, updated_at,
+  confirmation_token, recovery_token, email_change, email_change_token_new
+) values (
+  '22222222-2222-2222-2222-222222222201', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated',
+  'admin@kse.local',
+  extensions.crypt('admin12345', extensions.gen_salt('bf')), now(),
+  '{"provider":"email","providers":["email"]}', '{"full_name":"KSE Admin"}',
+  now(), now(),
+  '', '', '', ''
+)
+on conflict (id) do update
+  set encrypted_password = excluded.encrypted_password,
+      email_confirmed_at = excluded.email_confirmed_at;
+
+insert into auth.identities (
+  id, user_id, provider_id, identity_data, provider, last_sign_in_at, created_at, updated_at
+) values (
+  '22222222-2222-2222-2222-222222222201', '22222222-2222-2222-2222-222222222201',
+  '22222222-2222-2222-2222-222222222201',
+  '{"sub":"22222222-2222-2222-2222-222222222201","email":"admin@kse.local","email_verified":true}'::jsonb,
+  'email', now(), now(), now()
+)
+on conflict (id) do update set identity_data = excluded.identity_data;
+
+-- The signup trigger granted 'student'; staff role is what the admin panel gates on.
+insert into public.user_roles (user_id, role)
+values ('22222222-2222-2222-2222-222222222201', 'admin')
+on conflict (user_id, role) do nothing;
+
+delete from public.user_roles
+where user_id = '22222222-2222-2222-2222-222222222201' and role = 'student';
+
+update public.profiles set full_name = 'KSE Admin'
+where id = '22222222-2222-2222-2222-222222222201';

@@ -9,7 +9,7 @@ Build order from CLAUDE.md §30. Update as steps complete.
 | 3 | Authentication | ✅ Done |
 | 4 | Mobile navigation / design system | ✅ Done |
 | 5 | Student profile | ✅ Done |
-| 6 | Admin authentication | ⬜ |
+| 6 | Admin authentication | ✅ Done |
 | 7 | Admin opportunity CRUD | ⬜ |
 | 8 | Mobile opportunity list/detail | ⬜ |
 | 9 | Search / filter | ⬜ |
