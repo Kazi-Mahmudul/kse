@@ -1,5 +1,7 @@
 import { supabase } from '@/lib/supabase';
 import type {
+  DegreeLevel,
+  FundingType,
   Opportunity,
   OpportunityMode,
   OpportunitySummary,
@@ -26,6 +28,9 @@ export interface OpportunityFilters {
   mode?: OpportunityMode;
   /** Type-scoped category (spec §6: "event type", "internship category", …). */
   categoryId?: string;
+  /** Scholarship filters (spec §6). */
+  degreeLevel?: DegreeLevel;
+  fundingType?: FundingType;
   /** Only opportunities whose deadline falls within N days (and is ahead). */
   deadlineWithinDays?: number | null;
 }
@@ -65,6 +70,12 @@ export async function fetchOpportunities(
   }
   if (filters.categoryId) {
     query = query.eq('category_id', filters.categoryId);
+  }
+  if (filters.degreeLevel) {
+    query = query.eq('degree_level', filters.degreeLevel);
+  }
+  if (filters.fundingType) {
+    query = query.eq('funding_type', filters.fundingType);
   }
   if (filters.deadlineWithinDays) {
     const now = new Date().toISOString();

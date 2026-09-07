@@ -12,6 +12,8 @@ import {
   type OpportunityFormData,
 } from '@/features/opportunities/types';
 import {
+  DEGREE_LEVEL_OPTIONS,
+  FUNDING_TYPE_OPTIONS,
   OPPORTUNITY_MODE_OPTIONS,
   OPPORTUNITY_STATUS_OPTIONS,
   OPPORTUNITY_TYPE_OPTIONS,
@@ -192,6 +194,55 @@ export function OpportunityForm({
           {err('deadline')}
         </label>
       </div>
+
+      {type === 'scholarship' && (
+        <div className="grid grid-cols-1 gap-5 rounded-xl border border-zinc-200 bg-zinc-50 p-4 md:grid-cols-3">
+          <label className="flex flex-col gap-1.5">
+            <span className="text-sm font-medium text-zinc-700">Degree level</span>
+            <select
+              name="degree_level"
+              defaultValue={opportunity?.degree_level ?? ''}
+              className={inputClass}
+            >
+              <option value="">— Not specified —</option>
+              {DEGREE_LEVEL_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+            {err('degree_level')}
+          </label>
+
+          <label className="flex flex-col gap-1.5">
+            <span className="text-sm font-medium text-zinc-700">Funding type</span>
+            <select
+              name="funding_type"
+              defaultValue={opportunity?.funding_type ?? ''}
+              className={inputClass}
+            >
+              <option value="">— Not specified —</option>
+              {FUNDING_TYPE_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+            {err('funding_type')}
+          </label>
+
+          <label className="flex flex-col gap-1.5">
+            <span className="text-sm font-medium text-zinc-700">Country</span>
+            <input
+              name="country"
+              defaultValue={opportunity?.country}
+              placeholder="e.g. Bangladesh"
+              className={inputClass}
+            />
+            {err('country')}
+          </label>
+        </div>
+      )}
 
       <label className="flex flex-col gap-1.5">
         <span className="text-sm font-medium text-zinc-700">Eligibility</span>

@@ -26,6 +26,8 @@ export const opportunityKeys = {
       filters.type ?? null,
       filters.mode ?? null,
       filters.categoryId ?? null,
+      filters.degreeLevel ?? null,
+      filters.fundingType ?? null,
       filters.deadlineWithinDays ?? null,
     ] as const,
   latest: (limit: number) => [...opportunityKeys.all, 'latest', limit] as const,

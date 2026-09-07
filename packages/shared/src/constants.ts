@@ -1,5 +1,7 @@
 import type {
   AcademicLevel,
+  DegreeLevel,
+  FundingType,
   OpportunityMode,
   OpportunityStatus,
   OpportunityType,
@@ -7,6 +9,8 @@ import type {
 } from '@kse/types';
 import {
   ACADEMIC_LEVELS,
+  DEGREE_LEVELS,
+  FUNDING_TYPES,
   OPPORTUNITY_MODES,
   OPPORTUNITY_STATUSES,
   OPPORTUNITY_TYPES,
@@ -37,6 +41,21 @@ export const OPPORTUNITY_MODE_LABELS: Record<OpportunityMode, string> = {
   remote: 'Remote',
   onsite: 'On-site',
   hybrid: 'Hybrid',
+};
+
+/** Scholarship-only fields (spec §6). */
+export const DEGREE_LEVEL_LABELS: Record<DegreeLevel, string> = {
+  undergraduate: 'Undergraduate',
+  masters: 'Masters',
+  phd: 'PhD',
+  diploma: 'Diploma',
+};
+
+export const FUNDING_TYPE_LABELS: Record<FundingType, string> = {
+  full: 'Full funding',
+  partial: 'Partial funding',
+  tuition_waiver: 'Tuition waiver',
+  stipend: 'Stipend',
 };
 
 export const USER_ROLE_LABELS: Record<UserRole, string> = {
@@ -70,6 +89,16 @@ export const OPPORTUNITY_MODE_OPTIONS = OPPORTUNITY_MODES.map((value) => ({
 export const OPPORTUNITY_STATUS_OPTIONS = OPPORTUNITY_STATUSES.map((value) => ({
   value,
   label: OPPORTUNITY_STATUS_LABELS[value],
+}));
+
+export const DEGREE_LEVEL_OPTIONS = DEGREE_LEVELS.map((value) => ({
+  value,
+  label: DEGREE_LEVEL_LABELS[value],
+}));
+
+export const FUNDING_TYPE_OPTIONS = FUNDING_TYPES.map((value) => ({
+  value,
+  label: FUNDING_TYPE_LABELS[value],
 }));
 
 export const ACADEMIC_LEVEL_OPTIONS = ACADEMIC_LEVELS.map((value) => ({

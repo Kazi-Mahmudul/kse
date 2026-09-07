@@ -32,6 +32,9 @@ export interface OpportunityFormData {
   eligibility: string;
   application_url: string;
   deadline: string;
+  degree_level: string;
+  funding_type: string;
+  country: string;
   category_id: string;
   status: OpportunityStatus;
   featured: boolean;

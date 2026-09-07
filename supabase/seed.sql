@@ -226,3 +226,13 @@ insert into public.tags (name) values
   ('research'), ('engineering'), ('remote-friendly'), ('freshman-friendly'),
   ('women-in-tech'), ('freelancing'), ('higher-study')
 on conflict (name) do nothing;
+
+-- ── Scholarship structured fields (migration 20260907120000, spec §6) ───────
+
+update public.opportunities set
+  degree_level = 'undergraduate', funding_type = 'full', country = 'Bangladesh'
+where id = '22222222-2222-2222-2222-222222222203';
+
+update public.opportunities set
+  degree_level = 'undergraduate', funding_type = 'partial', country = 'Multiple countries'
+where id = '22222222-2222-2222-2222-222222222204';

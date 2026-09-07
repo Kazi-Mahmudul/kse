@@ -21,6 +21,8 @@ import { useOpportunity } from '@/features/opportunities/queries';
 import { daysUntil, deadlineLabel, deadlineTone, formatDate } from '@/lib/dates';
 import { useTheme } from '@/hooks/use-theme';
 import {
+  DEGREE_LEVEL_LABELS,
+  FUNDING_TYPE_LABELS,
   OPPORTUNITY_MODE_LABELS,
   OPPORTUNITY_TYPE_LABELS,
 } from '@kse/shared';
@@ -123,12 +125,33 @@ export default function OpportunityDetailScreen() {
         </View>
       </Card>
 
-      {(opportunity.location || opportunity.tags.length > 0) && (
+      {(opportunity.location ||
+        opportunity.country ||
+        opportunity.degree_level ||
+        opportunity.funding_type ||
+        opportunity.tags.length > 0) && (
         <>
           <SectionHeader title="Details" />
           <Card>
             {opportunity.location && (
               <DetailRow icon="location-outline" label="Location" value={opportunity.location} />
+            )}
+            {opportunity.country && (
+              <DetailRow icon="globe-outline" label="Country" value={opportunity.country} />
+            )}
+            {opportunity.degree_level && (
+              <DetailRow
+                icon="school-outline"
+                label="Degree level"
+                value={DEGREE_LEVEL_LABELS[opportunity.degree_level]}
+              />
+            )}
+            {opportunity.funding_type && (
+              <DetailRow
+                icon="cash-outline"
+                label="Funding"
+                value={FUNDING_TYPE_LABELS[opportunity.funding_type]}
+              />
             )}
             {opportunity.tags.length > 0 && (
               <View style={styles.tagRow}>
@@ -202,7 +225,7 @@ function DetailRow({
   label,
   value,
 }: {
-  icon: 'location-outline' | 'link-outline';
+  icon: 'location-outline' | 'link-outline' | 'globe-outline' | 'school-outline' | 'cash-outline';
   label: string;
   value: string;
 }) {

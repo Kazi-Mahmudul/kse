@@ -58,6 +58,7 @@ export default function ExploreTypeScreen() {
         filters={filters}
         onChange={(patch) => setFilters((current) => ({ ...current, ...patch }))}
         categories={categoriesQuery.data}
+        showScholarshipFilters={type === 'scholarship'}
       />
 
       {query.isPending && (

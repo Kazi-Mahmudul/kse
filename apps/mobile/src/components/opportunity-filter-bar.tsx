@@ -6,8 +6,10 @@ import type {
   OpportunityCategoryInfo,
   OpportunityFilters,
 } from '@/features/opportunities/service';
-import { OPPORTUNITY_MODES, OPPORTUNITY_TYPES } from '@kse/types';
+import { DEGREE_LEVELS, FUNDING_TYPES, OPPORTUNITY_MODES, OPPORTUNITY_TYPES } from '@kse/types';
 import {
+  DEGREE_LEVEL_LABELS,
+  FUNDING_TYPE_LABELS,
   OPPORTUNITY_MODE_LABELS,
   OPPORTUNITY_TYPE_LABELS,
 } from '@kse/shared';
@@ -25,6 +27,8 @@ interface OpportunityFilterBarProps {
   showType?: boolean;
   /** Type-scoped category chips when a listing wants them (spec §6). */
   categories?: OpportunityCategoryInfo[];
+  /** Degree-level + funding chips — scholarship listings only (spec §6). */
+  showScholarshipFilters?: boolean;
 }
 
 /** Horizontal chip rows for category / type / mode / deadline. Chips toggle off. */
@@ -33,9 +37,53 @@ export function OpportunityFilterBar({
   onChange,
   showType = false,
   categories,
+  showScholarshipFilters = false,
 }: OpportunityFilterBarProps) {
   return (
     <View style={styles.wrap}>
+      {showScholarshipFilters && (
+        <>
+          <View style={styles.row}>
+            <Chip
+              label="All levels"
+              selected={!filters.degreeLevel}
+              onPress={() => onChange({ degreeLevel: undefined })}
+            />
+            {DEGREE_LEVELS.map((level) => (
+              <Chip
+                key={level}
+                label={DEGREE_LEVEL_LABELS[level]}
+                selected={filters.degreeLevel === level}
+                onPress={() =>
+                  onChange({
+                    degreeLevel: filters.degreeLevel === level ? undefined : level,
+                  })
+                }
+              />
+            ))}
+          </View>
+          <View style={styles.row}>
+            <Chip
+              label="Any funding"
+              selected={!filters.fundingType}
+              onPress={() => onChange({ fundingType: undefined })}
+            />
+            {FUNDING_TYPES.map((funding) => (
+              <Chip
+                key={funding}
+                label={FUNDING_TYPE_LABELS[funding]}
+                selected={filters.fundingType === funding}
+                onPress={() =>
+                  onChange({
+                    fundingType: filters.fundingType === funding ? undefined : funding,
+                  })
+                }
+              />
+            ))}
+          </View>
+        </>
+      )}
+
       {categories && categories.length > 0 && (
         <View style={styles.row}>
           <Chip

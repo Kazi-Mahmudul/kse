@@ -1,5 +1,7 @@
 import { z } from 'zod';
 import {
+  DEGREE_LEVELS,
+  FUNDING_TYPES,
   OPPORTUNITY_MODES,
   OPPORTUNITY_STATUSES,
   OPPORTUNITY_TYPES,
@@ -22,6 +24,9 @@ export const opportunityCreateSchema = z.object({
   eligibility: z.string().trim().max(2000).nullable().optional(),
   application_url: z.string().url('Enter a valid application URL').nullable().optional(),
   deadline: isoDateString.nullable().optional(),
+  degree_level: z.enum(DEGREE_LEVELS).nullable().optional(),
+  funding_type: z.enum(FUNDING_TYPES).nullable().optional(),
+  country: z.string().trim().max(100).nullable().optional(),
   category_id: z.string().uuid().nullable().optional(),
   featured: z.boolean().optional(),
   verified: z.boolean().optional(),
@@ -89,6 +94,15 @@ export const opportunityFormSchema = z.object({
   eligibility: optionalText(2000),
   application_url: optionalUrl('Enter a valid application URL'),
   deadline: deadlineField,
+  degree_level: z.preprocess(
+    emptyToNull,
+    z.enum(DEGREE_LEVELS, { message: 'Invalid degree level' }).nullable(),
+  ),
+  funding_type: z.preprocess(
+    emptyToNull,
+    z.enum(FUNDING_TYPES, { message: 'Invalid funding type' }).nullable(),
+  ),
+  country: optionalText(100),
   category_id: z.preprocess(
     emptyToNull,
     z.string().uuid('Choose a valid category').nullable(),

@@ -31,6 +31,16 @@ export const OPPORTUNITY_MODES = ['remote', 'onsite', 'hybrid'] as const;
 
 export type OpportunityMode = (typeof OPPORTUNITY_MODES)[number];
 
+/** Eligible study level — mainly scholarships (spec §6). */
+export const DEGREE_LEVELS = ['undergraduate', 'masters', 'phd', 'diploma'] as const;
+
+export type DegreeLevel = (typeof DEGREE_LEVELS)[number];
+
+/** Funding coverage — mainly scholarships (spec §6). */
+export const FUNDING_TYPES = ['full', 'partial', 'tuition_waiver', 'stipend'] as const;
+
+export type FundingType = (typeof FUNDING_TYPES)[number];
+
 /**
  * Full opportunity row as stored in the `opportunities` table.
  * Use `OpportunitySummary` for list/card payloads (CLAUDE.md §33).
@@ -48,6 +58,9 @@ export interface Opportunity {
   eligibility: string | null;
   application_url: string | null;
   deadline: string | null;
+  degree_level: DegreeLevel | null;
+  funding_type: FundingType | null;
+  country: string | null;
   category_id: string | null;
   published_at: string | null;
   status: OpportunityStatus;
