@@ -48,32 +48,48 @@ kse/
 
 ### Prerequisites
 
-- Node.js >= 20
+- Node.js 22 LTS or newer (Expo 57 CLI needs >= 20.19.4, and supabase-js web
+  rendering needs native WebSocket — Node 22+ only)
 - pnpm (`npm i -g pnpm`)
 - Supabase CLI (`npm i -g supabase`)
-- Docker (for local Supabase)
+- Docker Desktop running (for local Supabase)
 
 ### Setup
 
 ```bash
 pnpm install
-
-# Local Supabase (Postgres, Auth, Storage on http://localhost:54321)
-supabase start
-
-# Copy env files and fill values
-cp .env.example apps/mobile/.env
-cp .env.example apps/admin/.env.local
-
-# Run apps
-pnpm --filter mobile start        # Expo dev server
-pnpm --filter admin dev           # Next.js admin
+pnpm bootstrap          # starts local Supabase + writes apps/mobile/.env and
+                        # apps/admin/.env.local from `supabase status`
 ```
+
+`pnpm bootstrap` (scripts/setup-local.mjs) starts the local Supabase stack
+(Postgres, Auth, Storage on http://127.0.0.1:54321), applies migrations +
+`supabase/seed.sql`, and generates both env files. It never overwrites an
+existing env file.
+
+### Run the apps
+
+```bash
+pnpm --filter admin dev       # Next.js admin  → http://localhost:3000
+pnpm --filter mobile start    # Expo dev server → http://localhost:8081
+                              # press w for web, or scan the QR with Expo Go
+```
+
+### Seeded local logins
+
+| Role | Email | Password |
+|---|---|---|
+| Admin | `admin@kse.local` | `admin12345` |
+| Tutor | `tutor1@kse.local` | `tutor12345` |
+| Student | `student1@kse.local` | `student12345` |
+
+Local dev only — never use these outside `supabase start`.
 
 ### Common scripts
 
 | Command | Description |
 |---|---|
+| `pnpm bootstrap` | Start local Supabase + generate env files |
 | `pnpm lint` | Lint all workspaces |
 | `pnpm typecheck` | Typecheck all workspaces |
 | `pnpm test` | Run all tests |
