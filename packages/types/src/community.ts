@@ -40,3 +40,12 @@ export interface CommunityPost {
   status: ContentStatus;
   createdAt: string;
 }
+
+/**
+ * Post shape used in the Community tab "Recent Discussions" list — same as
+ * `CommunityPost` but carries the parent community's display name so the
+ * card can render "Author in Community" without an extra round-trip.
+ */
+export interface CommunityRecentPost extends CommunityPost {
+  communityName: string;
+}

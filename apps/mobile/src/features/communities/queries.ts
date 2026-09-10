@@ -8,6 +8,7 @@ import type {
   CommunityDetail,
   CommunityListItem,
   CommunityPost,
+  CommunityRecentPost,
 } from '@kse/types';
 
 import {
@@ -19,6 +20,7 @@ import {
   leaveCommunity,
   listCommunityPosts,
   listJoinedCommunityIds,
+  listRecentPosts,
 } from './service';
 
 export const communityKeys = {
@@ -27,6 +29,7 @@ export const communityKeys = {
   detail: (id: string) => [...communityKeys.all, 'detail', id] as const,
   joined: () => [...communityKeys.all, 'joined'] as const,
   posts: (id: string) => [...communityKeys.all, 'posts', id] as const,
+  recentPosts: () => [...communityKeys.all, 'recent-posts'] as const,
 };
 
 export function useCommunities() {
@@ -50,6 +53,14 @@ export function useCommunityPosts(id: string) {
     queryFn: () => listCommunityPosts(id),
     enabled: Boolean(id),
   } satisfies UseQueryOptions<CommunityPost[], Error>);
+}
+
+/** Latest posts across every active community. Drives Recent Discussions. */
+export function useRecentPosts(limit = 8) {
+  return useQuery({
+    queryKey: [...communityKeys.recentPosts(), limit],
+    queryFn: () => listRecentPosts(limit),
+  } satisfies UseQueryOptions<CommunityRecentPost[], Error>);
 }
 
 /** Ids the current user has joined — Join/Leave toggle state. */

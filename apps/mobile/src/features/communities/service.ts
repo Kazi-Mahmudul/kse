@@ -4,6 +4,7 @@ import type {
   CommunityListItem,
   CommunityMemberRole,
   CommunityPost,
+  CommunityRecentPost,
 } from '@kse/types';
 
 /**
@@ -188,6 +189,39 @@ export async function listCommunityPosts(communityId: string): Promise<Community
   const rows = (data ?? []) as unknown as PostRow[];
   const names = await fetchProfileNames(rows.map((row) => row.author_id));
   return rows.map((row) => toPost(row, names.get(row.author_id) ?? 'Member'));
+}
+
+/**
+ * Latest active posts across every community, newest first. Drives the
+ * "Recent Discussions" section on the Community tab (spec 09._community_kse).
+ * Parent community name is embedded on the row so the card can render the
+ * "Author in Community" line without an extra round-trip; author display
+ * names are merged from `profiles` in a second query, same pattern as
+ * `listCommunityPosts`.
+ */
+export async function listRecentPosts(limit = 8): Promise<CommunityRecentPost[]> {
+  const { data, error } = await supabase
+    .from('community_posts')
+    .select(
+      'id, community_id, author_id, content, is_announcement, status, created_at, ' +
+        'community:communities!inner(name, status)',
+    )
+    .eq('status', 'active')
+    .eq('community.status', 'active')
+    .order('created_at', { ascending: false })
+    .limit(limit);
+
+  if (error) fail('Could not load recent discussions', error.message);
+
+  interface RowWithCommunity extends PostRow {
+    community: { name: string; status: string } | null;
+  }
+  const rows = (data ?? []) as unknown as RowWithCommunity[];
+  const names = await fetchProfileNames(rows.map((row) => row.author_id));
+  return rows.map((row) => ({
+    ...toPost(row, names.get(row.author_id) ?? 'Member'),
+    communityName: row.community?.name ?? 'Community',
+  }));
 }
 
 /** Creates a post; RLS gates membership + announcement role. */
