@@ -57,6 +57,22 @@ export default function CommunityScreen() {
       'University + topic filters are coming soon. For now, use the search bar above.',
     );
 
+  const showAllCommunitiesPlaceholder = () =>
+    Alert.alert(
+      'All communities',
+      `You're a member of ${all.filter((c) => c.isMember).length} of ${all.length} communities. The full browse view ships in a future release.`,
+    );
+
+  // Loading state for the grid: show while the communities request is in flight,
+  // OR when a non-empty search returns zero hits (debounced upstream; here we
+  // re-check immediately). `!!query` (not `query && …`) is intentional: when
+  // `query === ''`, the bare-string left-hand side used to leak an empty
+  // string into `<Screen>`'s children, which RN Web's View validator rejects
+  // with "Unexpected text node: . A text node cannot be a child of a <View>".
+  const showGridLoading =
+    communitiesQuery.isPending ||
+    (!!normalizedQuery && filteredTiles.length === 0);
+
   return (
     <Screen>
       <View style={styles.headerRow}>
@@ -81,26 +97,17 @@ export default function CommunityScreen() {
           actionLabel={
             !communitiesQuery.isPending && all.length > 4 ? 'View All' : undefined
           }
-          onAction={
-            all.length > 4
-              ? () =>
-                  Alert.alert(
-                    'All communities',
-                    `You're a member of ${all.filter((c) => c.isMember).length} of ${all.length} communities. The full browse view ships in a future release.`,
-                  )
-              : undefined
-          }
+          onAction={all.length > 4 ? showAllCommunitiesPlaceholder : undefined}
         />
       </View>
 
-      {(communitiesQuery.isPending || (query && filteredTiles.length === 0)) &&
-        !communitiesQuery.isError && (
-          <View style={styles.loading}>
-            <ActivityIndicator color={colors.primary} />
-          </View>
-        )}
+      {showGridLoading && !communitiesQuery.isError && (
+        <View style={styles.loading}>
+          <ActivityIndicator color={colors.primary} />
+        </View>
+      )}
 
-      {communitiesQuery.isError && (
+      {communitiesQuery.isError ? (
         <EmptyState
           icon="cloud-offline-outline"
           title="Could not load communities"
@@ -108,9 +115,9 @@ export default function CommunityScreen() {
           actionLabel="Try again"
           onAction={() => communitiesQuery.refetch()}
         />
-      )}
+      ) : null}
 
-      {!communitiesQuery.isError && !communitiesQuery.isPending && filteredTiles.length > 0 && (
+      {!communitiesQuery.isError && !communitiesQuery.isPending && filteredTiles.length > 0 ? (
         <View style={styles.grid}>
           {filteredTiles.map((community) => (
             <View key={community.id} style={styles.gridCell}>
@@ -118,34 +125,34 @@ export default function CommunityScreen() {
             </View>
           ))}
         </View>
-      )}
+      ) : null}
 
       {!communitiesQuery.isError &&
-        !communitiesQuery.isPending &&
-        communitiesQuery.isSuccess &&
-        all.length > 0 &&
-        filteredTiles.length === 0 && (
-          <EmptyState
-            icon="search-outline"
-            title="No matches"
-            message={`No communities match "${query.trim()}".`}
-            actionLabel="Clear search"
-            onAction={() => setQuery('')}
-          />
-        )}
+      !communitiesQuery.isPending &&
+      communitiesQuery.isSuccess &&
+      all.length > 0 &&
+      filteredTiles.length === 0 ? (
+        <EmptyState
+          icon="search-outline"
+          title="No matches"
+          message={`No communities match "${query.trim()}".`}
+          actionLabel="Clear search"
+          onAction={() => setQuery('')}
+        />
+      ) : null}
 
       {!communitiesQuery.isError &&
-        !communitiesQuery.isPending &&
-        communitiesQuery.isSuccess &&
-        all.length === 0 && (
-          <EmptyState
-            icon="people-outline"
-            title="No communities yet"
-            message="Verified communities around Khulna universities will appear here."
-          />
-        )}
+      !communitiesQuery.isPending &&
+      communitiesQuery.isSuccess &&
+      all.length === 0 ? (
+        <EmptyState
+          icon="people-outline"
+          title="No communities yet"
+          message="Verified communities around Khulna universities will appear here."
+        />
+      ) : null}
 
-      {all.length > filteredTiles.length && filteredTiles.length > 0 && !query && (
+      {all.length > filteredTiles.length && filteredTiles.length > 0 && !normalizedQuery ? (
         <ThemedText
           type="small"
           themeColor="textSecondary"
@@ -153,18 +160,19 @@ export default function CommunityScreen() {
         >
           +{all.length - filteredTiles.length} more communities
         </ThemedText>
-      )}
+      ) : null}
 
       <View style={[styles.section, styles.recentSection]}>
         <SectionHeader title="Recent Discussions" />
       </View>
 
-      {recentQuery.isPending && (
+      {recentQuery.isPending ? (
         <View style={styles.loading}>
           <ActivityIndicator color={colors.primary} />
         </View>
-      )}
-      {recentQuery.isError && (
+      ) : null}
+
+      {recentQuery.isError ? (
         <EmptyState
           icon="cloud-offline-outline"
           title="Could not load discussions"
@@ -172,21 +180,23 @@ export default function CommunityScreen() {
           actionLabel="Try again"
           onAction={() => recentQuery.refetch()}
         />
-      )}
-      {recentQuery.isSuccess && recent.length === 0 && (
+      ) : null}
+
+      {recentQuery.isSuccess && recent.length === 0 ? (
         <EmptyState
           icon="chatbubbles-outline"
           title="No discussions yet"
-          message="Posts from every community will show up here."
+          message="Posts from every community will show here."
         />
-      )}
-      {recentQuery.isSuccess && recent.length > 0 && (
+      ) : null}
+
+      {recentQuery.isSuccess && recent.length > 0 ? (
         <View style={styles.recentList}>
           {recent.map((post) => (
             <RecentDiscussionCard key={post.id} post={post} />
           ))}
         </View>
-      )}
+      ) : null}
     </Screen>
   );
 }
