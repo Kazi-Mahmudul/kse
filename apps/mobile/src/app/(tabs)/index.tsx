@@ -1,192 +1,178 @@
-import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
 import { OpportunityCard } from '@/components/opportunity-card';
-import { ThemedText } from '@/components/themed-text';
-import { Card } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
-import { PrimaryButton } from '@/components/ui/primary-button';
 import { Screen } from '@/components/ui/screen';
 import { SearchBar } from '@/components/ui/search-bar';
 import { SectionHeader } from '@/components/ui/section-header';
-import { Spacing } from '@/constants/theme';
-import { useLatestOpportunities } from '@/features/opportunities/queries';
+import { HomeGreeting } from '@/features/home/greeting';
+import { ProfileCompletionCard } from '@/features/home/profile-completion-card';
+import { PromoBanner } from '@/features/home/promo-banner';
+import { QuickAccess } from '@/features/home/quick-access';
+import { HomeTopBar } from '@/features/home/top-bar';
 import { useUnreadNotificationCount } from '@/features/notifications/queries';
+import { useLatestOpportunities } from '@/features/opportunities/queries';
+import { useMyProfile } from '@/features/profile/queries';
 import { useTheme } from '@/hooks/use-theme';
 import { useAuthStore } from '@/store/auth-store';
 
 /**
- * Home shell — greeting, search, promo banner, latest published
- * opportunities (step 8) and the recommendations slot (step 9+).
+ * Home screen — matches design `03._home_kse`: location + notification top
+ * bar, time-aware greeting, search with filter, gradient promo banner, the
+ * eight-tile Quick Access grid, profile-completion recommendation, and the
+ * latest published opportunities (spec §6).
  */
 export default function HomeScreen() {
   const colors = useTheme();
   const session = useAuthStore((s) => s.session);
   const [query, setQuery] = useState('');
+
+  const profileQuery = useMyProfile();
+  const unreadQuery = useUnreadNotificationCount();
   const latestQuery = useLatestOpportunities(4);
   const latest = latestQuery.data ?? [];
-  const unreadQuery = useUnreadNotificationCount();
-  const unreadCount = unreadQuery.data ?? 0;
 
-  const fullName = (session?.user.user_metadata?.full_name as string | undefined) ?? '';
-  const firstName = fullName.trim().split(/\s+/)[0] || session?.user.email?.split('@')[0] || 'there';
+  const metadataName = (session?.user.user_metadata?.full_name as string | undefined) ?? '';
+  const displayName =
+    profileQuery.data?.full_name?.trim() ||
+    metadataName.trim() ||
+    session?.user.email?.split('@')[0] ||
+    'there';
+
+  const openSearch = () =>
+    router.push({
+      pathname: '/(tabs)/search',
+      params: query.trim() ? { q: query.trim() } : {},
+    });
 
   return (
-    <Screen>
+    <Screen style={styles.screen}>
+      <HomeTopBar
+        location={profileQuery.data?.university?.location}
+        unreadCount={unreadQuery.data ?? 0}
+      />
+
       <View style={styles.greeting}>
-        <View>
-          <ThemedText type="small" themeColor="textSecondary">
-            Welcome back
-          </ThemedText>
-          <ThemedText type="subtitle">Hi {firstName} 👋</ThemedText>
-        </View>
-        <View style={styles.headerActions}>
-          <Pressable
-            onPress={() => router.push('/(tabs)/notifications')}
-            accessibilityRole="button"
-            accessibilityLabel="Notifications"
-            style={[styles.iconButton, { backgroundColor: `${colors.primary}1A` }]}
-          >
-            <Ionicons
-              name={unreadCount > 0 ? 'notifications' : 'notifications-outline'}
-              size={20}
-              color={colors.primary}
-            />
-            {unreadCount > 0 && (
-              <View style={[styles.badge, { backgroundColor: colors.danger }]} />
-            )}
-          </Pressable>
-          <Pressable
-            onPress={() => router.push('/(tabs)/dashboard')}
-            accessibilityRole="button"
-            accessibilityLabel="Dashboard"
-            style={[styles.iconButton, { backgroundColor: `${colors.primary}1A` }]}
-          >
-            <Ionicons name="grid-outline" size={20} color={colors.primary} />
-          </Pressable>
-        </View>
+        <HomeGreeting name={displayName} />
       </View>
 
-      <SearchBar
-        value={query}
-        onChangeText={setQuery}
-        onSubmitEditing={() =>
-          router.push({
-            pathname: '/(tabs)/search',
-            params: query.trim() ? { q: query.trim() } : {},
-          })
-        }
-      />
-
-      <Card tint="primary">
-        <View style={styles.banner}>
-          <View style={styles.bannerText}>
-            <ThemedText type="subtitle" themeColor="onPrimary">
-              Internship Opportunities
-            </ThemedText>
-            <ThemedText type="small" themeColor="onPrimary">
-              Handpicked internships from verified organizations — find one that fits you.
-            </ThemedText>
-          </View>
-          <PrimaryButton
-            label="Browse"
-            onPress={() => router.push('/(tabs)/explore/internship')}
-            style={styles.bannerButton}
-          />
-        </View>
-      </Card>
-
-      <SectionHeader
-        title="Latest opportunities"
-        actionLabel="See all"
-        onAction={() => router.push('/(tabs)/explore')}
-      />
-      {latestQuery.isPending && (
-        <View style={styles.centered}>
-          <ActivityIndicator color={colors.primary} />
-        </View>
-      )}
-      {latestQuery.isError && (
-        <EmptyState
-          icon="cloud-offline-outline"
-          title="Could not load opportunities"
-          message={(latestQuery.error as Error).message}
-          actionLabel="Try again"
-          onAction={() => latestQuery.refetch()}
+      <View style={styles.search}>
+        <SearchBar
+          value={query}
+          onChangeText={setQuery}
+          onSubmitEditing={openSearch}
+          onFilterPress={() => router.push('/(tabs)/search')}
+          placeholder="Search anything..."
+          variant="card"
         />
-      )}
-      {latestQuery.isSuccess && latest.length === 0 && (
-        <EmptyState
-          icon="sparkles-outline"
-          title="Nothing published yet"
-          message="Verified listings are on their way — check back soon."
-          actionLabel="Explore categories"
+      </View>
+
+      <View style={styles.banner}>
+        <PromoBanner />
+      </View>
+
+      <View style={styles.section}>
+        <SectionHeader
+          compact
+          title="Quick Access"
+          actionLabel="See All"
           onAction={() => router.push('/(tabs)/explore')}
         />
-      )}
-      <View style={styles.latestList}>
-        {latest.map((opportunity) => (
-          <OpportunityCard key={opportunity.id} opportunity={opportunity} showType />
-        ))}
+      </View>
+      <View style={styles.gridSpacing}>
+        <QuickAccess />
       </View>
 
-      <SectionHeader title="Recommended for you" />
-      <EmptyState
-        icon="sparkles-outline"
-        title="Personalized picks are coming"
-        message="Add your university, skills and interests to your profile and we'll match opportunities to you."
-        actionLabel="Set up my profile"
-        onAction={() => router.push('/(tabs)/profile')}
-      />
+      <View style={styles.section}>
+        <SectionHeader
+          compact
+          title="Recommended for You"
+          actionLabel="See All"
+          onAction={() => router.push('/(tabs)/explore')}
+        />
+      </View>
+      <View style={styles.cardSpacing}>
+        <ProfileCompletionCard />
+      </View>
+
+      <View style={styles.section}>
+        <SectionHeader
+          compact
+          title="Latest Opportunities"
+          actionLabel="See All"
+          onAction={() => router.push('/(tabs)/explore')}
+        />
+      </View>
+      <View style={styles.cardSpacing}>
+        {latestQuery.isPending && (
+          <View style={styles.centered}>
+            <ActivityIndicator color={colors.primary} />
+          </View>
+        )}
+        {latestQuery.isError && (
+          <EmptyState
+            icon="cloud-offline-outline"
+            title="Could not load opportunities"
+            message={(latestQuery.error as Error).message}
+            actionLabel="Try again"
+            onAction={() => latestQuery.refetch()}
+          />
+        )}
+        {latestQuery.isSuccess && latest.length === 0 && (
+          <EmptyState
+            icon="sparkles-outline"
+            title="Nothing published yet"
+            message="Verified listings are on their way — check back soon."
+            actionLabel="Explore categories"
+            onAction={() => router.push('/(tabs)/explore')}
+          />
+        )}
+        <View style={styles.latestList}>
+          {latest.map((opportunity) => (
+            <OpportunityCard key={opportunity.id} opportunity={opportunity} showType />
+          ))}
+        </View>
+      </View>
     </Screen>
   );
 }
 
+/**
+ * The design uses a 20pt gutter and an uneven vertical rhythm
+ * (12 / 16 / 20), so the screen opts out of `Screen`'s uniform 16pt gap and
+ * spaces each block explicitly.
+ */
 const styles = StyleSheet.create({
+  screen: {
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    gap: 0,
+  },
   greeting: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    marginTop: 12,
   },
-  iconButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 999,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.two,
-  },
-  badge: {
-    position: 'absolute',
-    top: 6,
-    right: 6,
-    width: 10,
-    height: 10,
-    borderRadius: 5,
+  search: {
+    marginTop: 12,
   },
   banner: {
-    gap: Spacing.two + 4,
+    marginTop: 16,
   },
-  bannerText: {
-    gap: Spacing.one,
+  section: {
+    marginTop: 20,
   },
-  bannerButton: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: Spacing.four,
-    minHeight: 42,
-    backgroundColor: '#ffffff',
+  gridSpacing: {
+    marginTop: 12,
+  },
+  cardSpacing: {
+    marginTop: 10,
   },
   centered: {
     alignItems: 'center',
-    paddingVertical: Spacing.three,
+    paddingVertical: 16,
   },
   latestList: {
-    gap: Spacing.two + 2,
+    gap: 10,
   },
 });

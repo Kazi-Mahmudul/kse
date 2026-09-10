@@ -26,7 +26,7 @@ async function requireUserId(): Promise<string> {
 }
 
 export interface MyProfile extends Profile {
-  university: Pick<University, 'id' | 'name' | 'short_name'> | null;
+  university: Pick<University, 'id' | 'name' | 'short_name' | 'location'> | null;
   department: Pick<Department, 'id' | 'name'> | null;
 }
 
@@ -37,7 +37,7 @@ export async function getMyProfile(): Promise<MyProfile> {
   const { data, error } = await supabase
     .from('profiles')
     .select(
-      'id, full_name, avatar_url, university_id, department_id, academic_level, bio, interests, is_verified, status, created_at, updated_at, university:universities(id, name, short_name), department:departments(id, name)',
+      'id, full_name, avatar_url, university_id, department_id, academic_level, bio, interests, is_verified, status, created_at, updated_at, university:universities(id, name, short_name, location), department:departments(id, name)',
     )
     .eq('id', userId)
     .single();
