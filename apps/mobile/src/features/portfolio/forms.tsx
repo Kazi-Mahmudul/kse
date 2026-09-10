@@ -22,7 +22,13 @@ interface RHFInputProps<T extends FieldValues> {
   keyboardType?: 'default' | 'url' | 'email-address' | 'numeric';
 }
 
-/** Light-gray rounded RHF-backed text input. */
+/**
+ * Light-gray rounded RHF-backed text input — **no focus ring**.
+ *
+ * The muted background fill is enough affordance; a coloured border on tap
+ * reads as "highlighted" rather than "active", so we deliberately omit it
+ * (per the product spec).
+ */
 export function RHFInput<T extends FieldValues>({
   control,
   name,
@@ -32,7 +38,6 @@ export function RHFInput<T extends FieldValues>({
   keyboardType,
 }: RHFInputProps<T>) {
   const colors = useTheme();
-  const [focused, setFocused] = useState(false);
 
   return (
     <Controller
@@ -44,11 +49,7 @@ export function RHFInput<T extends FieldValues>({
           <TextInput
             value={(value as string | undefined) ?? ''}
             onChangeText={onChange}
-            onBlur={() => {
-              setFocused(false);
-              onBlur();
-            }}
-            onFocus={() => setFocused(true)}
+            onBlur={onBlur}
             placeholder={placeholder}
             placeholderTextColor={colors.textSecondary}
             multiline={multiline}
@@ -58,7 +59,6 @@ export function RHFInput<T extends FieldValues>({
               styles.input,
               multiline && styles.multiline,
               { backgroundColor: colors.backgroundElement, color: colors.text },
-              focused && { borderColor: colors.primary, borderWidth: 1.5 },
             ]}
           />
           {fieldState.error && (

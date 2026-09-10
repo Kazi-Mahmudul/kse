@@ -6,10 +6,17 @@ import type {
   OpportunityCategoryInfo,
   OpportunityFilters,
 } from '@/features/opportunities/service';
-import { DEGREE_LEVELS, FUNDING_TYPES, OPPORTUNITY_MODES, OPPORTUNITY_TYPES } from '@kse/types';
+import {
+  DEGREE_LEVELS,
+  FUNDING_TYPES,
+  OPPORTUNITY_INTERNSHIP_TYPES,
+  OPPORTUNITY_MODES,
+  OPPORTUNITY_TYPES,
+} from '@kse/types';
 import {
   DEGREE_LEVEL_LABELS,
   FUNDING_TYPE_LABELS,
+  OPPORTUNITY_INTERNSHIP_TYPE_LABELS,
   OPPORTUNITY_MODE_LABELS,
   OPPORTUNITY_TYPE_LABELS,
 } from '@kse/shared';
@@ -32,6 +39,8 @@ interface OpportunityFilterBarProps {
   organizations?: string[];
   /** Degree-level + funding chips — scholarship listings only (spec §6). */
   showScholarshipFilters?: boolean;
+  /** Internship-type chips — internship listings only (spec 06._internship_hub_kse). */
+  showInternshipFilters?: boolean;
 }
 
 /** Horizontal chip rows for category / type / mode / deadline. Chips toggle off. */
@@ -43,6 +52,7 @@ export function OpportunityFilterBar({
   locations,
   organizations,
   showScholarshipFilters = false,
+  showInternshipFilters = false,
 }: OpportunityFilterBarProps) {
   return (
     <View style={styles.wrap}>
@@ -87,6 +97,29 @@ export function OpportunityFilterBar({
             ))}
           </View>
         </>
+      )}
+
+      {showInternshipFilters && (
+        <View style={styles.row}>
+          <Chip
+            label="Any type"
+            selected={!filters.internshipType}
+            onPress={() => onChange({ internshipType: undefined })}
+          />
+          {OPPORTUNITY_INTERNSHIP_TYPES.map((internshipType) => (
+            <Chip
+              key={internshipType}
+              label={OPPORTUNITY_INTERNSHIP_TYPE_LABELS[internshipType]}
+              selected={filters.internshipType === internshipType}
+              onPress={() =>
+                onChange({
+                  internshipType:
+                    filters.internshipType === internshipType ? undefined : internshipType,
+                })
+              }
+            />
+          ))}
+        </View>
       )}
 
       {categories && categories.length > 0 && (

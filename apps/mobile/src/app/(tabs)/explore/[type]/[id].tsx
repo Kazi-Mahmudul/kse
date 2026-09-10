@@ -25,6 +25,7 @@ import { useTheme } from '@/hooks/use-theme';
 import {
   DEGREE_LEVEL_LABELS,
   FUNDING_TYPE_LABELS,
+  OPPORTUNITY_INTERNSHIP_TYPE_LABELS,
   OPPORTUNITY_MODE_LABELS,
   OPPORTUNITY_TYPE_LABELS,
 } from '@kse/shared';
@@ -108,6 +109,12 @@ export default function OpportunityDetailScreen() {
               tone="neutral"
             />
           )}
+          {opportunity.type === 'internship' && opportunity.internship_type && (
+            <Badge
+              label={OPPORTUNITY_INTERNSHIP_TYPE_LABELS[opportunity.internship_type]}
+              tone="neutral"
+            />
+          )}
         </View>
         <ThemedText type="subtitle">{opportunity.title}</ThemedText>
         <ThemedText type="small" themeColor="textSecondary">
@@ -139,6 +146,9 @@ export default function OpportunityDetailScreen() {
         opportunity.country ||
         opportunity.degree_level ||
         opportunity.funding_type ||
+        (opportunity.type === 'internship' &&
+          (opportunity.stipend_amount !== null ||
+            opportunity.internship_type !== null)) ||
         opportunity.tags.length > 0) && (
         <>
           <SectionHeader title="Details" />
@@ -161,6 +171,22 @@ export default function OpportunityDetailScreen() {
                 icon="cash-outline"
                 label="Funding"
                 value={FUNDING_TYPE_LABELS[opportunity.funding_type]}
+              />
+            )}
+            {opportunity.type === 'internship' &&
+              opportunity.stipend_amount !== null &&
+              opportunity.stipend_currency && (
+                <DetailRow
+                  icon="cash-outline"
+                  label="Monthly stipend"
+                  value={formatStipend(opportunity.stipend_amount, opportunity.stipend_currency)}
+                />
+              )}
+            {opportunity.type === 'internship' && opportunity.internship_type && (
+              <DetailRow
+                icon="briefcase-outline"
+                label="Internship type"
+                value={OPPORTUNITY_INTERNSHIP_TYPE_LABELS[opportunity.internship_type]}
               />
             )}
             {opportunity.tags.length > 0 && (
@@ -240,7 +266,13 @@ function DetailRow({
   label,
   value,
 }: {
-  icon: 'location-outline' | 'link-outline' | 'globe-outline' | 'school-outline' | 'cash-outline';
+  icon:
+    | 'location-outline'
+    | 'link-outline'
+    | 'globe-outline'
+    | 'school-outline'
+    | 'cash-outline'
+    | 'briefcase-outline';
   label: string;
   value: string;
 }) {
@@ -258,6 +290,13 @@ function DetailRow({
       </View>
     </View>
   );
+}
+
+/** "৳8,000 /month" / "USD 500 /month" — same prefix rules as the card. */
+function formatStipend(amount: number, currency: string): string {
+  const formatted = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 }).format(amount);
+  const prefix = currency === 'BDT' ? '৳' : `${currency} `;
+  return `${prefix}${formatted} /month`;
 }
 
 const styles = StyleSheet.create({

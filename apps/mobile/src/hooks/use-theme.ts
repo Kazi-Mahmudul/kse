@@ -3,12 +3,17 @@
  * https://docs.expo.dev/guides/color-schemes/
  */
 
-import { Colors } from '@/constants/theme';
+import { Colors, type ThemeColor } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
-export function useTheme() {
+/**
+ * Returns the color palette for the active scheme.
+ *
+ * The union return type avoids `Colors[scheme]` collapsing to `never` when TS
+ * widens `theme` across the `'light' | 'dark'` ternary in strict mode.
+ */
+export function useTheme(): Record<ThemeColor, string> {
   const scheme = useColorScheme();
-  const theme = scheme === 'unspecified' ? 'light' : scheme;
-
-  return Colors[theme];
+  const theme: 'light' | 'dark' = scheme === 'dark' ? 'dark' : 'light';
+  return Colors[theme] as unknown as Record<ThemeColor, string>;
 }

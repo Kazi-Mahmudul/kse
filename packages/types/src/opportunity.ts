@@ -31,6 +31,17 @@ export const OPPORTUNITY_MODES = ['remote', 'onsite', 'hybrid'] as const;
 
 export type OpportunityMode = (typeof OPPORTUNITY_MODES)[number];
 
+/** Internship engagement type (spec 06._internship_hub_kse). */
+export const OPPORTUNITY_INTERNSHIP_TYPES = [
+  'full_time',
+  'part_time',
+  'contract',
+  'unpaid',
+] as const;
+
+export type OpportunityInternshipType =
+  (typeof OPPORTUNITY_INTERNSHIP_TYPES)[number];
+
 /** Eligible study level — mainly scholarships (spec §6). */
 export const DEGREE_LEVELS = ['undergraduate', 'masters', 'phd', 'diploma'] as const;
 
@@ -70,6 +81,10 @@ export interface Opportunity {
   verified_by: string | null;
   source_name: string | null;
   source_url: string | null;
+  // Internship-only fields (spec 06._internship_hub_kse).
+  stipend_amount: number | null;
+  stipend_currency: string | null;
+  internship_type: OpportunityInternshipType | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;
@@ -90,4 +105,8 @@ export interface OpportunitySummary {
   status: OpportunityStatus;
   featured: boolean;
   verified: boolean;
+  // Internship-only fields (spec 06._internship_hub_kse).
+  stipend_amount: number | null;
+  stipend_currency: string | null;
+  internship_type: OpportunityInternshipType | null;
 }

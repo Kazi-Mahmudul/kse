@@ -1,3 +1,4 @@
+import type { OpportunityType } from '@kse/types';
 import type { IconName } from '@/types/icon';
 
 /** Explore sections (spec §32). Slugs double as route params. */
@@ -7,6 +8,8 @@ export interface ExploreCategory {
   description: string;
   icon: IconName;
   tint: 'primary' | 'success' | 'warning' | 'danger';
+  /** When set, the hub row shows the live published count for this type. */
+  countKey?: OpportunityType;
 }
 
 export const EXPLORE_CATEGORIES: ExploreCategory[] = [
@@ -16,6 +19,7 @@ export const EXPLORE_CATEGORIES: ExploreCategory[] = [
     description: 'Launch your career',
     icon: 'briefcase-outline',
     tint: 'primary',
+    countKey: 'internship',
   },
   {
     slug: 'scholarship',
@@ -23,6 +27,7 @@ export const EXPLORE_CATEGORIES: ExploreCategory[] = [
     description: 'Fund your studies',
     icon: 'school-outline',
     tint: 'success',
+    countKey: 'scholarship',
   },
   {
     slug: 'event',
@@ -30,6 +35,7 @@ export const EXPLORE_CATEGORIES: ExploreCategory[] = [
     description: 'Meetups & seminars',
     icon: 'calendar-outline',
     tint: 'danger',
+    countKey: 'event',
   },
   {
     slug: 'workshop',
@@ -37,7 +43,9 @@ export const EXPLORE_CATEGORIES: ExploreCategory[] = [
     description: 'Learn new skills',
     icon: 'construct-outline',
     tint: 'warning',
+    countKey: 'workshop',
   },
+  // Tuition uses a separate tutor-discovery workflow (spec §6) — no live count.
   {
     slug: 'tuition',
     label: 'Tuition',
@@ -51,6 +59,7 @@ export const EXPLORE_CATEGORIES: ExploreCategory[] = [
     description: 'Grow with a mentor',
     icon: 'people-circle-outline',
     tint: 'success',
+    countKey: 'mentorship',
   },
 ];
 

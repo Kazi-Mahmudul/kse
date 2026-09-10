@@ -2,6 +2,7 @@ import { z } from 'zod';
 import {
   DEGREE_LEVELS,
   FUNDING_TYPES,
+  OPPORTUNITY_INTERNSHIP_TYPES,
   OPPORTUNITY_MODES,
   OPPORTUNITY_STATUSES,
   OPPORTUNITY_TYPES,
@@ -28,6 +29,15 @@ export const opportunityCreateSchema = z.object({
   funding_type: z.enum(FUNDING_TYPES).nullable().optional(),
   country: z.string().trim().max(100).nullable().optional(),
   category_id: z.string().uuid().nullable().optional(),
+  // Internship-only fields (spec 06._internship_hub_kse).
+  stipend_amount: z.number().nonnegative().finite().nullable().optional(),
+  stipend_currency: z
+    .string()
+    .trim()
+    .regex(/^[A-Z]{3}$/, 'Use a 3-letter ISO currency code (e.g. BDT, USD)')
+    .nullable()
+    .optional(),
+  internship_type: z.enum(OPPORTUNITY_INTERNSHIP_TYPES).nullable().optional(),
   featured: z.boolean().optional(),
   verified: z.boolean().optional(),
   source_name: z.string().trim().max(150).nullable().optional(),
@@ -42,6 +52,26 @@ export const opportunityUpdateSchema = opportunityCreateSchema.partial().extend(
 
 export type OpportunityCreateInput = z.infer<typeof opportunityCreateSchema>;
 export type OpportunityUpdateInput = z.infer<typeof opportunityUpdateSchema>;
+
+// ── Mobile filter schema (spec 06._internship_hub_kse) ──────────────────────
+// Used by the mobile filter bar / URL params. All fields optional so empty
+// filters parse cleanly.
+
+export const opportunityFiltersSchema = z.object({
+  q: z.string().trim().max(100).optional(),
+  type: z.enum(OPPORTUNITY_TYPES).optional(),
+  mode: z.enum(OPPORTUNITY_MODES).optional(),
+  categoryId: z.string().uuid().optional(),
+  degreeLevel: z.enum(DEGREE_LEVELS).optional(),
+  fundingType: z.enum(FUNDING_TYPES).optional(),
+  location: z.string().trim().max(150).optional(),
+  organization: z.string().trim().max(150).optional(),
+  /** Internship-only chip filter (spec 06._internship_hub_kse). */
+  internshipType: z.enum(OPPORTUNITY_INTERNSHIP_TYPES).optional(),
+  deadlineWithinDays: z.number().int().positive().max(365).nullable().optional(),
+});
+
+export type OpportunityFiltersInput = z.infer<typeof opportunityFiltersSchema>;
 
 // ── Admin form schema ────────────────────────────────────────────────────────
 // HTML form fields arrive as flat strings ('' for empty). These helpers
@@ -106,6 +136,30 @@ export const opportunityFormSchema = z.object({
   category_id: z.preprocess(
     emptyToNull,
     z.string().uuid('Choose a valid category').nullable(),
+  ),
+  // Internship-only fields (spec 06._internship_hub_kse).
+  stipend_amount: z.preprocess(
+    emptyToNull,
+    z
+      .number({ message: 'Enter a number' })
+      .nonnegative('Stipend cannot be negative')
+      .finite()
+      .nullable(),
+  ),
+  stipend_currency: z.preprocess(
+    emptyToNull,
+    z
+      .string()
+      .trim()
+      .regex(
+        /^[A-Z]{3}$/,
+        'Use a 3-letter ISO currency code (e.g. BDT, USD)',
+      )
+      .nullable(),
+  ),
+  internship_type: z.preprocess(
+    emptyToNull,
+    z.enum(OPPORTUNITY_INTERNSHIP_TYPES, { message: 'Invalid internship type' }).nullable(),
   ),
   status: z.enum(OPPORTUNITY_STATUSES, { message: 'Choose a status' }),
   featured: booleanField,

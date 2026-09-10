@@ -3,6 +3,7 @@ import type {
   DegreeLevel,
   FundingType,
   Opportunity,
+  OpportunityInternshipType,
   OpportunityMode,
   OpportunitySummary,
   OpportunityType,
@@ -34,6 +35,8 @@ export interface OpportunityFilters {
   /** Free-text facets filtered by exact value (spec §6: location, company). */
   location?: string;
   organization?: string;
+  /** Internship-only chip filter (spec 06._internship_hub_kse). */
+  internshipType?: OpportunityInternshipType;
   /** Only opportunities whose deadline falls within N days (and is ahead). */
   deadlineWithinDays?: number | null;
 }
@@ -50,7 +53,7 @@ export function sanitizeSearchQuery(q: string): string {
 }
 
 export const SUMMARY_SELECT =
-  'id, type, title, organization_name, summary, image_url, location, opportunity_mode, deadline, featured, verified';
+  'id, type, title, organization_name, summary, image_url, location, opportunity_mode, deadline, featured, verified, stipend_amount, stipend_currency, internship_type';
 
 /** One page of opportunities matching text + filters, soonest deadline first. */
 export async function fetchOpportunities(
@@ -85,6 +88,9 @@ export async function fetchOpportunities(
   }
   if (filters.organization) {
     query = query.eq('organization_name', filters.organization);
+  }
+  if (filters.internshipType) {
+    query = query.eq('internship_type', filters.internshipType);
   }
   if (filters.deadlineWithinDays) {
     const now = new Date().toISOString();

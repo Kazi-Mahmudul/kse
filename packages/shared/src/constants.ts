@@ -2,6 +2,7 @@ import type {
   AcademicLevel,
   DegreeLevel,
   FundingType,
+  OpportunityInternshipType,
   OpportunityMode,
   OpportunityStatus,
   OpportunityType,
@@ -11,6 +12,7 @@ import {
   ACADEMIC_LEVELS,
   DEGREE_LEVELS,
   FUNDING_TYPES,
+  OPPORTUNITY_INTERNSHIP_TYPES,
   OPPORTUNITY_MODES,
   OPPORTUNITY_STATUSES,
   OPPORTUNITY_TYPES,
@@ -41,6 +43,17 @@ export const OPPORTUNITY_MODE_LABELS: Record<OpportunityMode, string> = {
   remote: 'Remote',
   onsite: 'On-site',
   hybrid: 'Hybrid',
+};
+
+/** Internship-only engagement types (spec 06._internship_hub_kse). */
+export const OPPORTUNITY_INTERNSHIP_TYPE_LABELS: Record<
+  OpportunityInternshipType,
+  string
+> = {
+  full_time: 'Full-time',
+  part_time: 'Part-time',
+  contract: 'Contract',
+  unpaid: 'Unpaid',
 };
 
 /** Scholarship-only fields (spec §6). */
@@ -85,6 +98,13 @@ export const OPPORTUNITY_MODE_OPTIONS = OPPORTUNITY_MODES.map((value) => ({
   value,
   label: OPPORTUNITY_MODE_LABELS[value],
 }));
+
+export const OPPORTUNITY_INTERNSHIP_TYPE_OPTIONS = OPPORTUNITY_INTERNSHIP_TYPES.map(
+  (value) => ({
+    value,
+    label: OPPORTUNITY_INTERNSHIP_TYPE_LABELS[value],
+  }),
+);
 
 export const OPPORTUNITY_STATUS_OPTIONS = OPPORTUNITY_STATUSES.map((value) => ({
   value,
