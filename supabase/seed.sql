@@ -329,6 +329,37 @@ select '22222222-2222-2222-2222-222222222213', id from public.subjects
 where name in ('Chemistry', 'Biology')
 on conflict do nothing;
 
+-- ── Demo student (community member persona) ──────────────────────────────────
+-- Password: student12345 — local dev only; do not use in production.
+
+insert into auth.users (
+  id, instance_id, aud, role, email,
+  encrypted_password, email_confirmed_at,
+  raw_app_meta_data, raw_user_meta_data,
+  created_at, updated_at,
+  confirmation_token, recovery_token, email_change, email_change_token_new
+) values
+  ('22222222-2222-2222-2222-222222222221', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated',
+   'student1@kse.local', extensions.crypt('student12345', extensions.gen_salt('bf')), now(),
+   '{"provider":"email","providers":["email"]}', '{"full_name":"Sadia Rahman"}', now(), now(), '', '', '', '')
+on conflict (id) do update
+  set encrypted_password = excluded.encrypted_password,
+      email_confirmed_at = excluded.email_confirmed_at;
+
+insert into auth.identities (
+  id, user_id, provider_id, identity_data, provider, last_sign_in_at, created_at, updated_at
+) values
+  ('22222222-2222-2222-2222-222222222221', '22222222-2222-2222-2222-222222222221',
+   '22222222-2222-2222-2222-222222222221',
+   '{"sub":"22222222-2222-2222-2222-222222222221","email":"student1@kse.local","email_verified":true}'::jsonb,
+   'email', now(), now(), now())
+on conflict (id) do update set identity_data = excluded.identity_data;
+
+-- The signup trigger already granted the default 'student' role and profile.
+
+update public.profiles set full_name = 'Sadia Rahman'
+where id = '22222222-2222-2222-2222-222222222221';
+
 -- ── Community demo data (roadmap step 16) ────────────────────────────────────
 
 insert into public.communities (id, name, slug, description, university_id, cover_image_url, status) values
@@ -345,10 +376,10 @@ on conflict (id) do update
   set name = excluded.name, description = excluded.description, status = excluded.status;
 
 insert into public.community_members (community_id, user_id, role) values
-  ('33333333-3333-3333-3333-333333333301', '63068bb0-e8f5-4cd6-94b3-745730fc74ce', 'member'),
-  ('33333333-3333-3333-3333-333333333302', '63068bb0-e8f5-4cd6-94b3-745730fc74ce', 'member'),
+  ('33333333-3333-3333-3333-333333333301', '22222222-2222-2222-2222-222222222221', 'member'),
+  ('33333333-3333-3333-3333-333333333302', '22222222-2222-2222-2222-222222222221', 'member'),
   ('33333333-3333-3333-3333-333333333302', '22222222-2222-2222-2222-222222222201', 'owner'),
-  ('33333333-3333-3333-3333-333333333303', '63068bb0-e8f5-4cd6-94b3-745730fc74ce', 'member')
+  ('33333333-3333-3333-3333-333333333303', '22222222-2222-2222-2222-222222222221', 'member')
 on conflict (community_id, user_id) do update
   set role = excluded.role;
 
@@ -364,15 +395,15 @@ insert into public.community_posts (id, community_id, author_id, content, is_ann
    'Robotics session moved to Sat 5pm in EE lab 2. Bring your hardware kits.', true, 'active'),
   ('44444444-4444-4444-4444-444444444403',
    '33333333-3333-3333-3333-333333333301',
-   '63068bb0-e8f5-4cd6-94b3-745730fc74ce',
+   '22222222-2222-2222-2222-222222222221',
    'Anyone open to beta-reading a 1500-word short story this weekend?', false, 'active'),
   ('44444444-4444-4444-4444-444444444404',
    '33333333-3333-3333-3333-333333333302',
-   '63068bb0-e8f5-4cd6-94b3-745730fc74ce',
+   '22222222-2222-2222-2222-222222222221',
    'Got the IR sensor working today thanks to Nusrat''s wiring tip.', false, 'active'),
   ('44444444-4444-4444-4444-444444444405',
    '33333333-3333-3333-3333-333333333303',
-   '63068bb0-e8f5-4cd6-94b3-745730fc74ce',
+   '22222222-2222-2222-2222-222222222221',
    'Sharing my BCS Bangla notes (math + GK) to the group email tonight.', false, 'active')
 on conflict (id) do update
   set content = excluded.content, is_announcement = excluded.is_announcement;

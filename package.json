@@ -5,9 +5,10 @@
   "description": "KSE (Khulna Student Ecosystem) — mobile-first student platform for discovering and managing opportunities.",
   "packageManager": "pnpm@12.3.4",
   "engines": {
-    "node": ">=20"
+    "node": ">=22"
   },
   "scripts": {
+    "bootstrap": "node scripts/setup-local.mjs",
     "lint": "pnpm -r run lint",
     "typecheck": "pnpm -r run typecheck",
     "test": "pnpm -r run test",
