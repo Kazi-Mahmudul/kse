@@ -1,6 +1,7 @@
 import type {
   AcademicLevel,
   DegreeLevel,
+  EventType,
   FundingType,
   OpportunityInternshipType,
   OpportunityMode,
@@ -11,6 +12,7 @@ import type {
 import {
   ACADEMIC_LEVELS,
   DEGREE_LEVELS,
+  EVENT_TYPES,
   FUNDING_TYPES,
   OPPORTUNITY_INTERNSHIP_TYPES,
   OPPORTUNITY_MODES,
@@ -71,6 +73,14 @@ export const FUNDING_TYPE_LABELS: Record<FundingType, string> = {
   stipend: 'Stipend',
 };
 
+/** Event sub-types (spec 08._events_kse). */
+export const EVENT_TYPE_LABELS: Record<EventType, string> = {
+  workshop: 'Workshop',
+  seminar: 'Seminar',
+  hackathon: 'Hackathon',
+  meetup: 'Meetup',
+};
+
 export const USER_ROLE_LABELS: Record<UserRole, string> = {
   student: 'Student',
   tutor: 'Tutor',
@@ -119,6 +129,11 @@ export const DEGREE_LEVEL_OPTIONS = DEGREE_LEVELS.map((value) => ({
 export const FUNDING_TYPE_OPTIONS = FUNDING_TYPES.map((value) => ({
   value,
   label: FUNDING_TYPE_LABELS[value],
+}));
+
+export const EVENT_TYPE_OPTIONS = EVENT_TYPES.map((value) => ({
+  value,
+  label: EVENT_TYPE_LABELS[value],
 }));
 
 export const ACADEMIC_LEVEL_OPTIONS = ACADEMIC_LEVELS.map((value) => ({

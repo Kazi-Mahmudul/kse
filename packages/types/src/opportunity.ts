@@ -52,6 +52,11 @@ export const FUNDING_TYPES = ['full', 'partial', 'tuition_waiver', 'stipend'] as
 
 export type FundingType = (typeof FUNDING_TYPES)[number];
 
+/** Event sub-type — used by the Events Hub chips (spec 08._events_kse). */
+export const EVENT_TYPES = ['workshop', 'seminar', 'hackathon', 'meetup'] as const;
+
+export type EventType = (typeof EVENT_TYPES)[number];
+
 /**
  * Full opportunity row as stored in the `opportunities` table.
  * Use `OpportunitySummary` for list/card payloads (CLAUDE.md §33).
@@ -85,6 +90,9 @@ export interface Opportunity {
   stipend_amount: number | null;
   stipend_currency: string | null;
   internship_type: OpportunityInternshipType | null;
+  // Event-only fields (spec 08._events_kse).
+  event_type: EventType | null;
+  starts_at: string | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;
@@ -113,4 +121,7 @@ export interface OpportunitySummary {
   degree_level: DegreeLevel | null;
   funding_type: FundingType | null;
   country: string | null;
+  // Event-only fields (spec 08._events_kse).
+  event_type: EventType | null;
+  starts_at: string | null;
 }

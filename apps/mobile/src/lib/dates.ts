@@ -8,6 +8,12 @@ const dateFormat = new Intl.DateTimeFormat('en-GB', {
   year: 'numeric',
 });
 
+const timeFormat = new Intl.DateTimeFormat('en-US', {
+  hour: 'numeric',
+  minute: '2-digit',
+  hour12: true,
+});
+
 /** Whole days from now until the deadline (negative once passed). */
 export function daysUntil(iso: string | null | undefined): number | null {
   if (!iso) return null;
@@ -18,6 +24,26 @@ export function daysUntil(iso: string | null | undefined): number | null {
 export function formatDate(iso: string | null | undefined): string {
   if (!iso) return 'No deadline';
   return dateFormat.format(new Date(iso));
+}
+
+/** Time-of-day in 12-hour format, e.g. "10:00 AM". */
+export function formatTime(iso: string | null | undefined): string {
+  if (!iso) return '';
+  return timeFormat.format(new Date(iso));
+}
+
+/** Combined date + time for event cards ("18 May 2024 • 10:00 AM").
+ *  Falls back to date-only when the time portion is midnight (suggests a
+ *  date-only column) so the row reads naturally. */
+export function formatDateTime(iso: string | null | undefined): string | null {
+  if (!iso) return null;
+  const d = new Date(iso);
+  const date = dateFormat.format(d);
+  const time = timeFormat.format(d);
+  // If the time component is exactly midnight, the column is date-only —
+  // skip the time bullet so we don't show "1 Jan 1970 • 12:00 AM".
+  if (d.getUTCHours() === 0 && d.getUTCMinutes() === 0) return date;
+  return `${date} • ${time}`;
 }
 
 /** Compact countdown label for cards and detail headers. */

@@ -8,6 +8,7 @@ import type {
 } from '@/features/opportunities/service';
 import {
   DEGREE_LEVELS,
+  EVENT_TYPES,
   FUNDING_TYPES,
   OPPORTUNITY_INTERNSHIP_TYPES,
   OPPORTUNITY_MODES,
@@ -15,6 +16,7 @@ import {
 } from '@kse/types';
 import {
   DEGREE_LEVEL_LABELS,
+  EVENT_TYPE_LABELS,
   FUNDING_TYPE_LABELS,
   OPPORTUNITY_INTERNSHIP_TYPE_LABELS,
   OPPORTUNITY_MODE_LABELS,
@@ -41,6 +43,8 @@ interface OpportunityFilterBarProps {
   showScholarshipFilters?: boolean;
   /** Internship-type chips — internship listings only (spec 06._internship_hub_kse). */
   showInternshipFilters?: boolean;
+  /** Event-type chips — event listings only (spec 08._events_kse). */
+  showEventFilters?: boolean;
 }
 
 /** Horizontal chip rows for category / type / mode / deadline. Chips toggle off. */
@@ -53,6 +57,7 @@ export function OpportunityFilterBar({
   organizations,
   showScholarshipFilters = false,
   showInternshipFilters = false,
+  showEventFilters = false,
 }: OpportunityFilterBarProps) {
   return (
     <View style={styles.wrap}>
@@ -115,6 +120,28 @@ export function OpportunityFilterBar({
                 onChange({
                   internshipType:
                     filters.internshipType === internshipType ? undefined : internshipType,
+                })
+              }
+            />
+          ))}
+        </View>
+      )}
+
+      {showEventFilters && (
+        <View style={styles.row}>
+          <Chip
+            label="All types"
+            selected={!filters.eventType}
+            onPress={() => onChange({ eventType: undefined })}
+          />
+          {EVENT_TYPES.map((eventType) => (
+            <Chip
+              key={eventType}
+              label={EVENT_TYPE_LABELS[eventType]}
+              selected={filters.eventType === eventType}
+              onPress={() =>
+                onChange({
+                  eventType: filters.eventType === eventType ? undefined : eventType,
                 })
               }
             />

@@ -1,6 +1,7 @@
 import { supabase } from '@/lib/supabase';
 import type {
   DegreeLevel,
+  EventType,
   FundingType,
   Opportunity,
   OpportunityInternshipType,
@@ -26,6 +27,10 @@ export interface OpportunityFilters {
   /** Free-text query → search_vector full-text search. */
   q?: string;
   type?: OpportunityType;
+  /** Multi-type filter — used by the Events Hub which shows both `event`
+   *  and `workshop` rows (the spec's "Workshop/Seminar/Hackathon" chips
+   *  apply across both). When set, takes precedence over `type`. */
+  types?: readonly OpportunityType[];
   mode?: OpportunityMode;
   /** Type-scoped category (spec §6: "event type", "internship category", …). */
   categoryId?: string;
@@ -41,6 +46,8 @@ export interface OpportunityFilters {
   organization?: string;
   /** Internship-only chip filter (spec 06._internship_hub_kse). */
   internshipType?: OpportunityInternshipType;
+  /** Event-only chip filter — All / Workshop / Seminar / Hackathon (spec 08._events_kse). */
+  eventType?: EventType;
   /** Only opportunities whose deadline falls within N days (and is ahead). */
   deadlineWithinDays?: number | null;
 }
@@ -57,7 +64,7 @@ export function sanitizeSearchQuery(q: string): string {
 }
 
 export const SUMMARY_SELECT =
-  'id, type, title, organization_name, summary, image_url, location, opportunity_mode, deadline, featured, verified, stipend_amount, stipend_currency, internship_type, degree_level, funding_type, country';
+  'id, type, title, organization_name, summary, image_url, location, opportunity_mode, deadline, featured, verified, stipend_amount, stipend_currency, internship_type, degree_level, funding_type, country, event_type, starts_at';
 
 /** One page of opportunities matching text + filters, soonest deadline first. */
 export async function fetchOpportunities(
@@ -72,7 +79,9 @@ export async function fetchOpportunities(
     .select(SUMMARY_SELECT)
     .eq('status', 'published');
 
-  if (filters.type) {
+  if (filters.types && filters.types.length > 0) {
+    query = query.in('type', [...filters.types]);
+  } else if (filters.type) {
     query = query.eq('type', filters.type);
   }
   if (filters.mode) {
@@ -102,6 +111,9 @@ export async function fetchOpportunities(
   if (filters.internshipType) {
     query = query.eq('internship_type', filters.internshipType);
   }
+  if (filters.eventType) {
+    query = query.eq('event_type', filters.eventType);
+  }
   if (filters.deadlineWithinDays) {
     const now = new Date().toISOString();
     const until = new Date(
@@ -117,7 +129,20 @@ export async function fetchOpportunities(
     query = query.filter('search_vector', 'plfts(simple)', sanitized);
   }
 
-  const { data, error } = await query
+  // Event listings are sorted by start time (upcoming first); other types
+  // still sort by `deadline` (scholarship apply-by, internship apply-by, …).
+  // For events without `starts_at`, `nullsFirst: false` pushes them to the
+  // end so dated events always lead.
+  const filterTypes = filters.types ?? (filters.type ? [filters.type] : []);
+  const isEventListing =
+    filterTypes.length > 0 &&
+    filterTypes.every((t) => t === 'event' || t === 'workshop');
+  let ordered = query;
+  if (isEventListing) {
+    ordered = ordered.order('starts_at', { ascending: true, nullsFirst: false });
+  }
+
+  const { data, error } = await ordered
     .order('deadline', { ascending: true, nullsFirst: false })
     .order('published_at', { ascending: false })
     .range(from, from + pageSize - 1);

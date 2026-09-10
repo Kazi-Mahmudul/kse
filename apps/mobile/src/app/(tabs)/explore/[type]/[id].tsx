@@ -19,7 +19,7 @@ import { SectionHeader } from '@/components/ui/section-header';
 import { Spacing, ThemeColor } from '@/constants/theme';
 import { findCategory } from '@/features/explore/categories';
 import { useOpportunity } from '@/features/opportunities/queries';
-import { daysUntil, deadlineLabel, deadlineTone, formatDate } from '@/lib/dates';
+import { daysUntil, deadlineLabel, deadlineTone, formatDate, formatDateTime } from '@/lib/dates';
 import { analytics } from '@/lib/analytics';
 import { useTheme } from '@/hooks/use-theme';
 import {
@@ -70,6 +70,7 @@ export default function OpportunityDetailScreen() {
 
   const opportunity = query.data;
   const tint = colors[(category?.tint ?? 'primary') as ThemeColor];
+  const isEvent = opportunity.type === 'event' || opportunity.type === 'workshop';
   const expired = deadlineTone(opportunity.deadline) === 'danger';
   const days = daysUntil(opportunity.deadline);
 
@@ -131,7 +132,13 @@ export default function OpportunityDetailScreen() {
           />
           <View style={styles.deadlineText}>
             <ThemedText type="small" themeColor="textSecondary">
-              {expired ? 'Deadline passed' : 'Application deadline'}
+              {expired
+                ? isEvent
+                  ? 'Registration closed'
+                  : 'Deadline passed'
+                : isEvent
+                  ? 'Registration deadline'
+                  : 'Application deadline'}
             </ThemedText>
             <ThemedText type="smallBold">{formatDate(opportunity.deadline)}</ThemedText>
           </View>
@@ -146,6 +153,7 @@ export default function OpportunityDetailScreen() {
         opportunity.country ||
         opportunity.degree_level ||
         opportunity.funding_type ||
+        (isEvent && opportunity.starts_at) ||
         (opportunity.type === 'internship' &&
           (opportunity.stipend_amount !== null ||
             opportunity.internship_type !== null)) ||
@@ -153,6 +161,13 @@ export default function OpportunityDetailScreen() {
         <>
           <SectionHeader title="Details" />
           <Card>
+            {isEvent && opportunity.starts_at && (
+              <DetailRow
+                icon="calendar-outline"
+                label="Event date"
+                value={formatDateTime(opportunity.starts_at) ?? formatDate(opportunity.starts_at)}
+              />
+            )}
             {opportunity.location && (
               <DetailRow icon="location-outline" label="Location" value={opportunity.location} />
             )}
@@ -235,11 +250,9 @@ export default function OpportunityDetailScreen() {
 
       <BookmarkButton opportunityId={opportunity.id} variant="button" />
 
-      {(opportunity.type === 'event' || opportunity.type === 'workshop') && (
-        <RegisterButton opportunityId={opportunity.id} />
-      )}
+      {isEvent && <RegisterButton opportunityId={opportunity.id} />}
 
-      {opportunity.application_url ? (
+      {isEvent ? null : opportunity.application_url ? (
         <PrimaryButton
           label={expired ? 'Deadline passed' : 'Apply now'}
           disabled={expired}
@@ -272,7 +285,8 @@ function DetailRow({
     | 'globe-outline'
     | 'school-outline'
     | 'cash-outline'
-    | 'briefcase-outline';
+    | 'briefcase-outline'
+    | 'calendar-outline';
   label: string;
   value: string;
 }) {
