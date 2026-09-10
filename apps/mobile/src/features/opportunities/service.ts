@@ -198,6 +198,32 @@ export async function listLatestOpportunities(limit = 4): Promise<OpportunitySum
   return (data ?? []) as OpportunitySummary[];
 }
 
+/** Published-opportunity count grouped by `type`, for dashboard stat cards. */
+export type OpportunityCountsByType = Partial<Record<OpportunityType, number>>;
+
+/**
+ * Aggregate published-opportunity counts by type. Pulls just the `type`
+ * column and reduces in-memory — fine for MVP scale (sub-10k published rows)
+ * and avoids an RPC. The published-only filter rides on the same partial
+ * index the feed uses.
+ */
+export async function listOpportunityCountsByType(): Promise<OpportunityCountsByType> {
+  const { data, error } = await supabase
+    .from('opportunities')
+    .select('type')
+    .eq('status', 'published');
+
+  if (error) fail('Could not load opportunity counts', error.message);
+
+  return ((data ?? []) as { type: OpportunityType }[]).reduce<OpportunityCountsByType>(
+    (acc, row) => {
+      acc[row.type] = (acc[row.type] ?? 0) + 1;
+      return acc;
+    },
+    {},
+  );
+}
+
 export interface OpportunityDetail extends Opportunity {
   tags: string[];
 }

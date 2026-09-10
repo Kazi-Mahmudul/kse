@@ -11,8 +11,10 @@ import {
   getOpportunity,
   listLatestOpportunities,
   listOpportunityCategories,
+  listOpportunityCountsByType,
   listOpportunityFacets,
   type OpportunityCategoryInfo,
+  type OpportunityCountsByType,
   type OpportunityDetail,
   type OpportunityFacets,
   type OpportunityFilters,
@@ -40,6 +42,7 @@ export const opportunityKeys = {
     [...opportunityKeys.all, 'categories', type ?? null] as const,
   facets: (type: OpportunityType | undefined) =>
     [...opportunityKeys.all, 'facets', type ?? null] as const,
+  countsByType: () => [...opportunityKeys.all, 'counts-by-type'] as const,
 };
 
 /** Paginated feed shared by search and per-type listings (step 9). */
@@ -59,6 +62,16 @@ export function useLatestOpportunities(limit = 4) {
     queryKey: opportunityKeys.latest(limit),
     queryFn: () => listLatestOpportunities(limit),
   } satisfies UseQueryOptions<OpportunitySummary[], Error>);
+}
+
+/** Counts of published opportunities by type (dashboard "Opportunity Overview"). */
+export function useOpportunityCountsByType() {
+  return useQuery({
+    queryKey: opportunityKeys.countsByType(),
+    queryFn: listOpportunityCountsByType,
+    // Catalog size doesn't change second-to-second; a minute is plenty.
+    staleTime: 60_000,
+  } satisfies UseQueryOptions<OpportunityCountsByType, Error>);
 }
 
 /** Type-scoped categories for filter chips (public read). */
