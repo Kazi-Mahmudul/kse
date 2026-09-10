@@ -54,7 +54,7 @@ export default function ProfileScreen() {
       <ProfileStatsStrip />
       <PrimaryButton
         label="Edit Profile"
-        onPress={() => router.push('/(tabs)/profile/edit')}
+        onPress={() => router.push('/(tabs)/profile/settings')}
       />
       <PortfolioGrid />
       <ProfileMenuList />

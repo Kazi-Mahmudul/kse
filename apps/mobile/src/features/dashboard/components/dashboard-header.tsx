@@ -29,7 +29,11 @@ export function DashboardHeader() {
             ? `Notifications, ${unreadCount} unread`
             : 'Notifications'
         }
-        style={({ pressed }) => [styles.bell, pressed && styles.pressed]}
+        style={({ pressed }) => [
+          styles.bell,
+          { backgroundColor: colors.background, borderColor: colors.border, shadowColor: colors.shadow },
+          pressed && styles.pressed,
+        ]}
       >
         <Ionicons
           name="notifications-outline"
@@ -75,9 +79,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'background',
-    borderColor: 'border',
-    shadowColor: '#0F172A',
     shadowOpacity: 0.06,
     shadowRadius: 4,
     shadowOffset: { width: 0, height: 1 },

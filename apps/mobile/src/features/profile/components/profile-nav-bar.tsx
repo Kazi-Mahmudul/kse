@@ -13,7 +13,7 @@ import { useTheme } from '@/hooks/use-theme';
  */
 export function ProfileNavBar() {
   const colors = useTheme();
-  const openSettings = () => router.push('/(tabs)/profile/edit');
+  const openSettings = () => router.push('/(tabs)/profile/settings');
 
   return (
     <View style={styles.nav}>
@@ -50,7 +50,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     lineHeight: 22,
     letterSpacing: -0.2,
-    color: 'heading',
   },
   gear: {
     width: 36,

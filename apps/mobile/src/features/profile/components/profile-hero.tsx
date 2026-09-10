@@ -5,16 +5,8 @@ import { ThemedText } from '@/components/themed-text';
 import { ProfileAvatar } from '@/components/ui/profile-avatar';
 import { FontFamilies } from '@/constants/theme';
 import { useMyProfile } from '@/features/profile/queries';
-import { useTheme } from '@/hooks/use-theme';
+import { useTints } from '@/hooks/use-tints';
 import { ACADEMIC_LEVEL_LABELS } from '@kse/shared';
-
-/** Verified-pill colours are fixed on purpose (matches `promo-banner.tsx`'s
- *  HERO_ART rationale): the emerald identity is a brand signal, not chrome. */
-const VERIFIED = {
-  bg: '#ECFDF5', // emerald-50
-  border: '#A7F3D0', // emerald-200
-  fg: '#059669', // emerald-600
-} as const;
 
 /**
  * Single-line academic affiliation: "CSE, Khulna University • Level 3, Term 1"
@@ -40,13 +32,14 @@ function affiliationLine(profile: {
  * screen can render its loading state without a half-drawn hero.
  */
 export function ProfileHero() {
-  const colors = useTheme();
+  const tints = useTints();
   const profileQuery = useMyProfile();
   const profile = profileQuery.data;
   if (!profile) return null;
 
   const name = profile.full_name?.trim() || 'Student';
   const location = profile.university?.location ?? '—';
+  const verified = tints.emerald;
 
   return (
     <View style={styles.wrap}>
@@ -68,19 +61,16 @@ export function ProfileHero() {
         <View
           style={[
             styles.verifiedPill,
-            { backgroundColor: VERIFIED.bg, borderColor: VERIFIED.border },
+            { backgroundColor: verified.bg, borderColor: verified.border },
           ]}
           accessibilityLabel="Verified student"
         >
-          <Ionicons name="checkmark-circle" size={14} color={VERIFIED.fg} />
-          <ThemedText style={[styles.verifiedLabel, { color: VERIFIED.fg }]}>
+          <Ionicons name="checkmark-circle" size={14} color={verified.fg} />
+          <ThemedText style={[styles.verifiedLabel, { color: verified.fg }]}>
             Verified Student
           </ThemedText>
         </View>
       ) : null}
-      {/* `colors` is consumed by `useTheme` for the hero's themed chrome above;
-          keep the binding so a future theme-aware swap doesn't silently lose it. */}
-      {void colors}
     </View>
   );
 }

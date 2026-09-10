@@ -24,9 +24,9 @@ export function HomeTopBar({ location, unreadCount }: HomeTopBarProps) {
   return (
     <View style={styles.row}>
       <Pressable
-        onPress={() => router.push('/(tabs)/profile/edit')}
+        onPress={() => router.push('/(tabs)/profile/settings')}
         accessibilityRole="button"
-        accessibilityLabel={`Location: ${location ?? FALLBACK_LOCATION}. Change your university`}
+        accessibilityLabel={`Location: ${location ?? FALLBACK_LOCATION}. Open settings`}
         style={({ pressed }) => [styles.location, pressed && styles.pressed]}
       >
         <Ionicons name="location" size={16} color={colors.primary} />

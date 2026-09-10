@@ -7,8 +7,10 @@ import {
   listDepartments,
   listSkills,
   listUniversities,
+  removeAvatar,
   setMySkills,
   updateMyProfile,
+  uploadAvatar,
 } from './service';
 
 /** Query keys for profile-owned data (CLAUDE.md rule 11: TanStack Query). */
@@ -60,6 +62,30 @@ export function useSaveProfile() {
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: profileKeys.all });
+    },
+  });
+}
+
+// ── Avatar mutations (CLAUDE.md §15: own-prefix storage) ─────────────────────
+
+/** Upload + persist. Returns the new public URL. */
+export function useUploadAvatar() {
+  const queryClient = useQueryClient();
+  return useMutation<string, Error, { localUri: string; mimeType: string }>({
+    mutationFn: ({ localUri, mimeType }) => uploadAvatar(localUri, mimeType),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: profileKeys.me() });
+    },
+  });
+}
+
+/** Clears `profiles.avatar_url`. */
+export function useRemoveAvatar() {
+  const queryClient = useQueryClient();
+  return useMutation<void, Error, void>({
+    mutationFn: () => removeAvatar(),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: profileKeys.me() });
     },
   });
 }

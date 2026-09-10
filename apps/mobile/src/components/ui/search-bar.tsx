@@ -1,5 +1,4 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useState } from 'react';
 import { Pressable, StyleSheet, TextInput, View } from 'react-native';
 
 import { FontFamilies, Spacing } from '@/constants/theme';
@@ -14,14 +13,18 @@ interface SearchBarProps {
   /**
    * `pill` (default) is the rounded search field used across Explore/Search.
    * `card` is the Home variant (design 03._home_kse): radius 16, muted fill,
-   * hairline border, smaller type.
+   * smaller type.
    */
   variant?: 'pill' | 'card';
   /** When set, renders the trailing filter button beside the field. */
   onFilterPress?: () => void;
 }
 
-/** Search field (tokens "Shape"). Debouncing is the caller's job (spec §33). */
+/**
+ * Search field (tokens "Shape"). No focus ring — the muted fill is enough
+ * affordance and a coloured border reads as "highlighted" rather than
+ * "active". Debouncing is the caller's job (spec §33).
+ */
 export function SearchBar({
   value,
   onChangeText,
@@ -32,7 +35,6 @@ export function SearchBar({
   onFilterPress,
 }: SearchBarProps) {
   const colors = useTheme();
-  const [focused, setFocused] = useState(false);
   const card = variant === 'card';
 
   const field = (
@@ -44,14 +46,7 @@ export function SearchBar({
         // of the screen's column it would stretch the field vertically.
         onFilterPress && styles.flexOne,
         {
-          backgroundColor: card
-            ? focused
-              ? colors.background
-              : colors.surfaceMuted
-            : colors.backgroundElement,
-        },
-        card && {
-          borderColor: focused ? colors.primary : colors.border,
+          backgroundColor: card ? colors.surfaceMuted : colors.backgroundElement,
         },
       ]}
     >
@@ -64,8 +59,6 @@ export function SearchBar({
         value={value}
         onChangeText={onChangeText}
         onSubmitEditing={onSubmitEditing}
-        onFocus={() => setFocused(true)}
-        onBlur={() => setFocused(false)}
         autoFocus={autoFocus}
         placeholder={placeholder}
         placeholderTextColor={card ? colors.textMuted : colors.textSecondary}
@@ -92,7 +85,6 @@ export function SearchBar({
           styles.filterButton,
           {
             backgroundColor: colors.surfaceMuted,
-            borderColor: colors.border,
           },
           pressed && styles.pressed,
         ]}
@@ -124,7 +116,6 @@ const styles = StyleSheet.create({
   },
   barCard: {
     borderRadius: 16,
-    borderWidth: 1,
     paddingHorizontal: 14,
     height: 44,
   },
@@ -143,7 +134,6 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 16,
-    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -151,3 +141,4 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
 });
+

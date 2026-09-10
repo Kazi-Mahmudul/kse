@@ -31,6 +31,9 @@ export const Colors = {
     bannerFrom: '#4F46E5',
     bannerVia: '#4338CA',
     bannerTo: '#1D4ED8',
+    // Modal/sheet backdrop (40% black) and card shadow (8% slate-900).
+    scrim: 'rgba(0,0,0,0.4)',
+    shadow: 'rgba(15,23,42,0.08)',
   },
   dark: {
     text: '#ffffff',
@@ -55,6 +58,10 @@ export const Colors = {
     bannerFrom: '#4338CA',
     bannerVia: '#3730A3',
     bannerTo: '#1E40AF',
+    // Dark-mode overlays: stronger scrim and deeper shadow so cards remain
+    // legible against the black background.
+    scrim: 'rgba(0,0,0,0.6)',
+    shadow: 'rgba(0,0,0,0.4)',
   },
 } as const;
 

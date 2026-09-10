@@ -15,11 +15,14 @@ import {
   useSegments,
 } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
+import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
-import { useColorScheme } from 'react-native';
+import { Appearance, Platform } from 'react-native';
 
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store/auth-store';
+import { useSettingsStore } from '@/store/settings-store';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -77,6 +80,7 @@ function AuthGate({ children }: { children: React.ReactNode }) {
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
+  const themePreference = useSettingsStore((s) => s.themePreference);
   const [client] = useState(() => queryClient);
   const [fontsLoaded] = useFonts({
     Poppins_400Regular,
@@ -85,10 +89,28 @@ export default function RootLayout() {
     Poppins_700Bold,
   });
 
+  // Push the user's preference into RN's `Appearance` so internals follow:
+  // Alert buttons, `ActivityIndicator` defaults, modal backdrop tint, and
+  // keyboard appearance all read this. Passing `null` restores OS-following.
+  //
+  // RN web doesn't ship `Appearance.setColorScheme` (only the read side), so
+  // we guard on `Platform.OS`. Web already follows OS via `useRNColorScheme()`
+  // inside `use-color-scheme.web.ts`, so skipping is harmless.
+  useEffect(() => {
+    if (Platform.OS === 'web') return;
+    const next: 'light' | 'dark' | null =
+      themePreference === 'system' ? null : themePreference;
+    // `ColorSchemeName` is `'light' | 'dark'` in the typings, but `setColorScheme`
+    // also accepts `null` at runtime to clear the override (see RN docs).
+    // Cast through `unknown` so we keep the call site honest about intent.
+    (Appearance.setColorScheme as (s: 'light' | 'dark' | null) => void)(next);
+  }, [themePreference]);
+
   if (!fontsLoaded) return null; // keep splash until Poppins is ready
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+      <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
       <QueryClientProvider client={client}>
         <AuthGate>
           <Stack screenOptions={{ headerShown: false }}>

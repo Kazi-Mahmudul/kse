@@ -56,7 +56,10 @@ export function SelectField({
       </Pressable>
 
       <Modal visible={open} transparent animationType="slide" onRequestClose={() => setOpen(false)}>
-        <Pressable style={styles.backdrop} onPress={() => setOpen(false)}>
+        <Pressable
+          style={[styles.backdrop, { backgroundColor: colors.scrim }]}
+          onPress={() => setOpen(false)}
+        >
           <ThemedView
             style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, Spacing.three) }]}
           >
@@ -138,7 +141,6 @@ const styles = StyleSheet.create({
   },
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)',
     justifyContent: 'flex-end',
   },
   sheet: {

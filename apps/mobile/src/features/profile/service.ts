@@ -15,8 +15,21 @@ import { supabase } from '@/lib/supabase';
 
 export class ProfileError extends Error {}
 
+/**
+ * Reads swallow the upstream message to avoid leaking schema/RBAC details.
+ * Writes (the ones the user initiated via a form) forward the upstream
+ * message — when the user clicked Save they need to know exactly what
+ * the server rejected, otherwise an opaque banner blocks legitimate
+ * edits (e.g. an FK mismatch reads as "invalid input syntax for type
+ * uuid" and a polite generic string doesn't tell anyone what to fix).
+ */
 function fail(error: { message: string } | null): void {
   if (error) throw new ProfileError('Could not load your profile data. Please try again.');
+}
+
+function failWrite(error: { message: string } | null): never {
+  if (error) throw new ProfileError(error.message || 'Save failed. Please try again.');
+  throw new ProfileError('Save failed. Please try again.');
 }
 
 async function requireUserId(): Promise<string> {
@@ -53,7 +66,55 @@ export async function getMyProfile(): Promise<MyProfile> {
 export async function updateMyProfile(input: ProfileUpdateInput): Promise<void> {
   const userId = await requireUserId();
   const { error } = await supabase.from('profiles').update(input).eq('id', userId);
-  fail(error);
+  failWrite(error);
+}
+
+// ── Avatar upload (CLAUDE.md §15) ────────────────────────────────────────────
+
+const AVATAR_BUCKET = 'avatars';
+
+function extensionFor(mimeType: string): 'png' | 'webp' | 'jpg' {
+  if (mimeType === 'image/png') return 'png';
+  if (mimeType === 'image/webp') return 'webp';
+  return 'jpg';
+}
+
+/**
+ * Upload a local image (from `expo-image-picker`) into the `avatars` bucket
+ * under `<userId>/<uuid>.<ext>` and write the resulting public URL into
+ * `profiles.avatar_url`. The first path segment must equal `auth.uid()` per
+ * the bucket's RLS (see `20260906120011_storage_buckets.sql`); a random
+ * UUID suffix prevents filename collisions across re-uploads.
+ */
+export async function uploadAvatar(localUri: string, mimeType: string): Promise<string> {
+  const userId = await requireUserId();
+  const ext = extensionFor(mimeType);
+  const path = `${userId}/${crypto.randomUUID()}.${ext}`;
+
+  const response = await fetch(localUri);
+  const blob = await response.blob();
+  const { error } = await supabase.storage
+    .from(AVATAR_BUCKET)
+    .upload(path, blob, { contentType: mimeType, upsert: true });
+  if (error) {
+    throw new ProfileError(
+      error.message
+        ? `Could not upload avatar: ${error.message}`
+        : 'Could not upload avatar. Please try again.',
+    );
+  }
+
+  const {
+    data: { publicUrl },
+  } = supabase.storage.from(AVATAR_BUCKET).getPublicUrl(path);
+
+  await updateMyProfile({ avatar_url: publicUrl });
+  return publicUrl;
+}
+
+/** Clears the avatar by nulling `profiles.avatar_url`. */
+export async function removeAvatar(): Promise<void> {
+  await updateMyProfile({ avatar_url: null });
 }
 
 /** Currently selected skill ids (own rows only, RLS enforced). */
@@ -80,13 +141,13 @@ export async function setMySkills(skillIds: string[]): Promise<void> {
       .delete()
       .eq('user_id', userId)
       .in('skill_id', toRemove);
-    fail(error);
+    failWrite(error);
   }
   if (toAdd.length > 0) {
     const { error } = await supabase
       .from('user_skills')
       .insert(toAdd.map((skill_id) => ({ user_id: userId, skill_id })));
-    fail(error);
+    failWrite(error);
   }
 }
 

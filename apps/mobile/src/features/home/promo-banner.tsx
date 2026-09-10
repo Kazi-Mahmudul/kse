@@ -57,7 +57,7 @@ export function PromoBanner() {
             accessibilityLabel="Explore internship opportunities"
             style={({ pressed }) => [
               styles.cta,
-              { backgroundColor: colors.background },
+              { backgroundColor: colors.background, shadowColor: colors.shadow },
               pressed && styles.ctaPressed,
             ]}
           >
@@ -144,7 +144,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 6,
     borderRadius: 999,
-    shadowColor: '#000000',
     shadowOpacity: 0.08,
     shadowRadius: 2,
     shadowOffset: { width: 0, height: 1 },
