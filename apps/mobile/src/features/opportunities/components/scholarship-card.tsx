@@ -1,4 +1,3 @@
-import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
@@ -8,18 +7,19 @@ import { Spacing, type TintKey } from '@/constants/theme';
 import { hashString, initialsFor } from '@/lib/format';
 import { useTheme } from '@/hooks/use-theme';
 import { useTints } from '@/hooks/use-tints';
+import { DEGREE_LEVEL_LABELS, FUNDING_TYPE_LABELS } from '@kse/shared';
 import type { OpportunitySummary } from '@kse/types';
 
-interface InternshipCardProps {
+interface ScholarshipCardProps {
   opportunity: OpportunitySummary;
 }
 
 /**
- * Internship-hub card (spec 06._internship_hub_kse).
+ * Scholarship-hub card (spec 07._scholarship_hub_kse).
  *
- * Single-column full-width card with a 44px logo badge on the left and the
- * title / org / location / stipend / deadline stack on the right. The
- * bookmark sits at the right-hand edge of the body row.
+ * Single-column full-width card with a 48px emblem badge on the left and the
+ * title / org / degree-level chip / deadline stack on the right. The bookmark
+ * sits at the right-hand edge of the body row.
  *
  * The card-press area and the bookmark-press area are DOM *siblings* — not
  * nested — so RNW can render each as its own `<button>` without triggering
@@ -27,20 +27,27 @@ interface InternshipCardProps {
  * The outer View carries the card chrome (radius / border / shadow); the
  * inner Pressable wraps only the body so the bookmark sits next to it.
  */
-export function InternshipCard({ opportunity }: InternshipCardProps) {
+export function ScholarshipCard({ opportunity }: ScholarshipCardProps) {
   const colors = useTheme();
   const tints = useTints();
   const tintKeys = Object.keys(tints) as TintKey[];
-  const tintKey = tintKeys[hashString(opportunity.organization_name) % tintKeys.length] ?? 'indigo';
+  const tintKey =
+    tintKeys[hashString(opportunity.organization_name) % tintKeys.length] ??
+    'indigo';
   const tint = tints[tintKey];
 
-  const stipendLine = renderStipendLine(opportunity.stipend_amount, opportunity.stipend_currency);
-  const deadlineLine = renderDeadlineLine(opportunity.deadline);
+  const degreeLabel = opportunity.degree_level
+    ? DEGREE_LEVEL_LABELS[opportunity.degree_level]
+    : null;
+  const fundingLabel = opportunity.funding_type
+    ? FUNDING_TYPE_LABELS[opportunity.funding_type]
+    : null;
+  const deadlineLabel = formatDeadline(opportunity.deadline);
 
   const open = () =>
     router.push({
       pathname: '/(tabs)/explore/[type]/[id]',
-      params: { type: 'internship', id: opportunity.id },
+      params: { type: 'scholarship', id: opportunity.id },
     });
 
   return (
@@ -73,7 +80,12 @@ export function InternshipCard({ opportunity }: InternshipCardProps) {
               transition={150}
             />
           ) : (
-            <View style={[styles.logo, { backgroundColor: tint.bg, borderColor: tint.border }]}>
+            <View
+              style={[
+                styles.logo,
+                { backgroundColor: tint.bg, borderColor: tint.border },
+              ]}
+            >
               <Text style={[styles.logoText, { color: tint.fg }]}>
                 {initialsFor(opportunity.organization_name)}
               </Text>
@@ -81,35 +93,69 @@ export function InternshipCard({ opportunity }: InternshipCardProps) {
           )}
 
           <View style={styles.bodyText}>
-            <Text style={[styles.title, { color: colors.heading ?? colors.text }]} numberOfLines={1}>
+            <Text
+              style={[styles.title, { color: colors.heading ?? colors.text }]}
+              numberOfLines={2}
+            >
               {opportunity.title}
             </Text>
-            <Text style={[styles.org, { color: colors.bodyStrong ?? colors.text }]} numberOfLines={1}>
+            <Text
+              style={[
+                styles.org,
+                { color: colors.bodyStrong ?? colors.text },
+              ]}
+              numberOfLines={1}
+            >
               {opportunity.organization_name}
             </Text>
-            {opportunity.location ? (
-              <View style={styles.metaRow}>
-                <Ionicons name="location-outline" size={11} color={colors.textSecondary} />
-                <Text style={[styles.meta, { color: colors.textSecondary }]} numberOfLines={1}>
-                  {opportunity.location}
-                </Text>
+            {(degreeLabel || fundingLabel) && (
+              <View style={styles.chipRow}>
+                {degreeLabel ? (
+                  <View
+                    style={[
+                      styles.chip,
+                      { backgroundColor: colors.backgroundElement },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.chipText,
+                        { color: colors.textSecondary },
+                      ]}
+                    >
+                      {degreeLabel}
+                    </Text>
+                  </View>
+                ) : null}
+                {fundingLabel ? (
+                  <View
+                    style={[
+                      styles.chip,
+                      { backgroundColor: colors.backgroundElement },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.chipText,
+                        { color: colors.textSecondary },
+                      ]}
+                    >
+                      {fundingLabel}
+                    </Text>
+                  </View>
+                ) : null}
               </View>
-            ) : null}
-            {stipendLine ? (
-              <Text style={[styles.stipend, { color: colors.text }]}>
-                {stipendLine.amount}
-                <Text style={[styles.stipendSuffix, { color: colors.textMuted ?? colors.textSecondary }]}>
-                  {` /${stipendLine.suffix}`}
-                </Text>
-              </Text>
-            ) : null}
-            {deadlineLine ? (
-              <Text style={[styles.deadline, { color: colors.textSecondary }]}>
-                <Text style={[styles.deadlineLabel, { color: colors.textSecondary }]}>
-                  Apply Before:{' '}
-                </Text>
-                <Text style={[styles.deadlineDate, { color: colors.text }]}>
-                  {deadlineLine}
+            )}
+            {deadlineLabel ? (
+              <Text style={[styles.deadline, { color: colors.textMuted }]}>
+                <Text style={{ color: colors.textMuted }}>Deadline: </Text>
+                <Text
+                  style={[
+                    styles.deadlineDate,
+                    { color: colors.bodyStrong ?? colors.text },
+                  ]}
+                >
+                  {deadlineLabel}
                 </Text>
               </Text>
             ) : null}
@@ -124,21 +170,7 @@ export function InternshipCard({ opportunity }: InternshipCardProps) {
   );
 }
 
-function renderStipendLine(
-  amount: number | null,
-  currency: string | null,
-): { amount: string; suffix: string } | null {
-  if (amount === null || amount === null) return null;
-  if (!currency) return null;
-  const formatted = new Intl.NumberFormat('en-US', {
-    maximumFractionDigits: 0,
-  }).format(amount);
-  // Bangladesh uses the ৳ glyph; everything else shows the ISO code (e.g. "USD 500").
-  const prefix = currency === 'BDT' ? '৳' : `${currency} `;
-  return { amount: `${prefix}${formatted}`, suffix: 'month' };
-}
-
-function renderDeadlineLine(deadline: string | null): string | null {
+function formatDeadline(deadline: string | null): string | null {
   if (!deadline) return null;
   return new Intl.DateTimeFormat('en-GB', {
     day: 'numeric',
@@ -172,16 +204,16 @@ const styles = StyleSheet.create({
     gap: Spacing.three,
   },
   logo: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
+    width: 48,
+    height: 48,
+    borderRadius: 16,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
   },
   logoText: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '700',
     letterSpacing: 0.5,
   },
@@ -198,29 +230,25 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '500',
   },
-  metaRow: {
+  chipRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    flexWrap: 'wrap',
     gap: 4,
     marginTop: 2,
   },
-  meta: {
+  chip: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  chipText: {
     fontSize: 10,
-  },
-  stipend: {
-    fontSize: 11,
-    fontWeight: '700',
-    marginTop: 4,
-  },
-  stipendSuffix: {
-    fontWeight: '400',
+    fontWeight: '500',
   },
   deadline: {
     fontSize: 10,
+    fontWeight: '500',
     marginTop: 2,
-  },
-  deadlineLabel: {
-    fontWeight: '400',
   },
   deadlineDate: {
     fontWeight: '600',

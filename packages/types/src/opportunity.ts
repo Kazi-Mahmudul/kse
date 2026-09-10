@@ -109,4 +109,8 @@ export interface OpportunitySummary {
   stipend_amount: number | null;
   stipend_currency: string | null;
   internship_type: OpportunityInternshipType | null;
+  // Scholarship-only fields (spec 07._scholarship_hub_kse).
+  degree_level: DegreeLevel | null;
+  funding_type: FundingType | null;
+  country: string | null;
 }

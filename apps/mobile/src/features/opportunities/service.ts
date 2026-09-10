@@ -32,6 +32,10 @@ export interface OpportunityFilters {
   /** Scholarship filters (spec §6). */
   degreeLevel?: DegreeLevel;
   fundingType?: FundingType;
+  /** Country equality — used by the Scholarship Hub's "Local" quick chip. */
+  country?: string;
+  /** Country inequality — used by the Scholarship Hub's "International" quick chip. */
+  countryNot?: string;
   /** Free-text facets filtered by exact value (spec §6: location, company). */
   location?: string;
   organization?: string;
@@ -53,7 +57,7 @@ export function sanitizeSearchQuery(q: string): string {
 }
 
 export const SUMMARY_SELECT =
-  'id, type, title, organization_name, summary, image_url, location, opportunity_mode, deadline, featured, verified, stipend_amount, stipend_currency, internship_type';
+  'id, type, title, organization_name, summary, image_url, location, opportunity_mode, deadline, featured, verified, stipend_amount, stipend_currency, internship_type, degree_level, funding_type, country';
 
 /** One page of opportunities matching text + filters, soonest deadline first. */
 export async function fetchOpportunities(
@@ -82,6 +86,12 @@ export async function fetchOpportunities(
   }
   if (filters.fundingType) {
     query = query.eq('funding_type', filters.fundingType);
+  }
+  if (filters.country) {
+    query = query.eq('country', filters.country);
+  }
+  if (filters.countryNot) {
+    query = query.neq('country', filters.countryNot);
   }
   if (filters.location) {
     query = query.eq('location', filters.location);

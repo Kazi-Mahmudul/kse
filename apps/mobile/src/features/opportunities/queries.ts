@@ -32,6 +32,8 @@ export const opportunityKeys = {
       filters.categoryId ?? null,
       filters.degreeLevel ?? null,
       filters.fundingType ?? null,
+      filters.country ?? null,
+      filters.countryNot ?? null,
       filters.location ?? null,
       filters.organization ?? null,
       filters.internshipType ?? null,

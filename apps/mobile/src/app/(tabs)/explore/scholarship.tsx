@@ -19,31 +19,31 @@ import { SearchBar } from '@/components/ui/search-bar';
 import { Chip } from '@/components/ui/chip';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
-import { InternshipCard } from '@/features/opportunities/components/internship-card';
+import { ScholarshipCard } from '@/features/opportunities/components/scholarship-card';
 import { useOpportunityFeed } from '@/features/opportunities/queries';
 import type { OpportunityFilters } from '@/features/opportunities/service';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { useTheme } from '@/hooks/use-theme';
-import type { OpportunityInternshipType } from '@kse/types';
 
-/** Quick-filter chip values on the Internship Hub (spec 06._internship_hub_kse). */
-type QuickChip = 'all' | 'onsite' | 'remote' | 'part_time';
+/**
+ * Quick-filter chip values on the Scholarship Hub (spec 07._scholarship_hub_kse).
+ * - `local` → opportunities with `country='Bangladesh'`.
+ * - `international` → opportunities whose `country` is anything else.
+ */
+type QuickChip = 'all' | 'local' | 'international';
 
 const QUICK_CHIPS: { value: QuickChip; label: string }[] = [
   { value: 'all', label: 'All' },
-  { value: 'onsite', label: 'On-site' },
-  { value: 'remote', label: 'Remote' },
-  { value: 'part_time', label: 'Part-time' },
+  { value: 'local', label: 'Local' },
+  { value: 'international', label: 'International' },
 ];
 
 function chipToFilters(chip: QuickChip): Partial<OpportunityFilters> {
   switch (chip) {
-    case 'onsite':
-      return { mode: 'onsite' };
-    case 'remote':
-      return { mode: 'remote' };
-    case 'part_time':
-      return { internshipType: 'part_time' as OpportunityInternshipType };
+    case 'local':
+      return { country: 'Bangladesh' };
+    case 'international':
+      return { countryNot: 'Bangladesh' };
     case 'all':
     default:
       return {};
@@ -51,16 +51,16 @@ function chipToFilters(chip: QuickChip): Partial<OpportunityFilters> {
 }
 
 /**
- * Internship Hub (spec 06._internship_hub_kse):
+ * Scholarship Hub (spec 07._scholarship_hub_kse):
  *
- *   Search + filter | All / On-site / Remote / Part-time | vertical list
+ *   Search + filter | All / Local / International | vertical list
  *
  * Coexists with `/(tabs)/explore/[type].tsx` — expo-router prefers the
- * static `internship` segment over the dynamic `[type]` for the exact
- * `/explore/internship` path. Other category tiles (scholarships, events,
- * workshops) still fall through to the dynamic listing.
+ * static `scholarship` segment over the dynamic `[type]` for the exact
+ * `/explore/scholarship` path. Other category tiles (events, workshops,
+ * mentorship) still fall through to the dynamic listing.
  */
-export default function InternshipHubScreen() {
+export default function ScholarshipHubScreen() {
   const colors = useTheme();
   const [searchText, setSearchText] = useState('');
   const [activeChip, setActiveChip] = useState<QuickChip>('all');
@@ -71,13 +71,13 @@ export default function InternshipHubScreen() {
 
   const filters = useMemo<OpportunityFilters>(
     () => ({
-      type: 'internship',
+      type: 'scholarship',
       q: debouncedSearch || undefined,
       ...extraFilters,
       // `chipToFilters` last so the chip's selection always wins over any
-      // stale `mode` / `internshipType` left in extraFilters from the filter
-      // sheet — that's the intended UX (rapidly toggling chips ignores the
-      // sheet's earlier choices).
+      // stale `country` / `countryNot` in extraFilters (the filter sheet
+      // never sets them, but the merge order keeps semantics consistent
+      // with the Internship Hub).
       ...chipToFilters(activeChip),
     }),
     [debouncedSearch, activeChip, extraFilters],
@@ -88,8 +88,9 @@ export default function InternshipHubScreen() {
 
   const handleChipPress = useCallback((chip: QuickChip) => {
     setActiveChip(chip);
-    // With `chipToFilters` last in the merge above, the chip's value is now
-    // authoritative — no manual reset of `mode` / `internshipType` needed.
+    // No manual reset needed — `country` / `countryNot` are owned by the
+    // chip (see `chipToFilters`) and the merge order above makes the chip
+    // authoritative.
   }, []);
 
   const handleFilterChange = useCallback((patch: Partial<OpportunityFilters>) => {
@@ -102,7 +103,9 @@ export default function InternshipHubScreen() {
       extraFilters.fundingType ||
       extraFilters.location ||
       extraFilters.organization ||
-      extraFilters.deadlineWithinDays,
+      extraFilters.deadlineWithinDays ||
+      extraFilters.country ||
+      extraFilters.countryNot,
   );
 
   return (
@@ -119,13 +122,13 @@ export default function InternshipHubScreen() {
           >
             <Ionicons name="chevron-back" size={24} color={colors.text} />
           </Pressable>
-          <ThemedText type="title">Internship Hub</ThemedText>
+          <ThemedText type="title">Scholarship Hub</ThemedText>
         </View>
 
         <SearchBar
           value={searchText}
           onChangeText={setSearchText}
-          placeholder="Search internships..."
+          placeholder="Search scholarships..."
           onFilterPress={() => setFilterSheetOpen(true)}
         />
 
@@ -147,7 +150,7 @@ export default function InternshipHubScreen() {
         <FlatList
           data={items}
           keyExtractor={(item) => item.id}
-          renderItem={({ item }) => <InternshipCard opportunity={item} />}
+          renderItem={({ item }) => <ScholarshipCard opportunity={item} />}
           ItemSeparatorComponent={() => <View style={styles.separator} />}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
@@ -160,14 +163,14 @@ export default function InternshipHubScreen() {
           ListEmptyComponent={
             query.isSuccess ? (
               <EmptyState
-                icon="briefcase-outline"
+                icon="school-outline"
                 title={hasActiveFilters || activeChip !== 'all' || debouncedSearch
-                  ? 'No internships match your filters'
-                  : 'No internships right now'}
+                  ? 'No scholarships match your filters'
+                  : 'No scholarships right now'}
                 message={
                   hasActiveFilters || activeChip !== 'all' || debouncedSearch
                     ? 'Try a different chip, clear the search, or reset the filter sheet.'
-                    : 'Verified internships are added regularly — check back soon.'
+                    : 'Verified scholarships are added regularly — check back soon.'
                 }
                 actionLabel={
                   hasActiveFilters || activeChip !== 'all' || debouncedSearch
@@ -228,7 +231,7 @@ export default function InternshipHubScreen() {
               <OpportunityFilterBar
                 filters={extraFilters}
                 onChange={handleFilterChange}
-                showInternshipFilters
+                showScholarshipFilters
               />
             </View>
             <PrimaryButton

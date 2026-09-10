@@ -37,12 +37,19 @@ export function Chip({ label, selected = false, onPress }: ChipProps) {
 
 const styles = StyleSheet.create({
   chip: {
+    // Compact, fully-rounded pill. The fixed height keeps the pill shape
+    // consistent when the chip lives inside a horizontal ScrollView whose
+    // intrinsic height can change (e.g. when a sibling list re-sizes after
+    // a filter changes the number of rows rendered below it).
+    height: 34,
     borderRadius: 999,
     paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.one + 2,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   label: {
     fontSize: 13,
     fontWeight: '500',
+    lineHeight: 16,
   },
 });
