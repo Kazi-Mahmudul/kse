@@ -77,6 +77,7 @@ export const Tints = {
     fuchsia: { bg: '#FDF4FF', border: '#FAE8FF', fg: '#C026D3' },
     emerald: { bg: '#ECFDF5', border: '#D1FAE5', fg: '#059669' },
     teal: { bg: '#F0FDFA', border: '#CCFBF1', fg: '#0D9488' },
+    cyan: { bg: '#ECFEFF', border: '#CFFAFE', fg: '#0891B2' },
     slate: { bg: '#F1F5F9', border: '#E2E8F0', fg: '#475569' },
   },
   dark: {
@@ -87,6 +88,7 @@ export const Tints = {
     fuchsia: { bg: '#C026D31F', border: '#C026D333', fg: '#F0ABFC' },
     emerald: { bg: '#0596691F', border: '#05966933', fg: '#6EE7B7' },
     teal: { bg: '#0D94881F', border: '#0D948833', fg: '#5EEAD4' },
+    cyan: { bg: '#0891B21F', border: '#0891B233', fg: '#22D3EE' },
     slate: { bg: '#64748B1F', border: '#64748B33', fg: '#CBD5E1' },
   },
 } as const;
