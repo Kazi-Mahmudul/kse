@@ -2,12 +2,12 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
-import { OpportunityCard } from '@/components/opportunity-card';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Screen } from '@/components/ui/screen';
 import { SearchBar } from '@/components/ui/search-bar';
 import { SectionHeader } from '@/components/ui/section-header';
 import { HomeGreeting } from '@/features/home/greeting';
+import { LatestOpportunityCard } from '@/features/home/latest-opportunity-card';
 import { ProfileCompletionCard } from '@/features/home/profile-completion-card';
 import { PromoBanner } from '@/features/home/promo-banner';
 import { QuickAccess } from '@/features/home/quick-access';
@@ -131,7 +131,7 @@ export default function HomeScreen() {
         )}
         <View style={styles.latestList}>
           {latest.map((opportunity) => (
-            <OpportunityCard key={opportunity.id} opportunity={opportunity} showType />
+            <LatestOpportunityCard key={opportunity.id} opportunity={opportunity} />
           ))}
         </View>
       </View>
