@@ -225,6 +225,18 @@ export async function listSubjects(): Promise<Subject[]> {
 export type TutorDetail = TutorListItem;
 
 /** Single tutor for the detail screen — same merge, id-scoped. */
+/** Live count of verified, active tutors — mirrors the feed's base filters. */
+export async function listTutorCount(): Promise<number> {
+  const { count, error } = await supabase
+    .from('tutors')
+    .select('id', { count: 'exact', head: true })
+    .eq('is_verified', true)
+    .eq('status', 'active');
+
+  if (error) fail('Could not load tutor count', error.message);
+  return count ?? 0;
+}
+
 export async function getTutor(id: string): Promise<TutorDetail> {
   const { data, error } = await supabase
     .from('tutors')

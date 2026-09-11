@@ -8,8 +8,9 @@ export interface ExploreCategory {
   description: string;
   icon: IconName;
   tint: 'primary' | 'success' | 'warning' | 'danger';
-  /** When set, the hub row shows the live published count for this type. */
-  countKey?: OpportunityType;
+  /** When set, the hub row shows the live count for this source — an
+   *  opportunity type (published count) or the verified-tutor count. */
+  countKey?: OpportunityType | 'tutors';
 }
 
 export const EXPLORE_CATEGORIES: ExploreCategory[] = [
@@ -45,13 +46,15 @@ export const EXPLORE_CATEGORIES: ExploreCategory[] = [
     tint: 'warning',
     countKey: 'workshop',
   },
-  // Tuition uses a separate tutor-discovery workflow (spec §6) — no live count.
+  // Tuition uses a separate tutor-discovery workflow (spec §6) — its count
+  // comes from the tutors table, not opportunities.
   {
     slug: 'tuition',
     label: 'Tuition',
     description: 'Find a tutor',
     icon: 'book-outline',
     tint: 'primary',
+    countKey: 'tutors',
   },
   {
     slug: 'mentorship',

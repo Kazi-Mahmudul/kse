@@ -32,6 +32,8 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { PrimaryButton } from '@/components/ui/primary-button';
 import { SectionHeader } from '@/components/ui/section-header';
 import { Spacing } from '@/constants/theme';
+import { useTheme } from '@/hooks/use-theme';
+import type { IconName } from '@/types/icon';
 import {
   RHFInput,
   RHFToggle,
@@ -53,7 +55,7 @@ interface ModeShellProps {
   onCancel(): void;
   title: string;
   count: number;
-  emptyIcon: string;
+  emptyIcon: IconName;
   emptyTitle: string;
   emptyMessage: string;
   isSaving: boolean;
@@ -76,17 +78,24 @@ function ModeShell({
   saveLabel,
   children,
 }: ModeShellProps) {
+  const colors = useTheme();
   const isFormOpen = mode !== 'idle';
   return (
     <View>
       <SectionHeader
-        title={`${title} (${count})`}
+        title={title}
         actionLabel={isFormOpen ? 'Cancel' : 'Add'}
         onAction={isFormOpen ? onCancel : onAdd}
       />
 
       {isFormOpen ? (
-        <Card>
+        <Card
+          tint="background"
+          style={[
+            styles.formCard,
+            { borderColor: colors.border, boxShadow: `0px 1px 6px ${colors.shadow}` },
+          ]}
+        >
           {children}
           <View style={styles.submitRow}>
             <PrimaryButton
@@ -108,7 +117,7 @@ function ModeShell({
           {children}
           {count === 0 && (
             <EmptyState
-              icon={emptyIcon as never}
+              icon={emptyIcon}
               title={emptyTitle}
               message={emptyMessage}
             />
@@ -182,7 +191,7 @@ export function ProjectsSection({
       onCancel={cancel}
       title="Projects"
       count={items.length}
-      emptyIcon="cube-outline"
+      emptyIcon="folder-open-outline"
       emptyTitle="No projects yet"
       emptyMessage="Showcase things you've built. Each entry can include a description, URL and tech stack."
       isSaving={isSaving}
@@ -293,7 +302,7 @@ export function CertificatesSection({
       onCancel={cancel}
       title="Certificates"
       count={items.length}
-      emptyIcon="ribbon-outline"
+      emptyIcon="shield-checkmark-outline"
       emptyTitle="No certificates yet"
       emptyMessage="Add the certificates and credentials you've earned."
       isSaving={isSaving}
@@ -737,6 +746,9 @@ const styles = StyleSheet.create({
     gap: Spacing.two,
     marginTop: Spacing.three,
   },
+  formCard: {
+    borderWidth: 1,
+  },
   submitButton: {
     flex: 1,
   },
@@ -751,6 +763,3 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 });
-
-// keep View import referenced for tree-shake guard
-export const _ = View;

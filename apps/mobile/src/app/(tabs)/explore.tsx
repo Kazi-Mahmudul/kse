@@ -10,6 +10,7 @@ import { SearchBar } from '@/components/ui/search-bar';
 import { Spacing, ThemeColor } from '@/constants/theme';
 import { EXPLORE_CATEGORIES, type ExploreCategory } from '@/features/explore/categories';
 import { useOpportunityCountsByType } from '@/features/opportunities/queries';
+import { useTutorCount } from '@/features/tuition/queries';
 import { useTheme } from '@/hooks/use-theme';
 
 /**
@@ -18,14 +19,18 @@ import { useTheme } from '@/hooks/use-theme';
  *   H1 "Explore"  →  Pill search bar  →  vertical list of category rows
  *
  * Each row carries a tinted 44×44 logo badge, label, description, live count
- * ("n live") or "Coming soon", and a chevron-forward. Tapping a row pushes
+ * ("n live" / "n tutors"), and a chevron-forward. All numbers come from the
+ * database and are polled every minute, so the hub reflects new published
+ * content and newly verified tutors without a reload. Tapping a row pushes
  * to `/(tabs)/explore/[type]`; expo-router resolves the static `internship`
  * segment first so tapping **Internships** lands on the dedicated Hub.
  */
 export default function ExploreScreen() {
   const [query, setQuery] = useState('');
   const countsQuery = useOpportunityCountsByType();
+  const tutorCountQuery = useTutorCount();
   const counts = countsQuery.data;
+  const tutorCount = tutorCountQuery.data;
 
   return (
     <Screen>
@@ -55,7 +60,13 @@ export default function ExploreScreen() {
             <CategoryRow
               key={category.slug}
               category={category}
-              count={category.countKey ? counts?.[category.countKey] : undefined}
+              count={
+                category.countKey === 'tutors'
+                  ? tutorCount
+                  : category.countKey
+                    ? counts?.[category.countKey]
+                    : undefined
+              }
             />
           ))}
         </View>
@@ -73,12 +84,11 @@ function CategoryRow({
 }) {
   const colors = useTheme();
   const tint = colors[category.tint as ThemeColor];
-  // `showLive` covers both resolved and explicit 0 — once the query lands,
-  // every type-backed row reports its real number, even if that's zero.
+  // Every row is count-backed; the number can legitimately be an explicit 0.
+  // It stays blank only until its query resolves.
   const showLive = category.countKey !== undefined && count !== undefined;
-  // No `countKey` (tuition today) — the row signals it's not an opportunity
-  // table — show a static "Coming soon" label so the user has clear intent.
-  const showSoon = category.countKey === undefined;
+  // Tutors are people, not listings — the unit keeps the badge honest.
+  const unit = category.countKey === 'tutors' ? 'tutors' : 'live';
 
   return (
     <Pressable
@@ -117,11 +127,7 @@ function CategoryRow({
       <View style={styles.right}>
         {showLive ? (
           <ThemedText type="smallBold" themeColor="primary">
-            {count} live
-          </ThemedText>
-        ) : showSoon ? (
-          <ThemedText type="small" themeColor="textMuted">
-            Coming soon
+            {count} {unit}
           </ThemedText>
         ) : null}
         <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />

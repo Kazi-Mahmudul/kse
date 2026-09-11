@@ -86,27 +86,23 @@ export default function TuitionScreen() {
         }}
       />
 
-      <SubjectPills
-        subjects={subjectsQuery.data ?? []}
-        selectedId={subjectId}
-        onSelect={setSubjectId}
-      />
+      {/* Pills + section header travel as one tight block so "Popular
+          Tutors" starts directly under the subject tabs (8px), not one
+          full Screen-gap step below. */}
+      <View style={styles.sectionStart}>
+        <SubjectPills
+          subjects={subjectsQuery.data ?? []}
+          selectedId={subjectId}
+          onSelect={setSubjectId}
+        />
 
-      <View style={styles.metaRow}>
-        <ThemedText themeColor="textMuted" style={styles.metaText}>
-          {rows.length > 0 ? `${rows.length} verified tutors` : ''}
-        </ThemedText>
-        {query.isFetching && !query.isFetchingNextPage && (
-          <ActivityIndicator size="small" color={colors.primary} />
-        )}
+        <SectionHeader
+          compact
+          title="Popular Tutors"
+          actionLabel="My requests"
+          onAction={() => router.push('/(tabs)/tuition-requests')}
+        />
       </View>
-
-      <SectionHeader
-        compact
-        title="Popular Tutors"
-        actionLabel="My requests"
-        onAction={() => router.push('/(tabs)/tuition-requests')}
-      />
 
       {query.isPending && (
         <View style={styles.centered}>
@@ -220,16 +216,8 @@ const styles = StyleSheet.create({
     letterSpacing: -0.3,
     flexShrink: 1,
   },
-  metaRow: {
-    minHeight: 18,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  metaText: {
-    fontFamily: FontFamilies.regular,
-    fontSize: 11,
-    lineHeight: 14,
+  sectionStart: {
+    gap: Spacing.two,
   },
   centered: {
     alignItems: 'center',

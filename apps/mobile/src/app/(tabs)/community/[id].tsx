@@ -2,7 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 import { useForm } from 'react-hook-form';
 
 import { BackHeader } from '@/components/back-header';
@@ -15,8 +15,7 @@ import { PrimaryButton } from '@/components/ui/primary-button';
 import { Screen } from '@/components/ui/screen';
 import { SectionHeader } from '@/components/ui/section-header';
 import { TextField } from '@/components/ui/text-field';
-import { Spacing } from '@/constants/theme';
-import { analytics } from '@/lib/analytics';
+import { FontFamilies, Spacing } from '@/constants/theme';
 import {
   useCommunity,
   useCommunityPosts,
@@ -25,16 +24,33 @@ import {
   useJoinCommunity,
   useLeaveCommunity,
 } from '@/features/communities/queries';
+import { CommunityAvatar } from '@/features/communities/components/community-avatar';
+import {
+  formatMemberCount,
+  formatRelativeTime,
+} from '@/features/communities/format';
 import { useTheme } from '@/hooks/use-theme';
-import { formatDate } from '@/lib/dates';
+import { useTints } from '@/hooks/use-tints';
+import { analytics } from '@/lib/analytics';
+import { confirmDialog } from '@/lib/confirm';
 import { supabase } from '@/lib/supabase';
 import {
   communityPostFormSchema,
   type CommunityPostFormValues,
 } from '@kse/validation';
-import type { CommunityPost } from '@kse/types';
+import type { CommunityMemberRole, CommunityPost } from '@kse/types';
 
-/** Community detail (step 16): posts feed + join toggle + post composer. */
+/** Membership badges shown next to the community name (hero card). */
+const ROLE_LABELS: Partial<Record<CommunityMemberRole, string>> = {
+  moderator: 'Moderator',
+  owner: 'Owner',
+};
+
+/**
+ * Community detail (step 16, spec 09._community_kse visual language): brand
+ * hero card (avatar + counts + join toggle), a discussion feed of post
+ * cards with initials avatars, and the composer for members.
+ */
 export default function CommunityDetailScreen() {
   const colors = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -85,8 +101,9 @@ export default function CommunityDetailScreen() {
   const posts = postsQuery.data ?? [];
   const canAnnounce = community.role === 'moderator' || community.role === 'owner';
   const isMember = community.isMember;
+  const togglingMembership = joinMutation.isPending || leaveMutation.isPending;
   const toggleMembership = () => {
-    if (joinMutation.isPending || leaveMutation.isPending) return;
+    if (togglingMembership) return;
     if (isMember) {
       leaveMutation.mutate(community.id, {
         onSuccess: () => {
@@ -108,47 +125,83 @@ export default function CommunityDetailScreen() {
     <Screen>
       <BackHeader title="Community" />
 
-      <View style={styles.heading}>
-        <View style={styles.titleRow}>
-          <ThemedText type="subtitle">{community.name}</ThemedText>
-          {isMember && <Badge label="Joined" tone="success" />}
+      {/* Hero — the community's brand mark, description and membership. */}
+      <Card
+        tint="background"
+        style={[
+          styles.hero,
+          { borderColor: colors.border, boxShadow: `0px 4px 8px ${colors.shadow}` },
+        ]}
+      >
+        <View style={styles.heroTop}>
+          <CommunityAvatar
+            slug={community.slug}
+            name={community.name}
+            size={56}
+            radius={16}
+          />
+          <View style={styles.heroTitleBlock}>
+            <ThemedText themeColor="heading" style={styles.heroName} numberOfLines={2}>
+              {community.name}
+            </ThemedText>
+            {community.universityName ? (
+              <View style={styles.universityRow}>
+                <Ionicons
+                  name="business-outline"
+                  size={11}
+                  color={colors.textSecondary}
+                />
+                <ThemedText
+                  type="small"
+                  themeColor="textSecondary"
+                  numberOfLines={1}
+                  style={styles.university}
+                >
+                  {community.universityName}
+                </ThemedText>
+              </View>
+            ) : null}
+          </View>
         </View>
-        {community.universityName && (
-          <ThemedText type="small" themeColor="textSecondary">
-            {community.universityName}
-          </ThemedText>
-        )}
-        {community.description && (
-          <ThemedText type="small" themeColor="textSecondary">
+
+        {community.description ? (
+          <ThemedText type="small" themeColor="textSecondary" numberOfLines={3}>
             {community.description}
           </ThemedText>
-        )}
-        <View style={styles.metaRow}>
+        ) : null}
+
+        <View style={styles.heroMetaRow}>
           <View style={styles.meta}>
             <Ionicons name="people-outline" size={14} color={colors.textSecondary} />
             <ThemedText type="small" themeColor="textSecondary">
-              {community.memberCount}{' '}
+              {formatMemberCount(community.memberCount)}{' '}
               {community.memberCount === 1 ? 'member' : 'members'}
             </ThemedText>
           </View>
           <PrimaryButton
-            label={
-              joinMutation.isPending || leaveMutation.isPending
-                ? 'Saving…'
-                : isMember
-                  ? 'Leave'
-                  : 'Join community'
-            }
+            label={togglingMembership ? 'Saving…' : isMember ? 'Leave' : 'Join'}
             variant={isMember ? 'outline' : 'primary'}
+            size="compact"
             onPress={toggleMembership}
-            disabled={joinMutation.isPending || leaveMutation.isPending}
+            disabled={togglingMembership}
           />
         </View>
-      </View>
 
-      <SectionHeader title="Posts" />
+        {isMember && community.role && ROLE_LABELS[community.role] ? (
+          <View style={styles.badgeRow}>
+            <Badge label="Joined" tone="success" />
+            <Badge label={ROLE_LABELS[community.role] as string} tone="neutral" />
+          </View>
+        ) : isMember ? (
+          <Badge label="Joined" tone="success" />
+        ) : null}
+      </Card>
+
+      <SectionHeader title="Discussion" />
       {postsQuery.isPending && (
-        <ActivityIndicator size="small" color={colors.primary} />
+        <View style={styles.postsLoading}>
+          <ActivityIndicator size="small" color={colors.primary} />
+        </View>
       )}
       {postsQuery.isError && (
         <Card tint="danger">
@@ -156,11 +209,11 @@ export default function CommunityDetailScreen() {
         </Card>
       )}
       {postsQuery.isSuccess && posts.length === 0 && (
-        <Card tint="backgroundElement">
-          <ThemedText type="small" themeColor="textSecondary">
-            No posts yet. Be the first to start a conversation.
-          </ThemedText>
-        </Card>
+        <EmptyState
+          icon="chatbubbles-outline"
+          title="No posts yet"
+          message="Be the first to start a conversation."
+        />
       )}
 
       {posts.length > 0 && (
@@ -177,7 +230,13 @@ export default function CommunityDetailScreen() {
       )}
 
       {isMember ? (
-        <Card tint="backgroundElement">
+        <Card
+          tint="background"
+          style={[
+            styles.composerCard,
+            { borderColor: colors.border, boxShadow: `0px 1px 6px ${colors.shadow}` },
+          ]}
+        >
           <PostComposer
             communityId={community.id}
             canAnnounce={canAnnounce}
@@ -185,14 +244,22 @@ export default function CommunityDetailScreen() {
           />
         </Card>
       ) : (
-        <Card tint="warning">
-          <ThemedText type="small">
-            Join this community to post messages and announcements.
-          </ThemedText>
+        <Card tint="warning" style={styles.joinCta}>
+          <View style={styles.joinCtaRow}>
+            <View style={styles.joinCtaBadge}>
+              <Ionicons name="chatbubbles-outline" size={18} color={colors.warning} />
+            </View>
+            <View style={styles.joinCtaText}>
+              <ThemedText type="smallBold">Members only</ThemedText>
+              <ThemedText type="small" themeColor="textSecondary">
+                Join this community to post messages and announcements.
+              </ThemedText>
+            </View>
+          </View>
           <PrimaryButton
             label="Join community"
             onPress={toggleMembership}
-            style={styles.joinButton}
+            disabled={togglingMembership}
           />
         </Card>
       )}
@@ -265,6 +332,16 @@ function PostComposer({
   );
 }
 
+function initialsOf(name: string | null | undefined): string {
+  if (!name) return '?';
+  const words = name.trim().split(/\s+/).filter(Boolean);
+  if (words.length === 0) return '?';
+  return words
+    .slice(0, 2)
+    .map((w) => w.charAt(0).toUpperCase())
+    .join('');
+}
+
 function PostCard({
   post,
   canDelete,
@@ -274,31 +351,78 @@ function PostCard({
   canDelete: boolean;
   onDelete: () => void;
 }) {
+  const colors = useTheme();
+  const tints = useTints();
+  const indigo = tints.indigo;
+
+  const handleDelete = async () => {
+    const ok = await confirmDialog({
+      title: 'Delete post',
+      message: 'This post will be removed for everyone in the community.',
+      confirmLabel: 'Delete',
+      destructive: true,
+    });
+    if (ok) onDelete();
+  };
+
   return (
-    <Card
-      style={styles.postCard}
-      tint={post.isAnnouncement ? 'warning' : 'backgroundElement'}
+    <View
+      style={[
+        styles.postCard,
+        {
+          backgroundColor: colors.background,
+          borderColor: colors.border,
+          boxShadow: `0px 1px 6px ${colors.shadow}`,
+        },
+      ]}
     >
       <View style={styles.postHeader}>
-        <ThemedText type="smallBold" numberOfLines={1}>
-          {post.authorName}
-        </ThemedText>
-        <ThemedText type="small" themeColor="textSecondary">
-          {formatDate(post.createdAt)}
-        </ThemedText>
+        <View
+          style={[
+            styles.postAvatar,
+            { backgroundColor: indigo.bg, borderColor: indigo.border },
+          ]}
+        >
+          <ThemedText style={[styles.postAvatarLabel, { color: indigo.fg }]}>
+            {initialsOf(post.authorName)}
+          </ThemedText>
+        </View>
+        <View style={styles.postHeading}>
+          <ThemedText type="smallBold" numberOfLines={1}>
+            {post.authorName}
+          </ThemedText>
+          <ThemedText type="small" themeColor="textMuted">
+            {formatRelativeTime(post.createdAt) || formatDateFallback(post.createdAt)}
+          </ThemedText>
+        </View>
+        {canDelete && (
+          <Pressable
+            onPress={() => {
+              void handleDelete();
+            }}
+            accessibilityRole="button"
+            accessibilityLabel="Delete post"
+            hitSlop={6}
+            style={({ pressed }) => [
+              styles.deleteButton,
+              { backgroundColor: colors.backgroundElement },
+              pressed && styles.pressed,
+            ]}
+          >
+            <Ionicons name="trash-outline" size={15} color={colors.danger} />
+          </Pressable>
+        )}
       </View>
+
       {post.isAnnouncement && <Badge label="Announcement" tone="warning" />}
-      <ThemedText type="small">{post.content}</ThemedText>
-      {canDelete && (
-        <PrimaryButton
-          label="Delete"
-          variant="outline"
-          onPress={onDelete}
-          style={styles.deleteButton}
-        />
-      )}
-    </Card>
+      <ThemedText style={styles.postContent}>{post.content}</ThemedText>
+    </View>
   );
+}
+
+/** Absolute-date fallback for posts older than the relative window. */
+function formatDateFallback(iso: string): string {
+  return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
 }
 
 const styles = StyleSheet.create({
@@ -307,40 +431,104 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: Spacing.six,
   },
-  heading: {
-    gap: Spacing.one + 2,
+  hero: {
+    borderWidth: 1,
+    borderRadius: 16,
+    padding: Spacing.three,
+    gap: Spacing.two + 2,
+    elevation: 2,
   },
-  titleRow: {
+  heroTop: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.two,
+    gap: Spacing.three - 2,
   },
-  metaRow: {
+  heroTitleBlock: {
+    flex: 1,
+    gap: 2,
+  },
+  heroName: {
+    fontFamily: FontFamilies.bold,
+    fontSize: 16,
+    lineHeight: 21,
+    letterSpacing: -0.3,
+  },
+  universityRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  university: {
+    flexShrink: 1,
+  },
+  heroMetaRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: Spacing.two,
-    marginTop: Spacing.two,
   },
   meta: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.one,
+    gap: Spacing.one + 2,
+  },
+  badgeRow: {
+    flexDirection: 'row',
+    gap: Spacing.one + 2,
+  },
+  postsLoading: {
+    alignItems: 'center',
+    paddingVertical: Spacing.four,
   },
   list: {
     gap: Spacing.two + 2,
   },
   postCard: {
-    gap: Spacing.two,
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: Spacing.three - 4,
+    gap: Spacing.two - 2,
+    elevation: 1,
   },
   postHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: Spacing.two,
+    gap: Spacing.two + 2,
+  },
+  postAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 999,
+    borderWidth: StyleSheet.hairlineWidth,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  postAvatarLabel: {
+    fontFamily: FontFamilies.bold,
+    fontSize: 12,
+    lineHeight: 15,
+  },
+  postHeading: {
+    flex: 1,
+    gap: 1,
   },
   deleteButton: {
-    alignSelf: 'flex-start',
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pressed: {
+    opacity: 0.7,
+  },
+  postContent: {
+    fontSize: 12,
+    lineHeight: 17,
+  },
+  composerCard: {
+    borderWidth: 1,
+    elevation: 1,
   },
   composer: {
     gap: Spacing.two,
@@ -354,7 +542,24 @@ const styles = StyleSheet.create({
   postButton: {
     flexShrink: 0,
   },
-  joinButton: {
-    marginTop: Spacing.two,
+  joinCta: {
+    gap: Spacing.three - 4,
+  },
+  joinCtaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.three - 4,
+  },
+  joinCtaBadge: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255,255,255,0.55)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  joinCtaText: {
+    flex: 1,
+    gap: 2,
   },
 });

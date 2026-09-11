@@ -1,11 +1,13 @@
+import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import { BackHeader } from '@/components/back-header';
 import { ThemedText } from '@/components/themed-text';
 import { Card } from '@/components/ui/card';
 import { Screen } from '@/components/ui/screen';
 import { Spacing } from '@/constants/theme';
+import { PortfolioOverview } from '@/features/portfolio/overview';
 import {
   useCreateAchievement,
   useCreateCertificate,
@@ -49,16 +51,21 @@ import type {
   ResumeFormValues,
 } from '@kse/validation';
 import { useTheme } from '@/hooks/use-theme';
+import { useTints } from '@/hooks/use-tints';
 
 /**
- * Portfolio hub (spec §6 Profile, step 18). One section per entity type,
- * each fully self-contained (RHF + Zod + RHF-submit → mutation).
+ * Portfolio hub (spec §6 Profile, step 18). Overview tile grid, then one
+ * section per entity type — each fully self-contained (RHF + Zod +
+ * RHF-submit → mutation).
  */
 export default function PortfolioScreen() {
+  const colors = useTheme();
+  const tints = useTints();
+
   return (
     <Screen>
       <BackHeader title="My portfolio" />
-      <HeaderCounts />
+      <PortfolioOverview />
       <ProjectsSectionBound />
       <CertificatesSectionBound />
       <AchievementsSectionBound />
@@ -67,10 +74,17 @@ export default function PortfolioScreen() {
       <PortfolioLinksSectionBound />
 
       <View style={styles.spacer} />
-      <Card onPress={() => router.push('/(tabs)/profile/edit')}>
+      <Card
+        tint="background"
+        onPress={() => router.push('/(tabs)/profile/edit')}
+        style={[
+          styles.editCard,
+          { borderColor: colors.border, boxShadow: `0px 1px 6px ${colors.shadow}` },
+        ]}
+      >
         <View style={styles.row}>
-          <View style={styles.infoIcon}>
-            <ThemedText type="small" themeColor="primary">✎</ThemedText>
+          <View style={[styles.editBadge, { backgroundColor: tints.indigo.bg }]}>
+            <Ionicons name="create-outline" size={16} color={tints.indigo.fg} />
           </View>
           <View style={styles.rowText}>
             <ThemedText type="smallBold">Edit profile basics</ThemedText>
@@ -78,37 +92,10 @@ export default function PortfolioScreen() {
               Name, university, bio and skills.
             </ThemedText>
           </View>
+          <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
         </View>
       </Card>
     </Screen>
-  );
-}
-
-function HeaderCounts() {
-  const projects = useMyProjects();
-  const certificates = useMyCertificates();
-  const achievements = useMyAchievements();
-  const research = useMyResearch();
-  const resumes = useMyResumes();
-  const links = useMyPortfolioLinks();
-  const total =
-    (projects.data?.length ?? 0) +
-    (certificates.data?.length ?? 0) +
-    (achievements.data?.length ?? 0) +
-    (research.data?.length ?? 0) +
-    (resumes.data?.length ?? 0) +
-    (links.data?.length ?? 0);
-  const colors = useTheme();
-  if (total === 0) return null;
-  return (
-    <Card tint="primary">
-      <ThemedText type="subtitle" themeColor="onPrimary">
-        {total} portfolio {total === 1 ? 'item' : 'items'}
-      </ThemedText>
-      <ThemedText type="small" themeColor="onPrimary" style={{ marginTop: 2, color: colors.onPrimary }}>
-        Showcase projects, certificates, achievements, research, resumes and links.
-      </ThemedText>
-    </Card>
   );
 }
 
@@ -315,16 +302,19 @@ const styles = StyleSheet.create({
   spacer: {
     height: Spacing.four,
   },
+  editCard: {
+    borderWidth: 1,
+    elevation: 1,
+  },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.three,
+    gap: Spacing.three - 4,
   },
-  infoIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 999,
-    backgroundColor: 'transparent',
+  editBadge: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -333,6 +323,3 @@ const styles = StyleSheet.create({
     gap: 2,
   },
 });
-
-// keep tab-navigator unused-var warning at bay.
-export const _ = ActivityIndicator;

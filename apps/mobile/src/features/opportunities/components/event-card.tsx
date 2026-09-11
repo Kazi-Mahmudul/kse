@@ -12,6 +12,9 @@ import { EventThumbnail } from './event-thumbnail';
 
 interface EventCardProps {
   opportunity: OpportunitySummary;
+  /** Route segment for the detail push — 'event' (default) or 'workshop'
+   *  when the Workshop Hub renders its own rows. */
+  detailType?: 'event' | 'workshop';
 }
 
 /**
@@ -28,7 +31,7 @@ interface EventCardProps {
  * chrome (radius / border / shadow); the inner Pressable wraps only the
  * body so the Register pill sits next to it.
  */
-export function EventCard({ opportunity }: EventCardProps) {
+export function EventCard({ opportunity, detailType = 'event' }: EventCardProps) {
   const colors = useTheme();
 
   // Prefer the explicit event-start timestamp; fall back to the apply-by
@@ -42,7 +45,7 @@ export function EventCard({ opportunity }: EventCardProps) {
   const open = () =>
     router.push({
       pathname: '/(tabs)/explore/[type]/[id]',
-      params: { type: 'event', id: opportunity.id },
+      params: { type: detailType, id: opportunity.id },
     });
 
   return (

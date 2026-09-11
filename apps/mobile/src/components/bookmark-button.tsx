@@ -45,7 +45,7 @@ export function BookmarkButton({ opportunityId, variant = 'icon' }: BookmarkButt
         accessibilityRole="button"
         accessibilityLabel={label}
       >
-        <Ionicons name={icon} size={18} color={colors.primary} />
+        <Ionicons name={icon} size={16} color={colors.primary} />
         <Text style={[styles.buttonLabel, { color: colors.primary }]}>{label}</Text>
       </Pressable>
     );
@@ -75,11 +75,11 @@ const styles = StyleSheet.create({
     gap: Spacing.two,
     borderRadius: 12,
     borderWidth: 1.5,
-    paddingVertical: 14,
-    minHeight: 50,
+    paddingVertical: 12,
+    minHeight: 46,
   },
   buttonLabel: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '600',
   },
   iconWrap: {

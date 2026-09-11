@@ -19,32 +19,32 @@ import { SearchBar } from '@/components/ui/search-bar';
 import { Chip } from '@/components/ui/chip';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
-import { InternshipCard } from '@/features/opportunities/components/internship-card';
+import { EventCard } from '@/features/opportunities/components/event-card';
 import { useOpportunityFeed } from '@/features/opportunities/queries';
 import type { OpportunityFilters } from '@/features/opportunities/service';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { useTheme } from '@/hooks/use-theme';
 import { blurActiveElement } from '@/lib/focus';
-import type { OpportunityInternshipType } from '@kse/types';
+import type { OpportunityMode } from '@kse/types';
 
-/** Quick-filter chip values on the Internship Hub (spec 06._internship_hub_kse). */
-type QuickChip = 'all' | 'onsite' | 'remote' | 'part_time';
+/** Quick-filter chip values on the Workshop Hub (spec §32 workshop surface). */
+type QuickChip = 'all' | 'remote' | 'onsite' | 'hybrid';
 
 const QUICK_CHIPS: { value: QuickChip; label: string }[] = [
   { value: 'all', label: 'All' },
-  { value: 'onsite', label: 'On-site' },
   { value: 'remote', label: 'Remote' },
-  { value: 'part_time', label: 'Part-time' },
+  { value: 'onsite', label: 'On-site' },
+  { value: 'hybrid', label: 'Hybrid' },
 ];
 
 function chipToFilters(chip: QuickChip): Partial<OpportunityFilters> {
   switch (chip) {
-    case 'onsite':
-      return { mode: 'onsite' };
     case 'remote':
-      return { mode: 'remote' };
-    case 'part_time':
-      return { internshipType: 'part_time' as OpportunityInternshipType };
+      return { mode: 'remote' as OpportunityMode };
+    case 'onsite':
+      return { mode: 'onsite' as OpportunityMode };
+    case 'hybrid':
+      return { mode: 'hybrid' as OpportunityMode };
     case 'all':
     default:
       return {};
@@ -52,16 +52,19 @@ function chipToFilters(chip: QuickChip): Partial<OpportunityFilters> {
 }
 
 /**
- * Internship Hub (spec 06._internship_hub_kse):
+ * Workshop Hub — the dedicated hands-on-skills listing, sharing the hub
+ * visual language of the Internship / Scholarship / Events screens:
  *
- *   Search + filter | All / On-site / Remote / Part-time | vertical list
+ *   Search + filter | All / Remote / On-site / Hybrid | session cards
  *
- * Coexists with `/(tabs)/explore/[type].tsx` — expo-router prefers the
- * static `internship` segment over the dynamic `[type]` for the exact
- * `/explore/internship` path (same for the scholarship / event / workshop
- * hubs); only the remaining tiles fall through to the dynamic listing.
+ * Rows are `type='workshop'` opportunities rendered with the event-style
+ * card (thumbnail, session date, venue, register) since a workshop is a
+ * dated session. Coexists with `/(tabs)/explore/[type].tsx` — expo-router
+ * prefers the static `workshop` segment for the exact `/explore/workshop`
+ * path. The Events Hub intentionally also includes workshop rows (spec
+ * 08._events_kse); this hub is the workshop-first entry point.
  */
-export default function InternshipHubScreen() {
+export default function WorkshopHubScreen() {
   const colors = useTheme();
   const [searchText, setSearchText] = useState('');
   const [activeChip, setActiveChip] = useState<QuickChip>('all');
@@ -72,13 +75,11 @@ export default function InternshipHubScreen() {
 
   const filters = useMemo<OpportunityFilters>(
     () => ({
-      type: 'internship',
+      type: 'workshop',
       q: debouncedSearch || undefined,
       ...extraFilters,
       // `chipToFilters` last so the chip's selection always wins over any
-      // stale `mode` / `internshipType` left in extraFilters from the filter
-      // sheet — that's the intended UX (rapidly toggling chips ignores the
-      // sheet's earlier choices).
+      // stale `mode` left in extraFilters by the filter sheet.
       ...chipToFilters(activeChip),
     }),
     [debouncedSearch, activeChip, extraFilters],
@@ -89,8 +90,6 @@ export default function InternshipHubScreen() {
 
   const handleChipPress = useCallback((chip: QuickChip) => {
     setActiveChip(chip);
-    // With `chipToFilters` last in the merge above, the chip's value is now
-    // authoritative — no manual reset of `mode` / `internshipType` needed.
   }, []);
 
   const handleFilterChange = useCallback((patch: Partial<OpportunityFilters>) => {
@@ -99,12 +98,12 @@ export default function InternshipHubScreen() {
 
   const hasActiveFilters = Boolean(
     extraFilters.categoryId ||
-      extraFilters.degreeLevel ||
-      extraFilters.fundingType ||
+      extraFilters.mode ||
       extraFilters.location ||
       extraFilters.organization ||
       extraFilters.deadlineWithinDays,
   );
+  const hasCriteria = hasActiveFilters || activeChip !== 'all' || debouncedSearch !== '';
 
   return (
     <>
@@ -120,13 +119,13 @@ export default function InternshipHubScreen() {
           >
             <Ionicons name="chevron-back" size={24} color={colors.text} />
           </Pressable>
-          <ThemedText type="title">Internship Hub</ThemedText>
+          <ThemedText type="title">Workshops</ThemedText>
         </View>
 
         <SearchBar
           value={searchText}
           onChangeText={setSearchText}
-          placeholder="Search internships..."
+          placeholder="Search workshops..."
           onFilterPress={() => {
             // Drop the filter button's focus before the sheet mounts.
             blurActiveElement();
@@ -152,7 +151,7 @@ export default function InternshipHubScreen() {
         <FlatList
           data={items}
           keyExtractor={(item) => item.id}
-          renderItem={({ item }) => <InternshipCard opportunity={item} />}
+          renderItem={({ item }) => <EventCard opportunity={item} detailType="workshop" />}
           ItemSeparatorComponent={() => <View style={styles.separator} />}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
@@ -165,22 +164,16 @@ export default function InternshipHubScreen() {
           ListEmptyComponent={
             query.isSuccess ? (
               <EmptyState
-                icon="briefcase-outline"
-                title={hasActiveFilters || activeChip !== 'all' || debouncedSearch
-                  ? 'No internships match your filters'
-                  : 'No internships right now'}
+                icon="construct-outline"
+                title={hasCriteria ? 'No workshops match your filters' : 'No workshops right now'}
                 message={
-                  hasActiveFilters || activeChip !== 'all' || debouncedSearch
+                  hasCriteria
                     ? 'Try a different chip, clear the search, or reset the filter sheet.'
-                    : 'Verified internships are added regularly — check back soon.'
+                    : 'Hands-on sessions are added regularly — check back soon.'
                 }
-                actionLabel={
-                  hasActiveFilters || activeChip !== 'all' || debouncedSearch
-                    ? 'Clear filters'
-                    : 'Refresh'
-                }
+                actionLabel={hasCriteria ? 'Clear filters' : 'Refresh'}
                 onAction={() => {
-                  if (hasActiveFilters || activeChip !== 'all' || debouncedSearch) {
+                  if (hasCriteria) {
                     setActiveChip('all');
                     setExtraFilters({});
                     setSearchText('');
@@ -233,7 +226,6 @@ export default function InternshipHubScreen() {
               <OpportunityFilterBar
                 filters={extraFilters}
                 onChange={handleFilterChange}
-                showInternshipFilters
               />
             </View>
             <PrimaryButton

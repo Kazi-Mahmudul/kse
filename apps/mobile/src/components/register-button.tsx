@@ -54,7 +54,7 @@ export function RegisterButton({ opportunityId, variant = 'default' }: RegisterB
     >
       <Ionicons
         name={registered ? 'checkmark-circle' : 'enter-outline'}
-        size={compact ? 12 : 18}
+        size={compact ? 12 : 16}
         color={registered ? colors.success : colors.onPrimary}
       />
       <Text
@@ -78,8 +78,8 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1.5,
     borderColor: 'transparent',
-    paddingVertical: 14,
-    minHeight: 50,
+    paddingVertical: 12,
+    minHeight: 46,
   },
   buttonCompact: {
     flexDirection: 'row',
@@ -94,7 +94,7 @@ const styles = StyleSheet.create({
     minHeight: 28,
   },
   label: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '600',
   },
   labelCompact: {

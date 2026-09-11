@@ -15,8 +15,8 @@ interface PrimaryButtonProps extends Omit<PressableProps, 'style'> {
 
 /**
  * Brand CTA. Two sizes:
- * - `regular` (default): full-width Save/Submit, 52 px tall, 17 px label.
- * - `compact`: inline pairings (Add beside Interests), 44 px tall, 14 px label.
+ * - `regular` (default): full-width Save/Submit, 46 px tall, 15 px label.
+ * - `compact`: inline pairings (Add beside Interests), 36 px tall, 13 px label.
  *
  * The disabled state is `disabled || loading`. No focus ring on tap — the
  * pressed opacity is the only state affordance, matching iOS HIG.
@@ -71,26 +71,29 @@ export function PrimaryButton({
 
 const styles = StyleSheet.create({
   regular: {
-    borderRadius: 14,
-    paddingVertical: 16,
+    borderRadius: 12,
+    paddingVertical: 12,
+    // Horizontal padding only matters when `regular` sits inline in a row
+    // (community hero Join); full-width usage centers via alignItems anyway.
+    paddingHorizontal: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: 52,
+    minHeight: 46,
   },
   compact: {
-    borderRadius: 12,
-    paddingVertical: 10,
-    paddingHorizontal: 16,
+    borderRadius: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: 44,
+    minHeight: 36,
   },
   labelRegular: {
-    fontSize: 17,
+    fontSize: 15,
     fontWeight: '600',
   },
   labelCompact: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
   },
   disabled: {

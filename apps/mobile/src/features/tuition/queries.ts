@@ -28,6 +28,7 @@ import {
   listMyTuitionRequests,
   listSavedTutorIds,
   listSubjects,
+  listTutorCount,
   listTutorReviews,
   saveTutor,
   submitTutorApplication,
@@ -49,6 +50,7 @@ export const tuitionKeys = {
       filters.sort ?? 'popular',
     ] as const,
   tutor: (id: string) => [...tuitionKeys.all, 'tutor', id] as const,
+  tutorCount: () => [...tuitionKeys.all, 'tutors', 'count'] as const,
   reviews: (tutorId: string) => [...tuitionKeys.tutor(tutorId), 'reviews'] as const,
   subjects: () => [...tuitionKeys.all, 'subjects'] as const,
   myRequests: () => [...tuitionKeys.all, 'myRequests'] as const,
@@ -66,6 +68,16 @@ export function useTutorFeed(filters: TutorFilters) {
       lastPage.hasMore ? lastPage.page + 1 : undefined,
     placeholderData: keepPreviousData,
   });
+}
+
+/** Live tutor count for the Explore hub row; polled so the badge stays fresh. */
+export function useTutorCount() {
+  return useQuery({
+    queryKey: tuitionKeys.tutorCount(),
+    queryFn: listTutorCount,
+    staleTime: 60_000,
+    refetchInterval: 60_000,
+  } satisfies UseQueryOptions<number, Error>);
 }
 
 export function useTutor(id: string) {

@@ -75,7 +75,10 @@ export function useOpportunityCountsByType() {
     queryKey: opportunityKeys.countsByType(),
     queryFn: listOpportunityCountsByType,
     // Catalog size doesn't change second-to-second; a minute is plenty.
+    // Polled because native apps have no window-focus refetch — the Explore
+    // hub and dashboard badges stay fresh while the app sits open.
     staleTime: 60_000,
+    refetchInterval: 60_000,
   } satisfies UseQueryOptions<OpportunityCountsByType, Error>);
 }
 
