@@ -24,6 +24,7 @@ import { useOpportunityFeed } from '@/features/opportunities/queries';
 import type { OpportunityFilters } from '@/features/opportunities/service';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { useTheme } from '@/hooks/use-theme';
+import { blurActiveElement } from '@/lib/focus';
 
 /**
  * Quick-filter chip values on the Events Hub (spec 08._events_kse).
@@ -131,7 +132,11 @@ export default function EventHubScreen() {
           value={searchText}
           onChangeText={setSearchText}
           placeholder="Search events..."
-          onFilterPress={() => setFilterSheetOpen(true)}
+          onFilterPress={() => {
+            // Drop the filter button's focus before the sheet mounts.
+            blurActiveElement();
+            setFilterSheetOpen(true);
+          }}
         />
 
         <ScrollView

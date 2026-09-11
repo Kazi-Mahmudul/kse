@@ -6,6 +6,7 @@ import { ThemedText } from '@/components/themed-text';
 import { FontFamilies } from '@/constants/theme';
 import { useMyResumes } from '@/features/portfolio/queries';
 import { useMySkillIds } from '@/features/profile/queries';
+import { useMyTutorApplication } from '@/features/tuition/queries';
 import { useTheme } from '@/hooks/use-theme';
 import { useTints } from '@/hooks/use-tints';
 import type { IconName } from '@/types/icon';
@@ -14,10 +15,10 @@ import { formatDate } from '@/lib/dates';
 interface RowSpec {
   key: string;
   icon: IconName;
-  tint: 'purple' | 'indigo';
+  tint: 'purple' | 'indigo' | 'emerald';
   title: string;
   subtitle: string;
-  href: '/(tabs)/profile/edit' | '/(tabs)/portfolio';
+  href: '/(tabs)/profile/edit' | '/(tabs)/portfolio' | '/(tabs)/profile/become-tutor';
 }
 
 /**
@@ -34,14 +35,34 @@ function resumeSubtitle(
 }
 
 /**
- * Profile menu list (design 05._profile_kse): two stacked rows for "Skills"
- * (routes to edit screen) and "Resume" (routes to the portfolio hub).
+ * Derive the tutor row subtitle from the student's latest application.
+ */
+function tutorSubtitle(
+  application: { status: 'pending' | 'approved' | 'rejected' } | null | undefined,
+): string {
+  switch (application?.status) {
+    case 'pending':
+      return 'Application under review';
+    case 'approved':
+      return 'Verified tutor — view profile';
+    case 'rejected':
+      return 'Not approved — apply again';
+    default:
+      return 'Apply & get listed';
+  }
+}
+
+/**
+ * Profile menu list (design 05._profile_kse): stacked rows for "Skills"
+ * (routes to edit screen), "Resume" (routes to the portfolio hub) and
+ * "Become a Tutor" (application workflow).
  */
 export function ProfileMenuList() {
   const colors = useTheme();
   const tints = useTints();
   const skillIdsQuery = useMySkillIds();
   const resumesQuery = useMyResumes();
+  const tutorApplicationQuery = useMyTutorApplication();
 
   const skillCount = skillIdsQuery.data?.length ?? 0;
   const skillSubtitle = `${skillCount} ${skillCount === 1 ? 'Skill' : 'Skills'} Added`;
@@ -62,6 +83,14 @@ export function ProfileMenuList() {
       title: 'Resume',
       subtitle: resumeSubtitle(resumesQuery.data),
       href: '/(tabs)/portfolio',
+    },
+    {
+      key: 'tutor',
+      icon: 'school-outline',
+      tint: 'emerald',
+      title: 'Become a Tutor',
+      subtitle: tutorSubtitle(tutorApplicationQuery.data),
+      href: '/(tabs)/profile/become-tutor',
     },
   ];
 

@@ -114,7 +114,7 @@ function DeadlineRow({ opportunity }: { opportunity: OpportunitySummary }) {
       accessibilityLabel={`${opportunity.title}, deadline ${formatDate(opportunity.deadline)}`}
       style={({ pressed }) => [
         styles.row,
-        { backgroundColor: colors.background, borderColor: colors.border, shadowColor: colors.shadow },
+        { backgroundColor: colors.background, borderColor: colors.border, boxShadow: `0px 1px 4px ${colors.shadow}` },
         pressed && styles.pressed,
       ]}
     >
@@ -150,9 +150,6 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 16,
     borderWidth: 1,
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 1 },
     elevation: 1,
   },
   left: {

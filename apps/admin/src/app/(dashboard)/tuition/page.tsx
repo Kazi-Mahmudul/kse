@@ -37,6 +37,12 @@ export default async function TuitionPage({
 
   const admin = createAdminClient();
 
+  // Pending become-a-tutor applications feed the review queue.
+  const { count: pendingApplications } = await admin
+    .from('tutor_applications')
+    .select('id', { count: 'exact', head: true })
+    .eq('status', 'pending');
+
   // tutors↔profiles share no FK, so name search resolves ids first and the
   // display names are merged in a second profiles query.
   let query = admin
@@ -104,6 +110,14 @@ export default async function TuitionPage({
           </h1>
           <p className="mt-1 text-sm text-zinc-500">
             {total} tutor {total === 1 ? 'profile' : 'profiles'} ·{' '}
+            <Link
+              href="/tuition/applications"
+              className="text-indigo-600 hover:underline"
+            >
+              {pendingApplications ?? 0} pending{' '}
+              {pendingApplications === 1 ? 'application' : 'applications'}
+            </Link>{' '}
+            ·{' '}
             <Link href="/tuition/requests" className="text-indigo-600 hover:underline">
               View tuition requests
             </Link>

@@ -31,7 +31,7 @@ export function ProfileCompletionCard() {
       accessibilityLabel={`Complete your profile, ${completion} percent done`}
       style={({ pressed }) => [
         styles.card,
-        { backgroundColor: colors.background, borderColor: colors.border, shadowColor: colors.shadow },
+        { backgroundColor: colors.background, borderColor: colors.border, boxShadow: `0px 1px 4px ${colors.shadow}` },
         pressed && styles.pressed,
       ]}
     >
@@ -61,9 +61,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: 12,
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 1 },
     elevation: 1,
   },
   copy: {

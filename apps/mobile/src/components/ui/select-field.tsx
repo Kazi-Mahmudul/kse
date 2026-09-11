@@ -7,6 +7,7 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import { blurActiveElement } from '@/lib/focus';
 
 export interface SelectOption {
   value: string;
@@ -42,7 +43,11 @@ export function SelectField({
     <View style={styles.container}>
       <Text style={[styles.label, { color: colors.text }]}>{label}</Text>
       <Pressable
-        onPress={() => setOpen(true)}
+        onPress={() => {
+          // Drop focus before the sheet mounts (see blurActiveElement).
+          blurActiveElement();
+          setOpen(true);
+        }}
         style={[
           styles.row,
           { backgroundColor: colors.backgroundElement },

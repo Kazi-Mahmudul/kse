@@ -1,21 +1,23 @@
 import { Ionicons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
 import { useLocalSearchParams, router } from 'expo-router';
 import { useEffect } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
 import { BackHeader } from '@/components/back-header';
+import { StarRating } from '@/components/star-rating';
 import { ThemedText } from '@/components/themed-text';
-import { Badge } from '@/components/ui/badge';
-import { Card } from '@/components/ui/card';
-import { Chip } from '@/components/ui/chip';
 import { EmptyState } from '@/components/ui/empty-state';
 import { PrimaryButton } from '@/components/ui/primary-button';
 import { Screen } from '@/components/ui/screen';
 import { SectionHeader } from '@/components/ui/section-header';
-import { Spacing } from '@/constants/theme';
+import { FontFamilies, Spacing } from '@/constants/theme';
+import { TutorReviews } from '@/features/tuition/components/tutor-reviews';
 import { useTutor } from '@/features/tuition/queries';
 import { analytics } from '@/lib/analytics';
 import { useTheme } from '@/hooks/use-theme';
+import { useAuthStore } from '@/store/auth-store';
+import type { IconName } from '@/types/icon';
 
 function initialsOf(name: string): string {
   const parts = name.trim().split(/\s+/).slice(0, 2);
@@ -26,12 +28,18 @@ function feeLabel(min: number | null, max: number | null): string | null {
   if (min == null && max == null) return null;
   if (max == null) return `From ৳${min}`;
   if (min == null) return `Up to ৳${max}`;
+  if (min === max) return `৳${min} / month`;
   return `৳${min}–${max} / month`;
 }
 
-/** Tutor profile (step 15): subjects, fee, availability + request entry point. */
+/**
+ * Tutor profile (design 10 style): white rounded-2xl hero card with avatar,
+ * verified pill and rating summary, quick-facts card, about, and the review
+ * workflow — plus the tuition request entry point.
+ */
 export default function TutorDetailScreen() {
   const colors = useTheme();
+  const currentUserId = useAuthStore((s) => s.session?.user.id) ?? null;
   const { id } = useLocalSearchParams<{ id: string }>();
   const query = useTutor(id);
 
@@ -45,7 +53,7 @@ export default function TutorDetailScreen() {
   if (query.isPending) {
     return (
       <Screen scroll={false} style={styles.centered}>
-        <BackHeader title="Tutor" />
+        <BackHeader title="Tutor Profile" />
         <ActivityIndicator size="large" color={colors.primary} />
       </Screen>
     );
@@ -54,7 +62,7 @@ export default function TutorDetailScreen() {
   if (query.isError) {
     return (
       <Screen scroll={false}>
-        <BackHeader title="Tutor" />
+        <BackHeader title="Tutor Profile" />
         <EmptyState
           icon="cloud-offline-outline"
           title="Could not load this tutor"
@@ -67,69 +75,83 @@ export default function TutorDetailScreen() {
   }
 
   const tutor = query.data;
+  const university = tutor.universityShortName ?? tutor.universityName;
+  const fee = feeLabel(tutor.expectedFeeMin, tutor.expectedFeeMax);
 
   return (
-    <Screen>
-      <BackHeader title="Tutor" />
+    <Screen style={{ backgroundColor: colors.surfaceMuted }}>
+      <BackHeader title="Tutor Profile" />
 
-      <View style={styles.headingRow}>
-        <View style={[styles.avatar, { backgroundColor: `${colors.primary}1A` }]}>
-          <ThemedText type="title" style={{ color: colors.primary }}>
-            {initialsOf(tutor.fullName)}
-          </ThemedText>
-        </View>
-        <View style={styles.heading}>
-          <View style={styles.badges}>
-            {tutor.isVerified && <Badge label="Verified" tone="success" />}
+      <View style={[styles.hero, { backgroundColor: colors.background, borderColor: colors.border }]}>
+        {tutor.avatarUrl ? (
+          <Image
+            source={{ uri: tutor.avatarUrl }}
+            style={styles.heroAvatar}
+            contentFit="cover"
+            transition={120}
+          />
+        ) : (
+          <View style={[styles.heroAvatar, styles.heroAvatarFallback, { backgroundColor: `${colors.primary}1A` }]}>
+            <ThemedText type="title" style={{ color: colors.primary }}>
+              {initialsOf(tutor.fullName)}
+            </ThemedText>
           </View>
-          <ThemedText type="subtitle">{tutor.fullName}</ThemedText>
-          <ThemedText type="small" themeColor="textSecondary" numberOfLines={2}>
-            {tutor.headline}
+        )}
+
+        <View style={styles.heroBody}>
+          {tutor.isVerified && (
+            <View style={[styles.verifiedPill, { backgroundColor: `${colors.success}1A` }]}>
+              <Ionicons name="shield-checkmark" size={11} color={colors.success} />
+              <ThemedText style={[styles.verifiedLabel, { color: colors.success }]}>
+                Verified Tutor
+              </ThemedText>
+            </View>
+          )}
+          <ThemedText themeColor="heading" numberOfLines={2} style={styles.name}>
+            {tutor.fullName}
           </ThemedText>
+          {tutor.headline ? (
+            <ThemedText themeColor="textSecondary" numberOfLines={2} style={styles.headline}>
+              {tutor.headline}
+            </ThemedText>
+          ) : null}
+          <StarRating
+            value={tutor.ratingAvg}
+            size={13}
+            showValue
+            count={tutor.ratingCount}
+          />
         </View>
       </View>
 
-      <SectionHeader title="Details" />
-      <Card style={styles.detailsCard}>
+      <View style={[styles.factsCard, { backgroundColor: colors.background, borderColor: colors.border }]}>
+        {fee && <FactRow icon="cash-outline" label="Fee" value={fee} emphasized />}
+        {university && <FactRow icon="school-outline" label="University" value={university} />}
+        {tutor.location && <FactRow icon="location-outline" label="Location" value={tutor.location} />}
+        {tutor.availability && <FactRow icon="time-outline" label="Availability" value={tutor.availability} />}
         {tutor.subjectNames.length > 0 && (
-          <DetailRow icon="book-outline" label="Subjects">
-            <View style={styles.tagRow}>
-              {tutor.subjectNames.map((subject) => (
-                <Chip key={subject} label={subject} />
-              ))}
-            </View>
-          </DetailRow>
+          <FactRow icon="book-outline" label="Subjects" value={tutor.subjectNames.join(' • ')} />
         )}
-        {tutor.universityName && (
-          <DetailRow icon="school-outline" label="University" value={tutor.universityName} />
-        )}
-        {tutor.location && (
-          <DetailRow icon="location-outline" label="Location" value={tutor.location} />
-        )}
-        {feeLabel(tutor.expectedFeeMin, tutor.expectedFeeMax) && (
-          <DetailRow
-            icon="cash-outline"
-            label="Expected fee"
-            value={feeLabel(tutor.expectedFeeMin, tutor.expectedFeeMax)!}
-          />
-        )}
-        {tutor.availability && (
-          <DetailRow
-            icon="time-outline"
-            label="Availability"
-            value={tutor.availability}
-          />
-        )}
-      </Card>
+      </View>
 
       {tutor.bio && (
         <>
-          <SectionHeader title="About" />
-          <Card>
-            <ThemedText type="small">{tutor.bio}</ThemedText>
-          </Card>
+          <SectionHeader compact title="About" />
+          <View style={[styles.aboutCard, { backgroundColor: colors.background, borderColor: colors.border }]}>
+            <ThemedText themeColor="bodyStrong" style={styles.aboutText}>
+              {tutor.bio}
+            </ThemedText>
+          </View>
         </>
       )}
+
+      <SectionHeader compact title="Reviews" />
+      <TutorReviews
+        tutorId={tutor.id}
+        ratingAvg={tutor.ratingAvg}
+        ratingCount={tutor.ratingCount}
+        currentUserId={currentUserId}
+      />
 
       <PrimaryButton
         label="Request tuition"
@@ -144,30 +166,34 @@ export default function TutorDetailScreen() {
   );
 }
 
-function DetailRow({
+function FactRow({
   icon,
   label,
   value,
-  children,
+  emphasized = false,
 }: {
-  icon: 'book-outline' | 'school-outline' | 'location-outline' | 'cash-outline' | 'time-outline';
+  icon: IconName;
   label: string;
-  value?: string;
-  children?: React.ReactNode;
+  value: string;
+  emphasized?: boolean;
 }) {
   const colors = useTheme();
   return (
-    <View style={styles.detailRow}>
-      <Ionicons name={icon} size={16} color={colors.textSecondary} />
-      <View style={styles.detailText}>
-        <ThemedText type="small" themeColor="textSecondary">
+    <View style={styles.factRow}>
+      <View style={[styles.factIcon, { backgroundColor: `${colors.primary}1A` }]}>
+        <Ionicons name={icon} size={13} color={colors.primary} />
+      </View>
+      <View style={styles.factText}>
+        <ThemedText themeColor="textMuted" style={styles.factLabel}>
           {label}
         </ThemedText>
-        {children ?? (
-          <ThemedText type="smallBold" numberOfLines={2}>
-            {value}
-          </ThemedText>
-        )}
+        <ThemedText
+          themeColor={emphasized ? 'heading' : 'bodyStrong'}
+          numberOfLines={2}
+          style={emphasized ? styles.factValueEmphasized : styles.factValue}
+        >
+          {value}
+        </ThemedText>
       </View>
     </View>
   );
@@ -178,42 +204,98 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  headingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.three,
-  },
-  avatar: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  heading: {
-    flex: 1,
-    gap: 2,
-  },
-  badges: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.one,
-  },
-  detailsCard: {
-    gap: Spacing.three,
-  },
-  detailRow: {
+  hero: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: Spacing.three,
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: Spacing.three,
   },
-  detailText: {
+  heroAvatar: {
+    width: 80,
+    height: 80,
+    borderRadius: 20,
+  },
+  heroAvatarFallback: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  heroBody: {
     flex: 1,
-    gap: 2,
+    gap: 3,
   },
-  tagRow: {
+  verifiedPill: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.one + 2,
+    alignItems: 'center',
+    gap: 4,
+    alignSelf: 'flex-start',
+    height: 22,
+    borderRadius: 999,
+    paddingHorizontal: 8,
+  },
+  verifiedLabel: {
+    fontFamily: FontFamilies.semiBold,
+    fontSize: 10,
+    lineHeight: 13,
+  },
+  name: {
+    fontFamily: FontFamilies.bold,
+    fontSize: 17,
+    lineHeight: 22,
+    letterSpacing: -0.3,
+  },
+  headline: {
+    fontFamily: FontFamilies.medium,
+    fontSize: 11,
+    lineHeight: 15,
+  },
+  factsCard: {
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: Spacing.three,
+    gap: Spacing.three - 4,
+  },
+  factRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: Spacing.three - 4,
+  },
+  factIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 2,
+  },
+  factText: {
+    flex: 1,
+    gap: 1,
+  },
+  factLabel: {
+    fontFamily: FontFamilies.regular,
+    fontSize: 10,
+    lineHeight: 13,
+  },
+  factValue: {
+    fontFamily: FontFamilies.medium,
+    fontSize: 12,
+    lineHeight: 16,
+  },
+  factValueEmphasized: {
+    fontFamily: FontFamilies.bold,
+    fontSize: 13,
+    lineHeight: 17,
+  },
+  aboutCard: {
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: Spacing.three,
+  },
+  aboutText: {
+    fontFamily: FontFamilies.regular,
+    fontSize: 13,
+    lineHeight: 20,
   },
 });

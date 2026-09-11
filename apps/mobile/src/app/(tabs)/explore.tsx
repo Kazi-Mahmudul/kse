@@ -94,7 +94,7 @@ function CategoryRow({
         {
           backgroundColor: colors.background,
           borderColor: colors.border,
-          shadowColor: colors.shadow,
+          boxShadow: `0px 1px 6px ${colors.shadow}`,
         },
         pressed && { opacity: 0.95 },
       ]}
@@ -143,9 +143,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.three,
     paddingVertical: Spacing.three,
     // Subtle elevation matching the rest of the app's card shadow token.
-    shadowOpacity: 1,
-    shadowOffset: { width: 0, height: 1 },
-    shadowRadius: 6,
     elevation: 1,
   },
   badge: {

@@ -55,7 +55,7 @@ export function SegmentedControl<T extends string>({
               isActive && {
                 backgroundColor: colors.background,
                 borderColor: colors.border,
-                shadowColor: colors.shadow,
+                boxShadow: `0px 1px 4px ${colors.shadow}`,
               },
               pressed && !isActive && styles.pressed,
             ]}
@@ -92,9 +92,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderWidth: 1,
     borderColor: 'transparent',
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 1 },
     elevation: 1,
   },
   pressed: {

@@ -20,6 +20,7 @@ import { useEffect, useState } from 'react';
 import { Appearance, Platform } from 'react-native';
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { blurActiveElement } from '@/lib/focus';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store/auth-store';
 import { useSettingsStore } from '@/store/settings-store';
@@ -113,7 +114,18 @@ export default function RootLayout() {
       <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
       <QueryClientProvider client={client}>
         <AuthGate>
-          <Stack screenOptions={{ headerShown: false }}>
+          <Stack
+            screenOptions={{ headerShown: false }}
+            screenListeners={{
+              // Expo-router keeps covered stack screens mounted but marks
+              // them `aria-hidden` (its Screen element). On web the button
+              // that triggered the navigation keeps DOM focus, so Chrome
+              // blocks the hide ("Blocked aria-hidden … descendant retained
+              // focus"). Listeners fire during dispatch — before the covered
+              // screen commits — so dropping focus here prevents it.
+              state: blurActiveElement,
+            }}
+          >
             <Stack.Screen name="(tabs)" />
             <Stack.Screen name="(auth)" />
             <Stack.Screen name="create" options={{ presentation: 'modal' }} />

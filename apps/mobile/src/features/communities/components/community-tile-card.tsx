@@ -107,7 +107,7 @@ export function CommunityTileCard({ community }: CommunityTileCardProps) {
         styles.tile,
         {
           borderColor: colors.border,
-          shadowColor: colors.shadow,
+          boxShadow: `0px 4px 8px ${colors.shadow}`,
         },
       ]}
     >
@@ -159,9 +159,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 14,
     justifyContent: 'space-between',
-    shadowOpacity: 1,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
     elevation: 1,
   },
   head: {

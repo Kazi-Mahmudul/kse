@@ -26,3 +26,68 @@ export const tuitionRequestFormSchema = z.object({
 });
 
 export type TuitionRequestFormValues = z.infer<typeof tuitionRequestFormSchema>;
+
+/**
+ * Become-a-tutor application (spec §6/§7): a student submits their teaching
+ * profile; staff review it in the admin portal. Subject ids come from the
+ * reference table, never free text.
+ */
+export const tutorApplicationSchema = z
+  .object({
+    headline: z.string().trim().min(10, 'Summarise your teaching in 10+ characters').max(120),
+    bio: z.string().trim().max(2000).optional(),
+    university_id: z.string().uuid().nullable().optional(),
+    subject_ids: z
+      .array(z.string().uuid())
+      .min(1, 'Pick at least one subject')
+      .max(8, 'Pick at most 8 subjects'),
+    location: z.string().trim().max(120).optional(),
+    expected_fee_min: z
+      .number()
+      .int('Whole numbers only')
+      .min(0)
+      .max(1_000_000)
+      .nullable()
+      .optional(),
+    expected_fee_max: z
+      .number()
+      .int('Whole numbers only')
+      .min(0)
+      .max(1_000_000)
+      .nullable()
+      .optional(),
+    availability: z.string().trim().max(120).optional(),
+  })
+  .refine(
+    (value) =>
+      value.expected_fee_min == null ||
+      value.expected_fee_max == null ||
+      value.expected_fee_min <= value.expected_fee_max,
+    { message: 'Minimum fee must not exceed the maximum', path: ['expected_fee_min'] },
+  );
+
+export type TutorApplicationInput = z.infer<typeof tutorApplicationSchema>;
+
+/** Free-text fields of the application form; ids validated by tutorApplicationSchema. */
+export const tutorApplicationFormSchema = z.object({
+  headline: z.string().trim().min(10, 'Summarise your teaching in 10+ characters').max(120),
+  bio: z.string().trim().max(2000),
+  location: z.string().trim().max(120),
+  availability: z.string().trim().max(120),
+  expected_fee_min: z.string().trim().optional(),
+  expected_fee_max: z.string().trim().optional(),
+});
+
+export type TutorApplicationFormValues = z.infer<typeof tutorApplicationFormSchema>;
+
+/** Review payload: 1–5 stars, optional comment (CLAUDE.md §6 tutor rating). */
+export const tutorReviewSchema = z.object({
+  rating: z
+    .number()
+    .int('Whole stars only')
+    .min(1, 'Pick a star rating')
+    .max(5),
+  comment: z.string().trim().min(3, 'Reviews need at least 3 characters').max(1000).optional(),
+});
+
+export type TutorReviewInput = z.infer<typeof tutorReviewSchema>;

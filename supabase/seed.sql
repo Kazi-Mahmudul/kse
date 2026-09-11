@@ -547,3 +547,25 @@ insert into public.user_portfolio_links (id, user_id, label, url, position) valu
    'Personal site', 'https://demo.student.dev', 2)
 on conflict (id) do update
   set label = excluded.label, url = excluded.url, position = excluded.position;
+
+-- ── Sample tutor reviews (demo of the rating aggregates) ─────────────────────
+-- The tutor_reviews_refresh_rating trigger maintains tutors.rating_avg/_count.
+
+insert into public.tutor_reviews (tutor_id, reviewer_id, rating, comment) values
+  ('22222222-2222-2222-2222-222222222211',
+   '22222222-2222-2222-2222-222222222201', 5,
+   'Tanvir explained pointers and memory layout better than my course teacher. Small group, very hands-on.'),
+  ('22222222-2222-2222-2222-222222222211',
+   '22222222-2222-2222-2222-222222222212', 4,
+   'Helped my junior brother with DSA problem sets. Patient and well prepared.'),
+  ('22222222-2222-2222-2222-222222222212',
+   '22222222-2222-2222-2222-222222222201', 5,
+   'Nusrat apu made physics numericals finally click. Homework checking every week.'),
+  ('22222222-2222-2222-2222-222222222212',
+   '22222222-2222-2222-2222-222222222211', 5,
+   'Reliable and punctual — my HSC prep improved a lot within two months.'),
+  ('22222222-2222-2222-2222-222222222213',
+   '22222222-2222-2222-2222-222222222201', 4,
+   'Clear Bangla-medium biology classes with great chapter summaries.')
+on conflict (tutor_id, reviewer_id) do update
+  set rating = excluded.rating, comment = excluded.comment;

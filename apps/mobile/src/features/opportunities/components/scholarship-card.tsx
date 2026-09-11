@@ -57,7 +57,7 @@ export function ScholarshipCard({ opportunity }: ScholarshipCardProps) {
         {
           backgroundColor: colors.background,
           borderColor: colors.border,
-          shadowColor: colors.shadow,
+          boxShadow: `0px 1px 6px ${colors.shadow}`,
         },
       ]}
     >
@@ -184,9 +184,6 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: 1,
     // Subtle elevation matching the rest of the app's card shadow.
-    shadowOpacity: 1,
-    shadowOffset: { width: 0, height: 1 },
-    shadowRadius: 6,
     elevation: 1,
     overflow: 'hidden', // clip the android_ripple to the card radius
   },

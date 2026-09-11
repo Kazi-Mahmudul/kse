@@ -57,7 +57,7 @@ export function RecentDiscussionCard({ post }: RecentDiscussionCardProps) {
         styles.row,
         {
           borderColor: colors.border,
-          shadowColor: colors.shadow,
+          boxShadow: `0px 4px 8px ${colors.shadow}`,
         },
       ]}
     >
@@ -106,9 +106,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     borderWidth: StyleSheet.hairlineWidth,
     borderRadius: 16,
-    shadowOpacity: 1,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
     elevation: 1,
   },
   body: {

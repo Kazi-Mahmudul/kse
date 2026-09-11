@@ -78,7 +78,7 @@ export function OpportunityOverviewGrid() {
               accessibilityLabel={`${card.label}: ${value ?? 0} ${card.trailing.toLowerCase()}`}
               style={({ pressed }) => [
                 styles.card,
-                { backgroundColor: colors.background, borderColor: colors.border, shadowColor: colors.shadow },
+                { backgroundColor: colors.background, borderColor: colors.border, boxShadow: `0px 2px 8px ${colors.shadow}` },
                 pressed && styles.pressed,
               ]}
             >
@@ -131,9 +131,6 @@ const styles = StyleSheet.create({
     height: 104,
     flexDirection: 'column',
     justifyContent: 'space-between',
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
     elevation: 1,
   },
   topRow: {

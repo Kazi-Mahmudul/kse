@@ -55,7 +55,7 @@ export function ProfileScoreHero() {
   const openProfile = () => router.push('/(tabs)/profile/edit');
 
   return (
-    <View style={[styles.shadow, { shadowColor: colors.primary }]}>
+    <View style={[styles.shadow, { boxShadow: `0px 6px 12px ${colors.primary}33` }]}>
       <LinearGradient
         colors={[colors.bannerFrom, colors.bannerVia, colors.bannerTo]}
         start={{ x: 0, y: 0 }}
@@ -108,9 +108,6 @@ export function ProfileScoreHero() {
 const styles = StyleSheet.create({
   shadow: {
     borderRadius: 16,
-    shadowOpacity: 0.2,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
     elevation: 5,
   },
   card: {

@@ -9,7 +9,7 @@ import { useTheme } from '@/hooks/use-theme';
 /**
  * Flat-illustration palette. Fixed rather than themed: these sit on top of the
  * indigo gradient in both color schemes, so they are part of the artwork, not
- * the app chrome (same rationale as the fixed `shadowColor` in tabs-bar.tsx).
+ * the app chrome (same rationale as the fixed shadow color in tabs-bar.tsx).
  */
 const ART = {
   disc: 'rgba(255,255,255,0.10)',
@@ -35,7 +35,7 @@ export function PromoBanner() {
   const openInternships = () => router.push('/(tabs)/explore/internship');
 
   return (
-    <View style={[styles.shadow, { shadowColor: colors.primary }]}>
+    <View style={[styles.shadow, { boxShadow: `0px 6px 12px ${colors.primary}2E` }]}>
       <LinearGradient
         colors={[colors.bannerFrom, colors.bannerVia, colors.bannerTo]}
         start={{ x: 0, y: 0 }}
@@ -57,7 +57,7 @@ export function PromoBanner() {
             accessibilityLabel="Explore internship opportunities"
             style={({ pressed }) => [
               styles.cta,
-              { backgroundColor: colors.background, shadowColor: colors.shadow },
+              { backgroundColor: colors.background, boxShadow: `0px 1px 2px ${colors.shadow}` },
               pressed && styles.ctaPressed,
             ]}
           >
@@ -89,9 +89,6 @@ export function PromoBanner() {
 const styles = StyleSheet.create({
   shadow: {
     borderRadius: 24,
-    shadowOpacity: 0.18,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
     elevation: 5,
   },
   banner: {
@@ -144,9 +141,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 6,
     borderRadius: 999,
-    shadowOpacity: 0.08,
-    shadowRadius: 2,
-    shadowOffset: { width: 0, height: 1 },
     elevation: 2,
   },
   ctaPressed: {

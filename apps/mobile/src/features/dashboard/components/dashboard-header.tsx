@@ -31,7 +31,7 @@ export function DashboardHeader() {
         }
         style={({ pressed }) => [
           styles.bell,
-          { backgroundColor: colors.background, borderColor: colors.border, shadowColor: colors.shadow },
+          { backgroundColor: colors.background, borderColor: colors.border, boxShadow: `0px 1px 4px ${colors.shadow}` },
           pressed && styles.pressed,
         ]}
       >
@@ -79,9 +79,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowOpacity: 0.06,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 1 },
     elevation: 1,
   },
   dot: {
