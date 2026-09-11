@@ -10,7 +10,6 @@ export default function TabsLayout() {
       <AnimatedSplashOverlay />
       <Tabs screenOptions={{ headerShown: false }} tabBar={(props) => <TabsBar {...props} />}>
         <Tabs.Screen name="index" />
-        <Tabs.Screen name="dashboard" />
         <Tabs.Screen name="explore" />
         <Tabs.Screen name="community" />
         <Tabs.Screen name="profile" />

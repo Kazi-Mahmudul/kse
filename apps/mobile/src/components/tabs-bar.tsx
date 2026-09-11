@@ -32,7 +32,6 @@ const ITEMS: {
   icon: IconName;
 }[] = [
   { name: 'index', label: 'Home', icon: 'home-outline' },
-  { name: 'dashboard', label: 'Dashboard', icon: 'grid-outline' },
   { name: 'explore', label: 'Explore', icon: 'search-outline' },
   { name: 'community', label: 'Community', icon: 'people-outline' },
   { name: 'profile', label: 'Profile', icon: 'person-outline' },

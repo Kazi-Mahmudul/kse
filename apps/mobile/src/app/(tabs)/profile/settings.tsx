@@ -1,7 +1,7 @@
 import Constants from 'expo-constants';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { Alert, Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { Screen } from '@/components/ui/screen';
@@ -12,6 +12,7 @@ import {
 import { FontFamilies, Spacing } from '@/constants/theme';
 import { signOut } from '@/features/auth/service';
 import { useTheme } from '@/hooks/use-theme';
+import { confirmDialog } from '@/lib/confirm';
 import { useAuthStore } from '@/store/auth-store';
 import { useSettingsStore, type ThemePreference } from '@/store/settings-store';
 
@@ -32,17 +33,14 @@ export default function SettingsScreen() {
   const setThemePreference = useSettingsStore((s) => s.setThemePreference);
   const email = useAuthStore((s) => s.session?.user.email) ?? '';
 
-  const confirmSignOut = () => {
-    Alert.alert('Sign out?', 'You will need to sign in again to use KSE.', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Sign out',
-        style: 'destructive',
-        onPress: () => {
-          void signOut();
-        },
-      },
-    ]);
+  const confirmSignOut = async () => {
+    const confirmed = await confirmDialog({
+      title: 'Sign out?',
+      message: 'You will need to sign in again to use KSE.',
+      confirmLabel: 'Sign out',
+      destructive: true,
+    });
+    if (confirmed) void signOut();
   };
 
   return (
