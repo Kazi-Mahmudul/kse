@@ -24,6 +24,7 @@ import {
   deleteTutorReview,
   fetchTutors,
   getMyTutorApplication,
+  getMyTutorListing,
   getTutor,
   listMyTuitionRequests,
   listSavedTutorIds,
@@ -56,6 +57,7 @@ export const tuitionKeys = {
   myRequests: () => [...tuitionKeys.all, 'myRequests'] as const,
   savedTutors: () => [...tuitionKeys.all, 'savedTutors'] as const,
   myApplication: () => [...tuitionKeys.all, 'myApplication'] as const,
+  myTutorListing: () => [...tuitionKeys.all, 'myTutorListing'] as const,
 };
 
 /** Paginated tutor feed for the discovery screen (step 15). */
@@ -191,6 +193,15 @@ export function useMyTutorApplication() {
     queryKey: tuitionKeys.myApplication(),
     queryFn: getMyTutorApplication,
   } satisfies UseQueryOptions<MyTutorApplication | null, Error>);
+}
+
+/** The signed-in student's own tutors row (null = not a tutor). Guards the
+ *  apply form: verified tutors get the "already listed" state instead. */
+export function useMyTutorListing() {
+  return useQuery({
+    queryKey: tuitionKeys.myTutorListing(),
+    queryFn: getMyTutorListing,
+  } satisfies UseQueryOptions<{ isVerified: boolean; isActive: boolean } | null, Error>);
 }
 
 export function useSubmitTutorApplication() {

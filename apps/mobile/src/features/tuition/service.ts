@@ -482,6 +482,31 @@ export async function getMyTutorApplication(): Promise<MyTutorApplication | null
   };
 }
 
+/**
+ * The signed-in user's own tutors row, if any (verified listing or draft).
+ * Owners can read their row regardless of verification (RLS), so this
+ * powers the "you're already a tutor" state on the Become-a-Tutor screen —
+ * verified tutors must not see the apply form (the insert policy blocks
+ * them, which would otherwise surface as a raw RLS error).
+ */
+export async function getMyTutorListing(): Promise<{
+  isVerified: boolean;
+  isActive: boolean;
+} | null> {
+  const userId = await requireUserId('Could not load your tutor profile');
+
+  const { data, error } = await supabase
+    .from('tutors')
+    .select('is_verified, status')
+    .eq('id', userId)
+    .maybeSingle();
+  if (error) fail('Could not load your tutor profile', error.message);
+  if (!data) return null;
+
+  const row = data as { is_verified: boolean; status: string };
+  return { isVerified: row.is_verified, isActive: row.status === 'active' };
+}
+
 /** Submits a new application; staff review it in the admin portal. */
 export async function submitTutorApplication(
   input: TutorApplicationInput,
@@ -507,7 +532,17 @@ export async function submitTutorApplication(
     })
     .select('id')
     .single();
-  if (error) fail('Could not submit application', error.message);
+  if (error) {
+    // One open application per student is DB-enforced; translate the
+    // unique-index violation into something a student can act on.
+    if (error.code === '23505') {
+      fail(
+        'You already have a pending application',
+        'Its status is shown on this page — refresh if it is missing.',
+      );
+    }
+    fail('Could not submit application', error.message);
+  }
 
   const { error: subjectsError } = await supabase
     .from('tutor_application_subjects')

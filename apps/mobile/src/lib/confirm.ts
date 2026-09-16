@@ -33,3 +33,28 @@ export function confirmDialog(options: ConfirmOptions): Promise<boolean> {
     ]);
   });
 }
+
+export interface AlertOptions {
+  title: string;
+  message: string;
+  dismissLabel?: string;
+}
+
+/**
+ * Platform-aware informational dialog (no cancel button). Same web fallback
+ * reason as `confirmDialog` — `Alert.alert` is a no-op on react-native-web.
+ */
+export function alertDialog(options: AlertOptions): Promise<void> {
+  if (Platform.OS === 'web') {
+    if (typeof window !== 'undefined' && typeof window.alert === 'function') {
+      window.alert(`${options.title}\n\n${options.message}`);
+    }
+    return Promise.resolve();
+  }
+
+  return new Promise((resolve) => {
+    Alert.alert(options.title, options.message, [
+      { text: options.dismissLabel ?? 'OK', onPress: () => resolve() },
+    ]);
+  });
+}

@@ -36,6 +36,10 @@ export interface OpportunityFormData {
   funding_type: string;
   country: string;
   category_id: string;
+  /** Internship-only fields (spec 06._internship_hub_kse) — strings for inputs. */
+  internship_type: string;
+  stipend_amount: string;
+  stipend_currency: string;
   status: OpportunityStatus;
   featured: boolean;
   verified: boolean;

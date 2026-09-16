@@ -14,6 +14,7 @@ import {
 import {
   DEGREE_LEVEL_OPTIONS,
   FUNDING_TYPE_OPTIONS,
+  OPPORTUNITY_INTERNSHIP_TYPE_OPTIONS,
   OPPORTUNITY_MODE_OPTIONS,
   OPPORTUNITY_STATUS_OPTIONS,
   OPPORTUNITY_TYPE_OPTIONS,
@@ -240,6 +241,53 @@ export function OpportunityForm({
               className={inputClass}
             />
             {err('country')}
+          </label>
+        </div>
+      )}
+
+      {type === 'internship' && (
+        <div className="grid grid-cols-1 gap-5 rounded-xl border border-zinc-200 bg-zinc-50 p-4 md:grid-cols-3">
+          <label className="flex flex-col gap-1.5">
+            <span className="text-sm font-medium text-zinc-700">Internship type</span>
+            <select
+              name="internship_type"
+              defaultValue={opportunity?.internship_type ?? ''}
+              className={inputClass}
+            >
+              <option value="">— Not specified —</option>
+              {OPPORTUNITY_INTERNSHIP_TYPE_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+            {err('internship_type')}
+          </label>
+
+          <label className="flex flex-col gap-1.5">
+            <span className="text-sm font-medium text-zinc-700">Stipend amount</span>
+            <input
+              type="number"
+              min={0}
+              step="0.01"
+              name="stipend_amount"
+              defaultValue={opportunity?.stipend_amount}
+              placeholder="e.g. 15000"
+              className={inputClass}
+            />
+            {err('stipend_amount')}
+          </label>
+
+          <label className="flex flex-col gap-1.5">
+            <span className="text-sm font-medium text-zinc-700">Stipend currency</span>
+            <input
+              name="stipend_currency"
+              defaultValue={opportunity?.stipend_currency}
+              placeholder="BDT"
+              maxLength={3}
+              className={inputClass}
+            />
+            {err('stipend_currency')}
           </label>
         </div>
       )}

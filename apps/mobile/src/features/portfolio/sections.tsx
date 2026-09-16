@@ -10,7 +10,6 @@ import {
   researchFormSchema,
   resumeFormSchema,
   portfolioLinkFormSchema,
-  blankToNull,
   type ProjectFormValues,
   type CertificateFormValues,
   type AchievementFormValues,
@@ -175,11 +174,13 @@ export function ProjectsSection({
   };
 
   const submit = form.handleSubmit(async (values) => {
-    const payload = blankToNull(values) as ProjectFormValues;
+    // Values stay strings here; the toXPayload mappers in the screen binding
+    // own blank→null conversion. Running blankToNull first would hand them
+    // nulls and crash their .trim() calls.
     if (editing) {
-      await update(editing.id, payload);
+      await update(editing.id, values);
     } else {
-      await create(payload);
+      await create(values);
     }
     cancel();
   });
@@ -289,9 +290,8 @@ export function CertificatesSection({
     setMode('idle');
   };
   const submit = form.handleSubmit(async (values) => {
-    const payload = blankToNull(values) as CertificateFormValues;
-    if (editing) await update(editing.id, payload);
-    else await create(payload);
+    if (editing) await update(editing.id, values);
+    else await create(values);
     cancel();
   });
 
@@ -389,9 +389,8 @@ export function AchievementsSection({
     setMode('idle');
   };
   const submit = form.handleSubmit(async (values) => {
-    const payload = blankToNull(values) as AchievementFormValues;
-    if (editing) await update(editing.id, payload);
-    else await create(payload);
+    if (editing) await update(editing.id, values);
+    else await create(values);
     cancel();
   });
 
@@ -494,12 +493,10 @@ export function ResearchSection({
     setMode('idle');
   };
   const submit = form.handleSubmit(async (values) => {
-    const payload = blankToNull(values) as ResearchFormValues;
-    if (editing) await update(editing.id, payload);
-    else await create(payload);
+    if (editing) await update(editing.id, values);
+    else await create(values);
     cancel();
   });
-
   return (
     <ModeShell
       mode={mode === 'idle' ? 'idle' : 'add'}

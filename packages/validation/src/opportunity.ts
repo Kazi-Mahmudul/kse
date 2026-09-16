@@ -74,11 +74,13 @@ export const opportunityFiltersSchema = z.object({
 export type OpportunityFiltersInput = z.infer<typeof opportunityFiltersSchema>;
 
 // ── Admin form schema ────────────────────────────────────────────────────────
-// HTML form fields arrive as flat strings ('' for empty). These helpers
-// normalize them to the nullable shapes the create/update schemas expect.
+// HTML form fields arrive as flat strings ('' for empty) and may be absent
+// entirely when their section isn't rendered (e.g. stipend fields on a
+// scholarship). These helpers normalize everything to the nullable shapes
+// the create/update schemas expect — missing key, null or '' all become null.
 
 const emptyToNull = (value: unknown) =>
-  typeof value === 'string' && value.trim() === '' ? null : value;
+  typeof value === 'string' && value.trim() === '' ? null : (value ?? null);
 
 const optionalText = (max: number, message?: string) =>
   z.preprocess(
@@ -137,9 +139,15 @@ export const opportunityFormSchema = z.object({
     emptyToNull,
     z.string().uuid('Choose a valid category').nullable(),
   ),
-  // Internship-only fields (spec 06._internship_hub_kse).
+  // Internship-only fields (spec 06._internship_hub_kse). The section only
+  // renders for internships, so these keys are usually absent on other types.
   stipend_amount: z.preprocess(
-    emptyToNull,
+    // <input type="number"> still submits a string — coerce before z.number().
+    (value) => {
+      const normalized = emptyToNull(value);
+      if (normalized === null) return null;
+      return typeof normalized === 'string' ? Number(normalized) : normalized;
+    },
     z
       .number({ message: 'Enter a number' })
       .nonnegative('Stipend cannot be negative')
@@ -151,6 +159,7 @@ export const opportunityFormSchema = z.object({
     z
       .string()
       .trim()
+      .toUpperCase()
       .regex(
         /^[A-Z]{3}$/,
         'Use a 3-letter ISO currency code (e.g. BDT, USD)',
@@ -167,6 +176,18 @@ export const opportunityFormSchema = z.object({
   source_name: optionalText(150),
   source_url: optionalUrl(),
   tags: z.array(z.string().trim().min(1).max(50)).max(10, 'Up to 10 tags'),
+}).superRefine((values, ctx) => {
+  // Mirrors the opportunities_stipend_pair_chk DB constraint: amount and
+  // currency are set together or left empty together.
+  const hasAmount = values.stipend_amount !== null;
+  const hasCurrency = values.stipend_currency !== null;
+  if (hasAmount !== hasCurrency) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['stipend_currency'],
+      message: 'Set both stipend amount and currency, or leave both empty',
+    });
+  }
 });
 
 export type OpportunityFormValues = z.infer<typeof opportunityFormSchema>;

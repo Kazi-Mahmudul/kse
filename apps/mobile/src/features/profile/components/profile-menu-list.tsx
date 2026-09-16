@@ -6,6 +6,7 @@ import { ThemedText } from '@/components/themed-text';
 import { FontFamilies } from '@/constants/theme';
 import { useMyResumes } from '@/features/portfolio/queries';
 import { useMySkillIds } from '@/features/profile/queries';
+import { useSavedOpportunityIds } from '@/features/saved/queries';
 import { useMyTutorApplication } from '@/features/tuition/queries';
 import { useTheme } from '@/hooks/use-theme';
 import { useTints } from '@/hooks/use-tints';
@@ -18,7 +19,11 @@ interface RowSpec {
   tint: 'purple' | 'indigo' | 'emerald';
   title: string;
   subtitle: string;
-  href: '/(tabs)/profile/edit' | '/(tabs)/portfolio' | '/(tabs)/profile/become-tutor';
+  href:
+    | '/(tabs)/profile/edit'
+    | '/(tabs)/saved'
+    | '/(tabs)/portfolio'
+    | '/(tabs)/profile/become-tutor';
 }
 
 /**
@@ -32,6 +37,15 @@ function resumeSubtitle(
   if (!resumes || resumes.length === 0) return 'Not uploaded yet';
   if (resumes.length === 1) return `Updated ${formatDate(resumes[0].updatedAt)}`;
   return `${resumes.length} on file`;
+}
+
+/**
+ * Derive the saved row subtitle from the bookmark count (pending → prompt to
+ * explore, so the row never renders a bare "0").
+ */
+function savedSubtitle(count: number | undefined): string {
+  if (!count) return 'Bookmark opportunities to track them';
+  return count === 1 ? '1 opportunity saved' : `${count} opportunities saved`;
 }
 
 /**
@@ -62,6 +76,7 @@ export function ProfileMenuList() {
   const tints = useTints();
   const skillIdsQuery = useMySkillIds();
   const resumesQuery = useMyResumes();
+  const savedQuery = useSavedOpportunityIds();
   const tutorApplicationQuery = useMyTutorApplication();
 
   const skillCount = skillIdsQuery.data?.length ?? 0;
@@ -83,6 +98,14 @@ export function ProfileMenuList() {
       title: 'Resume',
       subtitle: resumeSubtitle(resumesQuery.data),
       href: '/(tabs)/portfolio',
+    },
+    {
+      key: 'saved',
+      icon: 'bookmark-outline',
+      tint: 'purple',
+      title: 'Saved Opportunities',
+      subtitle: savedSubtitle(savedQuery.data?.size),
+      href: '/(tabs)/saved',
     },
     {
       key: 'tutor',

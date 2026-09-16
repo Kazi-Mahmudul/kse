@@ -26,6 +26,18 @@ function fail(context: string, error: { message: string } | null): never {
   throw new PortfolioError(context);
 }
 
+/** Owner stamp for inserts — the tables have no auth.uid() default and the
+ *  RLS insert policy requires user_id = auth.uid(), so every create MUST
+ *  send the column explicitly or the write is rejected. */
+async function requireUserId(context: string): Promise<string> {
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser();
+  if (error || !user) fail(context, { message: 'You need to sign in first' });
+  return user.id;
+}
+
 // ── Projects ────────────────────────────────────────────────────────────────
 
 interface ProjectRow {
@@ -74,9 +86,10 @@ export interface ProjectUpsert {
 }
 
 export async function createProject(input: ProjectUpsert): Promise<PortfolioProjectItem> {
+  const userId = await requireUserId('Could not save the project');
   const { data, error } = await supabase
     .from('user_projects')
-    .insert(input)
+    .insert({ ...input, user_id: userId })
     .select(
       'id, title, description, url, tech_stack, started_on, completed_on, created_at, updated_at',
     )
@@ -150,9 +163,10 @@ export interface CertificateUpsert {
 export async function createCertificate(
   input: CertificateUpsert,
 ): Promise<PortfolioCertificateItem> {
+  const userId = await requireUserId('Could not save the certificate');
   const { data, error } = await supabase
     .from('user_certificates')
-    .insert(input)
+    .insert({ ...input, user_id: userId })
     .select('id, title, issuer, issued_on, file_url, created_at, updated_at')
     .single();
   if (error || !data) fail('Could not save the certificate', error);
@@ -219,9 +233,10 @@ export interface AchievementUpsert {
 export async function createAchievement(
   input: AchievementUpsert,
 ): Promise<PortfolioAchievementItem> {
+  const userId = await requireUserId('Could not save the achievement');
   const { data, error } = await supabase
     .from('user_achievements')
-    .insert(input)
+    .insert({ ...input, user_id: userId })
     .select('id, title, description, achieved_on, created_at, updated_at')
     .single();
   if (error || !data) fail('Could not save the achievement', error);
@@ -299,9 +314,10 @@ export interface ResearchUpsert {
 export async function createResearch(
   input: ResearchUpsert,
 ): Promise<PortfolioResearchItem> {
+  const userId = await requireUserId('Could not save the research entry');
   const { data, error } = await supabase
     .from('user_research')
-    .insert(input)
+    .insert({ ...input, user_id: userId })
     .select(
       'id, title, abstract, role, collaborators, url, published_on, created_at, updated_at',
     )
@@ -381,12 +397,13 @@ async function clearExistingPrimary(): Promise<void> {
 export async function createResume(
   input: ResumeUpsert,
 ): Promise<PortfolioResumeItem> {
+  const userId = await requireUserId('Could not save the resume');
   if (input.is_primary) {
     await clearExistingPrimary();
   }
   const { data, error } = await supabase
     .from('user_resumes')
-    .insert(input)
+    .insert({ ...input, user_id: userId })
     .select('id, file_url, is_primary, created_at, updated_at')
     .single();
   if (error || !data) fail('Could not save the resume', error);
@@ -455,9 +472,10 @@ export interface PortfolioLinkUpsert {
 export async function createPortfolioLink(
   input: PortfolioLinkUpsert,
 ): Promise<PortfolioLinkItem> {
+  const userId = await requireUserId('Could not save the portfolio link');
   const { data, error } = await supabase
     .from('user_portfolio_links')
-    .insert(input)
+    .insert({ ...input, user_id: userId })
     .select('id, label, url, position, created_at, updated_at')
     .single();
   if (error || !data) fail('Could not save the portfolio link', error);

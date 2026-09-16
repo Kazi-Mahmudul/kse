@@ -65,6 +65,10 @@ export default async function EditOpportunityPage({
     funding_type: opportunity.funding_type ?? '',
     country: opportunity.country ?? '',
     category_id: opportunity.category_id ?? '',
+    internship_type: opportunity.internship_type ?? '',
+    stipend_amount:
+      opportunity.stipend_amount === null ? '' : String(opportunity.stipend_amount),
+    stipend_currency: opportunity.stipend_currency ?? '',
     status: opportunity.status,
     featured: opportunity.featured,
     verified: opportunity.verified,

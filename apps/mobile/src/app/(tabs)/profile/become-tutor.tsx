@@ -17,11 +17,13 @@ import { TextField } from '@/components/ui/text-field';
 import { Spacing } from '@/constants/theme';
 import {
   useMyTutorApplication,
+  useMyTutorListing,
   useSubjects,
   useSubmitTutorApplication,
 } from '@/features/tuition/queries';
 import { useUniversities } from '@/features/profile/queries';
 import { useTheme } from '@/hooks/use-theme';
+import { alertDialog } from '@/lib/confirm';
 import { useAuthStore } from '@/store/auth-store';
 import type { IconName } from '@/types/icon';
 import type { MyTutorApplication } from '@kse/types';
@@ -47,9 +49,10 @@ export default function BecomeTutorScreen() {
   const colors = useTheme();
   const currentUserId = useAuthStore((s) => s.session?.user.id) ?? null;
   const applicationQuery = useMyTutorApplication();
+  const listingQuery = useMyTutorListing();
   const [showForm, setShowForm] = useState(false);
 
-  if (applicationQuery.isPending) {
+  if (applicationQuery.isPending || listingQuery.isPending) {
     return (
       <Screen scroll={false} style={styles.centered}>
         <BackHeader title="Become a Tutor" />
@@ -74,7 +77,14 @@ export default function BecomeTutorScreen() {
   }
 
   const application = applicationQuery.data;
-  const canApply = !application || application.status === 'rejected' || showForm;
+  // Verified tutors (e.g. seeded accounts or post-approval) must not see the
+  // apply form — the insert policy would block them with a raw RLS error.
+  const isVerifiedTutor = Boolean(
+    listingQuery.data?.isVerified && listingQuery.data.isActive,
+  );
+  const canApply =
+    !isVerifiedTutor &&
+    (!application || application.status === 'rejected' || showForm);
 
   return (
     <Screen>
@@ -90,7 +100,7 @@ export default function BecomeTutorScreen() {
         />
       )}
 
-      {application?.status === 'approved' && (
+      {(application?.status === 'approved' || isVerifiedTutor) && (
         <StatusCard
           icon="shield-checkmark-outline"
           tone="success"
@@ -156,11 +166,13 @@ function StatusCard({
   tone: 'warning' | 'success' | 'danger';
   title: string;
   body: string;
-  application: MyTutorApplication;
+  /** Optional: verified tutors seeded without an application have none. */
+  application?: MyTutorApplication | null;
   actionLabel?: string;
   onAction?: () => void;
 }) {
   const colors = useTheme();
+  const subjectNames = application?.subjectNames ?? [];
   return (
     <Card tint={STATUS_TONE[tone]} style={styles.statusCard}>
       <View style={styles.statusHead}>
@@ -170,9 +182,9 @@ function StatusCard({
       <ThemedText type="small" themeColor="textSecondary">
         {body}
       </ThemedText>
-      {application.subjectNames.length > 0 && (
+      {subjectNames.length > 0 && (
         <View style={styles.statusChips}>
-          {application.subjectNames.map((name) => (
+          {subjectNames.map((name) => (
             <Chip key={name} label={name} />
           ))}
         </View>
@@ -244,6 +256,15 @@ function TutorApplicationForm({ prefill }: { prefill?: MyTutorApplication }) {
         availability: values.availability.trim() || undefined,
       },
       {
+        onSuccess: () => {
+          // The hook's invalidation refetches the application, swapping the
+          // form for the "under review" card once the dialog is dismissed.
+          void alertDialog({
+            title: 'Application submitted',
+            message:
+              'Our team will review your details and list you on Tuition Finder once approved.',
+          });
+        },
         onError: (error: Error) => setFormError(error.message),
       },
     );
