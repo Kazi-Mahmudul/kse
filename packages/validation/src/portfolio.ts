@@ -2,6 +2,8 @@ import { z } from 'zod';
 
 import { SKILL_LEVELS } from '@kse/types';
 
+import { uuidField } from './common';
+
 /** Portfolio CRUD schemas (spec §6 "Profile" — projects, certificates,
  *  achievements, research, resume, portfolio links). */
 
@@ -110,7 +112,7 @@ export type PortfolioLinkFormValues = PortfolioLinkInput;
 export const skillLevelSchema = z.enum(SKILL_LEVELS);
 
 export const userSkillSchema = z.object({
-  skill_id: z.string().uuid(),
+  skill_id: uuidField(),
   level: skillLevelSchema,
 });
 

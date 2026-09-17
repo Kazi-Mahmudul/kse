@@ -8,6 +8,8 @@ import {
   OPPORTUNITY_TYPES,
 } from '@kse/types';
 
+import { uuidField } from './common';
+
 const isoDateString = z
   .string()
   .datetime({ offset: true, message: 'Enter a valid date/time' });
@@ -28,7 +30,7 @@ export const opportunityCreateSchema = z.object({
   degree_level: z.enum(DEGREE_LEVELS).nullable().optional(),
   funding_type: z.enum(FUNDING_TYPES).nullable().optional(),
   country: z.string().trim().max(100).nullable().optional(),
-  category_id: z.string().uuid().nullable().optional(),
+  category_id: uuidField().nullable().optional(),
   // Internship-only fields (spec 06._internship_hub_kse).
   stipend_amount: z.number().nonnegative().finite().nullable().optional(),
   stipend_currency: z
@@ -61,7 +63,7 @@ export const opportunityFiltersSchema = z.object({
   q: z.string().trim().max(100).optional(),
   type: z.enum(OPPORTUNITY_TYPES).optional(),
   mode: z.enum(OPPORTUNITY_MODES).optional(),
-  categoryId: z.string().uuid().optional(),
+  categoryId: uuidField().optional(),
   degreeLevel: z.enum(DEGREE_LEVELS).optional(),
   fundingType: z.enum(FUNDING_TYPES).optional(),
   location: z.string().trim().max(150).optional(),
@@ -137,7 +139,7 @@ export const opportunityFormSchema = z.object({
   country: optionalText(100),
   category_id: z.preprocess(
     emptyToNull,
-    z.string().uuid('Choose a valid category').nullable(),
+    uuidField('Choose a valid category').nullable(),
   ),
   // Internship-only fields (spec 06._internship_hub_kse). The section only
   // renders for internships, so these keys are usually absent on other types.

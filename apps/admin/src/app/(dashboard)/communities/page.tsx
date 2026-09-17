@@ -83,10 +83,16 @@ export default async function CommunitiesPage({
             Communities
           </h1>
           <p className="mt-1 text-sm text-zinc-500">
-            {total} community {total === 1 ? 'page' : 'pages'} —
+            {total} communit{total === 1 ? 'y' : 'ies'} —
             see membership + posts on the detail screen.
           </p>
         </div>
+        <Link
+          href="/communities/new"
+          className="h-10 rounded-lg bg-indigo-600 px-4 leading-10 text-sm font-semibold text-white transition hover:bg-indigo-500"
+        >
+          New community
+        </Link>
       </div>
 
       <form
@@ -136,7 +142,7 @@ export default async function CommunitiesPage({
           <div className="p-10 text-center">
             <p className="text-sm text-zinc-600">No communities match.</p>
             <p className="mt-1 text-xs text-zinc-400">
-              Communities appear here once they are created in the database.
+              Create the first one with “New community” above.
             </p>
           </div>
         ) : (

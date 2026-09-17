@@ -28,9 +28,9 @@ export interface NotificationItem {
 
 /** Admin composer target selector. */
 export type NotificationAudience =
-  | { kind: 'all_students' }
+  | { kind: 'all_users' }
   | { kind: 'university'; universityId: string }
-  | { kind: 'user'; userId: string };
+  | { kind: 'users'; userIds: string[] };
 
 /** Service-role payload accepted by the notification server action. */
 export interface NotificationDraft {

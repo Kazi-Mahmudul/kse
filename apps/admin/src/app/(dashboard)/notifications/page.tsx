@@ -9,7 +9,6 @@ import {
 const RECENT_PAGE_SIZE = 10;
 
 interface DeliveryRow {
-  id: string;
   notification_id: string;
   status: string;
   sent_at: string | null;
@@ -34,14 +33,14 @@ export default async function NotificationsPage() {
 
   const [
     { data: universityRows, error: universitiesError },
-    { data: studentRows, error: studentsError },
+    { data: profileRows, error: studentsError },
     { data: recentRows, error: recentError },
-    { data: deliveryRows },
+    { data: authUsers },
   ] = await Promise.all([
     admin.from('universities').select('id, name').order('name'),
     admin
       .from('profiles')
-      .select('id, full_name, email')
+      .select('id, full_name')
       .order('full_name', { ascending: true, nullsFirst: false })
       .limit(200),
     admin
@@ -49,24 +48,42 @@ export default async function NotificationsPage() {
       .select('id, type, title, body, created_at', { count: 'exact' })
       .order('created_at', { ascending: false })
       .range(0, RECENT_PAGE_SIZE - 1),
-    admin
-      .from('notification_deliveries')
-      .select('id, notification_id, status, sent_at'),
+    // profiles carries no email column — emails live only in auth.users.
+    admin.auth.admin.listUsers({ page: 1, perPage: 1000 }),
   ]);
 
   const universities: UniversityOption[] = (universityRows ?? []).map(
     (row: { id: string; name: string }) => ({ id: row.id, name: row.name }),
   );
 
-  const students: StudentOption[] = (studentRows ?? []).map((row) => ({
-    id: (row as { id: string }).id,
-    label: ((row as { full_name: string | null }).full_name ?? '').trim() ||
-      (row as { email: string | null }).email ||
-      (row as { id: string }).id,
-  }));
+  const emailByUserId = new Map(
+    (authUsers?.users ?? []).map((user) => [user.id, user.email ?? '']),
+  );
+
+  const students: StudentOption[] = ((profileRows ?? []) as unknown as {
+    id: string;
+    full_name: string | null;
+  }[]).map((row) => {
+    const name = (row.full_name ?? '').trim();
+    const email = emailByUserId.get(row.id) ?? '';
+    return {
+      id: row.id,
+      label:
+        name && email ? `${name} (${email})` : name || email || row.id,
+    };
+  });
 
   // Group deliveries by notification (no FK in either direction on the
-  // notifications → notification_deliveries embed, so we fetch separately).
+  // notifications → notification_deliveries embed, so we fetch separately —
+  // scoped to the recent page's ids instead of the whole table).
+  const recentIds = recentRows?.map((row) => (row as { id: string }).id) ?? [];
+  const { data: deliveryRows } = recentIds.length
+    ? await admin
+        .from('notification_deliveries')
+        .select('notification_id, status, sent_at')
+        .in('notification_id', recentIds)
+    : { data: [] as DeliveryRow[] };
+
   const deliveryCountByNotification = new Map<string, number>();
   ((deliveryRows ?? []) as unknown as DeliveryRow[]).forEach((row) => {
     deliveryCountByNotification.set(

@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+import { uuidField } from './common';
+
 /**
  * Tuition requests (spec §6): a student either targets a specific tutor or
  * asks for a subject — the DB CHECK requires at least one of the two.
@@ -7,8 +9,8 @@ import { z } from 'zod';
  */
 export const tuitionRequestSchema = z
   .object({
-    tutor_id: z.string().uuid().nullable().optional(),
-    subject_id: z.string().uuid().nullable().optional(),
+    tutor_id: uuidField().nullable().optional(),
+    subject_id: uuidField().nullable().optional(),
     message: z.string().trim().min(10).max(1000),
     preferred_time: z.string().trim().max(100).nullable().optional(),
   })
@@ -36,9 +38,9 @@ export const tutorApplicationSchema = z
   .object({
     headline: z.string().trim().min(10, 'Summarise your teaching in 10+ characters').max(120),
     bio: z.string().trim().max(2000).optional(),
-    university_id: z.string().uuid().nullable().optional(),
+    university_id: uuidField().nullable().optional(),
     subject_ids: z
-      .array(z.string().uuid())
+      .array(uuidField())
       .min(1, 'Pick at least one subject')
       .max(8, 'Pick at most 8 subjects'),
     location: z.string().trim().max(120).optional(),

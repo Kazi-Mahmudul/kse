@@ -1,6 +1,6 @@
 'use client';
 
-import { useActionState, useState } from 'react';
+import { useActionState, useEffect, useRef, useState } from 'react';
 
 import { sendNotification, type NotificationActionState } from './actions';
 import { NOTIFICATION_TYPE_OPTIONS } from '@kse/shared';
@@ -37,10 +37,42 @@ export function NotificationsComposeForm({
     FormData
   >(sendNotification, {});
 
-  const [audienceKind, setAudienceKind] = useState<string>('all_students');
+  const [audienceKind, setAudienceKind] = useState<string>('all_users');
+  const [selectedPeople, setSelectedPeople] = useState<Set<string>>(new Set());
+  const [peopleQuery, setPeopleQuery] = useState('');
+
+  const visiblePeople = (() => {
+    const query = peopleQuery.trim().toLowerCase();
+    if (!query) return students;
+    return students.filter((student) =>
+      student.label.toLowerCase().includes(query),
+    );
+  })();
+
+  // React auto-resets every input once the action's promise settles — even
+  // when the action returned a validation error, which would wipe what the
+  // admin typed. Cancel it and clear just the message on success, keeping
+  // the audience selection for follow-up sends.
+  const titleRef = useRef<HTMLInputElement>(null);
+  const bodyRef = useRef<HTMLTextAreaElement>(null);
+  const opportunityIdRef = useRef<HTMLInputElement>(null);
+  const lastDelivered = useRef<number | undefined>(undefined);
+  useEffect(() => {
+    if (state.delivered === undefined || state.delivered === lastDelivered.current) {
+      return;
+    }
+    lastDelivered.current = state.delivered;
+    if (titleRef.current) titleRef.current.value = '';
+    if (bodyRef.current) bodyRef.current.value = '';
+    if (opportunityIdRef.current) opportunityIdRef.current.value = '';
+  }, [state.delivered]);
 
   return (
-    <form action={formAction} className="flex flex-col gap-5">
+    <form
+      action={formAction}
+      onReset={(event) => event.preventDefault()}
+      className="flex flex-col gap-5"
+    >
       {state.error && (
         <p
           role="alert"
@@ -68,11 +100,14 @@ export function NotificationsComposeForm({
           <input
             type="radio"
             name="audienceKind"
-            value="all_students"
-            checked={audienceKind === 'all_students'}
-            onChange={() => setAudienceKind('all_students')}
+            value="all_users"
+            checked={audienceKind === 'all_users'}
+            onChange={() => setAudienceKind('all_users')}
           />
-          All students
+          All users
+          <span className="text-xs text-zinc-400">
+            every active account — students, tutors and staff
+          </span>
         </label>
 
         <label className="flex flex-col gap-1.5">
@@ -84,13 +119,16 @@ export function NotificationsComposeForm({
               checked={audienceKind === 'university'}
               onChange={() => setAudienceKind('university')}
             />
-            Students at a university
+            Users at a university
           </span>
+          {/* Using the dropdown selects its radio (and the dropdown stays
+              clickable — a disabled select could never steal the focus that
+              would have corrected the audience). */}
           <select
             name="universityId"
             defaultValue=""
-            disabled={audienceKind !== 'university'}
-            className={inputClass + ' disabled:opacity-60'}
+            onFocus={() => setAudienceKind('university')}
+            className={inputClass + (audienceKind === 'university' ? '' : ' opacity-60')}
           >
             <option value="">Choose a university…</option>
             {universities.map((university) => (
@@ -101,31 +139,72 @@ export function NotificationsComposeForm({
           </select>
         </label>
 
-        <label className="flex flex-col gap-1.5">
-          <span className="flex items-center gap-2 text-sm text-zinc-700">
+        <div className="flex flex-col gap-1.5">
+          <label className="flex items-center gap-2 text-sm text-zinc-700">
             <input
               type="radio"
               name="audienceKind"
-              value="user"
-              checked={audienceKind === 'user'}
-              onChange={() => setAudienceKind('user')}
+              value="users"
+              checked={audienceKind === 'users'}
+              onChange={() => setAudienceKind('users')}
             />
-            A specific user
-          </span>
-          <select
-            name="userId"
-            defaultValue=""
-            disabled={audienceKind !== 'user'}
-            className={inputClass + ' disabled:opacity-60'}
+            Specific people
+            <span className="text-xs text-zinc-400">one or more</span>
+          </label>
+          {/* Using the picker selects its radio. Checked boxes submit as
+              repeated userIds entries, so one person and many share a path. */}
+          <div
+            onFocus={() => setAudienceKind('users')}
+            className={
+              'overflow-hidden rounded-lg border border-zinc-300 bg-white' +
+              (audienceKind === 'users' ? '' : ' opacity-60')
+            }
           >
-            <option value="">Choose a recipient…</option>
-            {students.map((student) => (
-              <option key={student.id} value={student.id}>
-                {student.label}
-              </option>
-            ))}
-          </select>
-        </label>
+            <input
+              type="search"
+              value={peopleQuery}
+              onChange={(event) => setPeopleQuery(event.target.value)}
+              placeholder="Search name or email…"
+              className="h-9 w-full border-b border-zinc-200 px-3 text-sm text-zinc-900 outline-none"
+            />
+            <div className="flex max-h-44 flex-col gap-0.5 overflow-y-auto p-2">
+              {visiblePeople.length === 0 && (
+                <p className="px-2 py-1.5 text-xs text-zinc-400">No matches.</p>
+              )}
+              {visiblePeople.map((student) => (
+                <label
+                  key={student.id}
+                  className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm text-zinc-700 hover:bg-zinc-50"
+                >
+                  <input
+                    type="checkbox"
+                    name="userIds"
+                    value={student.id}
+                    checked={selectedPeople.has(student.id)}
+                    onChange={(event) =>
+                      setSelectedPeople((previous) => {
+                        const next = new Set(previous);
+                        if (event.target.checked) {
+                          next.add(student.id);
+                        } else {
+                          next.delete(student.id);
+                        }
+                        return next;
+                      })
+                    }
+                    className="size-4 accent-indigo-600"
+                  />
+                  {student.label}
+                </label>
+              ))}
+            </div>
+            <p className="border-t border-zinc-200 px-3 py-1.5 text-xs text-zinc-500">
+              {selectedPeople.size === 0
+                ? 'Check the people who should receive this.'
+                : `${selectedPeople.size} recipient${selectedPeople.size === 1 ? '' : 's'} selected`}
+            </p>
+          </div>
+        </div>
       </fieldset>
 
       <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
@@ -144,6 +223,7 @@ export function NotificationsComposeForm({
           <span className="text-sm font-medium text-zinc-700">Title</span>
           <input
             name="title"
+            ref={titleRef}
             defaultValue=""
             maxLength={120}
             required
@@ -157,6 +237,7 @@ export function NotificationsComposeForm({
         <span className="text-sm font-medium text-zinc-700">Body</span>
         <textarea
           name="body"
+          ref={bodyRef}
           defaultValue=""
           maxLength={500}
           required
@@ -176,6 +257,7 @@ export function NotificationsComposeForm({
             </span>
             <input
               name="opportunityId"
+              ref={opportunityIdRef}
               defaultValue=""
               placeholder="11111111-1111-1111-1111-111111111111"
               className={inputClass}
