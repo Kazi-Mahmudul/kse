@@ -92,19 +92,28 @@ export default function RootLayout() {
 
   // Push the user's preference into RN's `Appearance` so internals follow:
   // Alert buttons, `ActivityIndicator` defaults, modal backdrop tint, and
-  // keyboard appearance all read this. Passing `null` restores OS-following.
+  // keyboard appearance all read this.
   //
   // RN web doesn't ship `Appearance.setColorScheme` (only the read side), so
   // we guard on `Platform.OS`. Web already follows OS via `useRNColorScheme()`
   // inside `use-color-scheme.web.ts`, so skipping is harmless.
   useEffect(() => {
     if (Platform.OS === 'web') return;
-    const next: 'light' | 'dark' | null =
-      themePreference === 'system' ? null : themePreference;
+    // "system" clears the override — but each platform spells that differently:
+    // Android's Kotlin module takes a non-null String and crashes on `null`;
+    // it restores OS-following via "unspecified" (MODE_NIGHT_FOLLOW_SYSTEM).
+    // iOS is the opposite: `null` unsets, "unspecified" is not a value there.
+    const next: 'light' | 'dark' | 'unspecified' | null =
+      themePreference === 'system'
+        ? Platform.OS === 'android'
+          ? 'unspecified'
+          : null
+        : themePreference;
     // `ColorSchemeName` is `'light' | 'dark'` in the typings, but `setColorScheme`
-    // also accepts `null` at runtime to clear the override (see RN docs).
-    // Cast through `unknown` so we keep the call site honest about intent.
-    (Appearance.setColorScheme as (s: 'light' | 'dark' | null) => void)(next);
+    // accepts more at runtime — cast so we keep the call site honest about intent.
+    (Appearance.setColorScheme as (
+      s: 'light' | 'dark' | 'unspecified' | null,
+    ) => void)(next);
   }, [themePreference]);
 
   if (!fontsLoaded) return null; // keep splash until Poppins is ready
