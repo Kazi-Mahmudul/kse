@@ -7,6 +7,14 @@ packages:
 # (pnpm 12 no longer reads node-linker from .npmrc — it must live here.)
 nodeLinker: hoisted
 
+# Run whatever pnpm binary invoked; never download/switch engines to
+# match `packageManager`. The engine switch (package-manager-store v11)
+# fails with "the installed pnpm wrapper is missing" on Vercel builds
+# and on Windows. The lockfile is v9.0, compatible across pnpm 9–12,
+# so the host's bundled pnpm installs it fine.
+# (pnpm 12 spelling; replaces the removed managePackageManagerVersions.)
+pmOnFail: ignore
+
 # Build scripts are intentionally disabled for these native deps
 # (moved from apps/admin so the workspace root stays authoritative).
 allowBuilds:
