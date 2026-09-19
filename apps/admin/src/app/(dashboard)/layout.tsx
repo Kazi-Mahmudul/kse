@@ -6,6 +6,13 @@ import { createClient } from '@/lib/supabase/server';
 import { isStaff, primaryRole } from '@/lib/roles';
 import { USER_ROLE_LABELS } from '@kse/shared';
 
+// Every dashboard route reads the auth cookie here (and the pages query
+// through the service-role client), so they can only render per-request.
+// Declaring it also keeps `next build` green in CI, where no .env.local
+// exists: prerendering would execute this layout and fail on missing
+// Supabase env vars before the cookie read can bail out to dynamic.
+export const dynamic = 'force-dynamic';
+
 /**
  * Server-side gate for every admin page: verified session + staff role
  * read from user_roles through RLS (never from client claims, spec §5/§10).
