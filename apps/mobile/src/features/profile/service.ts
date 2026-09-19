@@ -27,9 +27,12 @@ function fail(error: { message: string } | null): void {
   if (error) throw new ProfileError('Could not load your profile data. Please try again.');
 }
 
-function failWrite(error: { message: string } | null): never {
+function failWrite(error: { message: string } | null): void {
+  // Only throw on a real failure — a successful write must fall through so
+  // the caller's success path (reset form, "Saved" toast) can run. Throwing
+  // unconditionally here made every save show "Save failed" even though the
+  // row had actually been written.
   if (error) throw new ProfileError(error.message || 'Save failed. Please try again.');
-  throw new ProfileError('Save failed. Please try again.');
 }
 
 async function requireUserId(): Promise<string> {
@@ -80,22 +83,43 @@ function extensionFor(mimeType: string): 'png' | 'webp' | 'jpg' {
 }
 
 /**
+ * Unique object-name suffix without a crypto dependency: Hermes ships no
+ * WebCrypto, so `crypto.randomUUID()` is undefined at runtime on devices
+ * and crashed the upload before it ever left the phone.
+ */
+let uploadCounter = 0;
+function uniqueSuffix(): string {
+  uploadCounter += 1;
+  return `${Date.now().toString(36)}-${uploadCounter.toString(36)}-${Math.random()
+    .toString(36)
+    .slice(2, 10)}`;
+}
+
+/**
  * Upload a local image (from `expo-image-picker`) into the `avatars` bucket
- * under `<userId>/<uuid>.<ext>` and write the resulting public URL into
+ * under `<userId>/<unique>.<ext>` and write the resulting public URL into
  * `profiles.avatar_url`. The first path segment must equal `auth.uid()` per
- * the bucket's RLS (see `20260906120011_storage_buckets.sql`); a random
- * UUID suffix prevents filename collisions across re-uploads.
+ * the bucket's RLS (see `20260906120011_storage_buckets.sql`); the unique
+ * suffix prevents filename collisions across re-uploads.
  */
 export async function uploadAvatar(localUri: string, mimeType: string): Promise<string> {
   const userId = await requireUserId();
   const ext = extensionFor(mimeType);
-  const path = `${userId}/${crypto.randomUUID()}.${ext}`;
+  const path = `${userId}/${uniqueSuffix()}.${ext}`;
 
+  // Upload the raw bytes, NOT a Blob: on React Native `fetch(uri).blob()`
+  // yields a Blob whose `.type` is guessed from the local file (often
+  // text/plain), and storage-js lets that part MIME override the
+  // `contentType` option for Blob bodies — the bucket whitelist then
+  // rejects it ("mime type text/plain is not supported"). For raw bodies
+  // (ArrayBuffer) storage-js sets Content-Type from the option directly.
+  // No `upsert`: the name is already unique, and `x-upsert` (INSERT … ON
+  // CONFLICT DO UPDATE) is rejected by the bucket's RLS policies.
   const response = await fetch(localUri);
-  const blob = await response.blob();
+  const bytes = await response.arrayBuffer();
   const { error } = await supabase.storage
     .from(AVATAR_BUCKET)
-    .upload(path, blob, { contentType: mimeType, upsert: true });
+    .upload(path, bytes, { contentType: mimeType });
   if (error) {
     throw new ProfileError(
       error.message
