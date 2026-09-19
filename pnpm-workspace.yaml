@@ -2,6 +2,11 @@ packages:
   - "apps/*"
   - "packages/*"
 
+# Expo / Metro cannot resolve pnpm's symlinked node_modules layout reliably.
+# Hoisted installs keep React Native tooling working inside the monorepo.
+# (pnpm 12 no longer reads node-linker from .npmrc — it must live here.)
+nodeLinker: hoisted
+
 # Build scripts are intentionally disabled for these native deps
 # (moved from apps/admin so the workspace root stays authoritative).
 allowBuilds:
