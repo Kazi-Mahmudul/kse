@@ -295,12 +295,26 @@ export async function deleteEducation(id: string): Promise<void> {
 
 // ── Projects ────────────────────────────────────────────────────────────────
 
+const PROJECT_COLUMNS =
+  'id, title, project_type, description, details, role, organization, course_name, is_team, team_members, tech_stack, url, repo_url, demo_url, cover_url, document_url, started_on, completed_on, created_at, updated_at';
+
 interface ProjectRow {
   id: string;
   title: string;
+  project_type: PortfolioProjectItem['projectType'];
   description: string | null;
+  details: string | null;
+  role: string | null;
+  organization: string | null;
+  course_name: string | null;
+  is_team: boolean;
+  team_members: string[] | null;
+  tech_stack: string[] | null;
   url: string | null;
-  tech_stack: string[];
+  repo_url: string | null;
+  demo_url: string | null;
+  cover_url: string | null;
+  document_url: string | null;
   started_on: string | null;
   completed_on: string | null;
   created_at: string;
@@ -311,8 +325,19 @@ function rowToProject(row: ProjectRow): PortfolioProjectItem {
   return {
     id: row.id,
     title: row.title,
+    projectType: row.project_type,
     description: row.description,
+    details: row.details,
+    role: row.role,
+    organization: row.organization,
+    courseName: row.course_name,
+    isTeam: row.is_team,
+    teamMembers: row.team_members ?? [],
     url: row.url,
+    repoUrl: row.repo_url,
+    demoUrl: row.demo_url,
+    coverUrl: row.cover_url,
+    documentUrl: row.document_url,
     techStack: row.tech_stack ?? [],
     startedOn: row.started_on,
     completedOn: row.completed_on,
@@ -324,7 +349,7 @@ function rowToProject(row: ProjectRow): PortfolioProjectItem {
 export async function listMyProjects(): Promise<PortfolioProjectItem[]> {
   const { data, error } = await supabase
     .from('user_projects')
-    .select('id, title, description, url, tech_stack, started_on, completed_on, created_at, updated_at')
+    .select(PROJECT_COLUMNS)
     .order('started_on', { ascending: false, nullsFirst: false })
     .order('created_at', { ascending: false });
   if (error) fail('Could not load projects', error);
@@ -333,9 +358,20 @@ export async function listMyProjects(): Promise<PortfolioProjectItem[]> {
 
 export interface ProjectUpsert {
   title: string;
+  project_type: PortfolioProjectItem['projectType'];
   description: string | null;
-  url: string | null;
+  details: string | null;
+  role: string | null;
+  organization: string | null;
+  course_name: string | null;
+  is_team: boolean;
+  team_members: string[];
   tech_stack: string[];
+  url: string | null;
+  repo_url: string | null;
+  demo_url: string | null;
+  cover_url: string | null;
+  document_url: string | null;
   started_on: string | null;
   completed_on: string | null;
 }
@@ -345,9 +381,7 @@ export async function createProject(input: ProjectUpsert): Promise<PortfolioProj
   const { data, error } = await supabase
     .from('user_projects')
     .insert({ ...input, user_id: userId })
-    .select(
-      'id, title, description, url, tech_stack, started_on, completed_on, created_at, updated_at',
-    )
+    .select(PROJECT_COLUMNS)
     .single();
   if (error || !data) fail('Could not save the project', error);
   return rowToProject(data as unknown as ProjectRow);
@@ -361,17 +395,26 @@ export async function updateProject(
     .from('user_projects')
     .update(input)
     .eq('id', id)
-    .select(
-      'id, title, description, url, tech_stack, started_on, completed_on, created_at, updated_at',
-    )
+    .select(PROJECT_COLUMNS)
     .single();
   if (error || !data) fail('Could not update the project', error);
   return rowToProject(data as unknown as ProjectRow);
 }
 
 export async function deleteProject(id: string): Promise<void> {
+  // Best-effort cleanup of uploaded cover/document so deleted rows don't
+  // orphan objects in the private bucket (same reason as deleteCertificate).
+  const { data } = await supabase
+    .from('user_projects')
+    .select('cover_url, document_url')
+    .eq('id', id)
+    .maybeSingle();
+  const row = data as { cover_url: string | null; document_url: string | null } | null;
   const { error } = await supabase.from('user_projects').delete().eq('id', id);
   if (error) fail('Could not delete the project', error);
+  for (const fileUrl of [row?.cover_url, row?.document_url]) {
+    if (isStoragePath(fileUrl)) await deletePortfolioDocument(fileUrl);
+  }
 }
 
 // ── Certificates ────────────────────────────────────────────────────────────

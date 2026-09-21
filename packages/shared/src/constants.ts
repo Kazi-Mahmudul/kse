@@ -13,6 +13,7 @@ import type {
   OpportunityStatus,
   OpportunityType,
   PostgradDegreeType,
+  ProjectType,
   StudyGroup,
   UndergradDegreeType,
   UserRole,
@@ -32,6 +33,7 @@ import {
   OPPORTUNITY_STATUSES,
   OPPORTUNITY_TYPES,
   POSTGRAD_DEGREE_TYPES,
+  PROJECT_TYPES,
   STUDY_GROUPS,
   UNDERGRAD_DEGREE_TYPES,
 } from '@kse/types';
@@ -211,6 +213,26 @@ export const CERTIFICATE_TYPE_LABELS: Record<CertificateType, string> = {
   other: 'Other',
 };
 
+export const PROJECT_TYPE_LABELS: Record<ProjectType, string> = {
+  academic: 'Academic Project',
+  final_year: 'Final Year Project',
+  thesis_research: 'Thesis / Research',
+  software_it: 'Software / IT',
+  engineering: 'Engineering',
+  science_lab: 'Science / Laboratory',
+  business: 'Business',
+  marketing: 'Marketing',
+  entrepreneurship: 'Entrepreneurship',
+  design_architecture: 'Design / Architecture',
+  media_creative: 'Media / Creative',
+  social_community: 'Social / Community',
+  competition: 'Competition',
+  internship: 'Internship',
+  diploma: 'Diploma / Polytechnic',
+  personal: 'Personal Project',
+  other: 'Other',
+};
+
 export const EDUCATION_LEVEL_OPTIONS = EDUCATION_LEVELS.map((value) => ({
   value,
   label: EDUCATION_LEVEL_LABELS[value],
@@ -249,6 +271,11 @@ export const EDUCATION_RESULT_SCALE_OPTIONS = EDUCATION_RESULT_SCALES.map((value
 export const CERTIFICATE_TYPE_OPTIONS = CERTIFICATE_TYPES.map((value) => ({
   value,
   label: CERTIFICATE_TYPE_LABELS[value],
+}));
+
+export const PROJECT_TYPE_OPTIONS = PROJECT_TYPES.map((value) => ({
+  value,
+  label: PROJECT_TYPE_LABELS[value],
 }));
 
 /** Iterating enum options in UI (filters, admin selects). */

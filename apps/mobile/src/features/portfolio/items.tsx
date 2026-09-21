@@ -5,6 +5,7 @@ import {
   EDUCATION_BOARD_LABELS,
   EDUCATION_LEVEL_LABELS,
   POSTGRAD_DEGREE_LABELS,
+  PROJECT_TYPE_LABELS,
   STUDY_GROUP_LABELS,
   UNDERGRAD_DEGREE_LABELS,
 } from '@kse/shared';
@@ -12,6 +13,7 @@ import type {
   CertificateType,
   EducationBoard,
   PostgradDegreeType,
+  ProjectType,
   StudyGroup,
   UndergradDegreeType,
   PortfolioAchievementItem,
@@ -177,13 +179,13 @@ function TagChip({ label }: { label: string }) {
   );
 }
 
-function UrlRow({ url }: { url: string }) {
+function UrlRow({ url, label }: { url: string; label?: string }) {
   const colors = useTheme();
   return (
     <View style={styles.urlRow}>
       <Ionicons name="link-outline" size={11} color={colors.primary} />
       <Text style={[styles.url, { color: colors.primary }]} numberOfLines={1}>
-        {url}
+        {label ? `${label} · ${url}` : url}
       </Text>
     </View>
   );
@@ -201,28 +203,59 @@ export function ProjectCard({
   const range = [formatDate(item.startedOn), formatDate(item.completedOn)]
     .filter(Boolean)
     .join(' → ');
+  const typeLabel = item.projectType
+    ? PROJECT_TYPE_LABELS[item.projectType as ProjectType]
+    : null;
+  // Spec display line: "Project Type · Institution/Organization" (dates stay
+  // as the fallback meta when neither is filled in).
+  const meta =
+    [typeLabel, item.organization].filter(Boolean).join(' · ') || range || null;
+  const attachment = item.coverUrl ?? item.documentUrl;
 
   return (
     <CardShell
       kind="project"
       title={item.title}
-      meta={range || null}
+      meta={meta}
       onEdit={onEdit}
       onDelete={onDelete}
+      onView={attachment ? () => void openPortfolioFile(attachment) : undefined}
     >
       {item.description ? (
         <ThemedText themeColor="textSecondary" style={styles.body} numberOfLines={2}>
           {item.description}
         </ThemedText>
       ) : null}
-      {item.techStack.length > 0 && (
+      {(item.role || range) && (
+        <ThemedText themeColor="bodyStrong" style={styles.resultRow} numberOfLines={1}>
+          {[item.role ? `Role: ${item.role}` : null, range || null]
+            .filter(Boolean)
+            .join('  ·  ')}
+        </ThemedText>
+      )}
+      {(item.isTeam || item.courseName || item.techStack.length > 0) && (
         <View style={styles.tagRow}>
+          {item.isTeam ? (
+            <TagChip
+              label={
+                item.teamMembers.length > 0
+                  ? `Team · ${item.teamMembers.length}`
+                  : 'Team project'
+              }
+            />
+          ) : null}
+          {item.courseName ? <TagChip label={item.courseName} /> : null}
           {item.techStack.map((tech, idx) => (
             <TagChip key={`${tech}-${idx}`} label={tech} />
           ))}
+          {item.teamMembers.map((member, idx) => (
+            <TagChip key={`member-${member}-${idx}`} label={member} />
+          ))}
         </View>
       )}
-      {item.url && <UrlRow url={item.url} />}
+      {item.url && <UrlRow url={item.url} label="Website" />}
+      {item.repoUrl && <UrlRow url={item.repoUrl} label="GitHub" />}
+      {item.demoUrl && <UrlRow url={item.demoUrl} label="Demo / Video" />}
     </CardShell>
   );
 }

@@ -109,11 +109,52 @@ export const CERTIFICATE_TYPES = [
 ] as const;
 export type CertificateType = (typeof CERTIFICATE_TYPES)[number];
 
+// ── Projects (user_projects) ──────────────────────────────────────────────────
+
+/**
+ * Project categories covering every student background — university, school,
+ * diploma/polytechnic, lab, business, design, media, social — not just
+ * software. Links are never required: a project can be showcased with
+ * description, role, images and documents alone.
+ */
+export const PROJECT_TYPES = [
+  'academic',
+  'final_year',
+  'thesis_research',
+  'software_it',
+  'engineering',
+  'science_lab',
+  'business',
+  'marketing',
+  'entrepreneurship',
+  'design_architecture',
+  'media_creative',
+  'social_community',
+  'competition',
+  'internship',
+  'diploma',
+  'personal',
+  'other',
+] as const;
+export type ProjectType = (typeof PROJECT_TYPES)[number];
+
 export interface PortfolioProjectItem {
   id: string;
   title: string;
+  /** null on rows saved before project_type existed. */
+  projectType: ProjectType | null;
   description: string | null;
+  details: string | null;
+  role: string | null;
+  organization: string | null;
+  courseName: string | null;
+  isTeam: boolean;
+  teamMembers: string[];
   url: string | null;
+  repoUrl: string | null;
+  demoUrl: string | null;
+  coverUrl: string | null;
+  documentUrl: string | null;
   techStack: string[];
   startedOn: string | null;
   completedOn: string | null;

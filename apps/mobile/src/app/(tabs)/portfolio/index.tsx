@@ -48,7 +48,7 @@ import {
   ResumesSection,
 } from '@/features/portfolio/sections';
 import { EDUCATION_LEVEL_SPECS } from '@/features/portfolio/education-levels';
-import type { EducationLevel } from '@kse/types';
+import type { EducationLevel, ProjectType } from '@kse/types';
 import type {
   AchievementFormValues,
   CertificateFormValues,
@@ -199,13 +199,26 @@ function ProjectsSectionBound() {
 }
 
 function toProjectPayload(v: ProjectFormValues) {
+  const str = (s: string) => (s.trim() === '' ? null : s);
   return {
     title: v.title,
-    description: v.description.trim() === '' ? null : v.description,
-    url: v.url.trim() === '' ? null : v.url,
+    // superRefine guarantees a chosen type at submit; '' can't reach here.
+    project_type: str(v.project_type) as ProjectType | null,
+    description: str(v.description),
+    details: str(v.details),
+    role: str(v.role),
+    organization: str(v.organization),
+    course_name: str(v.course_name),
+    is_team: v.is_team,
+    team_members: v.team_members,
     tech_stack: v.tech_stack,
-    started_on: v.started_on.trim() === '' ? null : v.started_on,
-    completed_on: v.completed_on.trim() === '' ? null : v.completed_on,
+    url: str(v.url),
+    repo_url: str(v.repo_url),
+    demo_url: str(v.demo_url),
+    cover_url: str(v.cover_url),
+    document_url: str(v.document_url),
+    started_on: str(v.started_on),
+    completed_on: str(v.completed_on),
   };
 }
 

@@ -6,6 +6,7 @@ import {
   EDUCATION_LEVELS,
   EDUCATION_RESULT_SCALES,
   EDUCATION_RESULT_TYPES,
+  PROJECT_TYPES,
   SKILL_LEVELS,
   STUDY_GROUPS,
 } from '@kse/types';
@@ -65,14 +66,51 @@ const MAX_EDUCATION_YEAR = new Date().getFullYear() + 8;
 
 // ── Projects ────────────────────────────────────────────────────────────────
 
-export const projectSchema = z.object({
-  title: z.string().trim().min(2, 'Title is required').max(120),
-  description: z.string().trim().max(2000).or(z.literal('')),
-  url: optionalUrl,
-  tech_stack: z.array(z.string().trim().min(1).max(40)).max(20),
-  started_on: optionalDate,
-  completed_on: optionalDate,
-});
+/**
+ * Projects work for every student background — academic, lab, design,
+ * business, social, diploma — so every link field is optional; a project
+ * without any online presence is still valid and complete.
+ */
+export const projectSchema = z
+  .object({
+    title: z.string().trim().min(2, 'Title is required').max(120),
+    project_type: optionalEnum(PROJECT_TYPES),
+    description: z.string().trim().max(2000).or(z.literal('')),
+    details: z.string().trim().max(5000).or(z.literal('')),
+    role: z.string().trim().max(120).or(z.literal('')),
+    organization: z.string().trim().max(160).or(z.literal('')),
+    course_name: z.string().trim().max(160).or(z.literal('')),
+    is_team: z.boolean(),
+    team_members: z.array(z.string().trim().min(1).max(80)).max(15),
+    tech_stack: z.array(z.string().trim().min(1).max(40)).max(20),
+    started_on: optionalDate,
+    completed_on: optionalDate,
+    url: optionalUrl,
+    repo_url: optionalUrl,
+    demo_url: optionalUrl,
+    cover_url: fileRef,
+    document_url: fileRef,
+  })
+  .superRefine((values, ctx) => {
+    if (values.project_type === '') {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['project_type'],
+        message: 'Select a project type',
+      });
+    }
+    if (
+      values.started_on !== '' &&
+      values.completed_on !== '' &&
+      values.completed_on < values.started_on
+    ) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['completed_on'],
+        message: 'Completion must be on or after the start date',
+      });
+    }
+  });
 
 export type ProjectInput = z.infer<typeof projectSchema>;
 

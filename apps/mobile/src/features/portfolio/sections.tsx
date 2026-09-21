@@ -7,12 +7,14 @@ import {
   EDUCATION_LEVEL_OPTIONS,
   EDUCATION_RESULT_SCALE_OPTIONS,
   EDUCATION_RESULT_TYPE_OPTIONS,
+  PROJECT_TYPE_OPTIONS,
 } from '@kse/shared';
 import {
   EDUCATION_BOARDS,
   EDUCATION_RESULT_SCALES,
   EDUCATION_RESULT_TYPES,
   POSTGRAD_DEGREE_TYPES,
+  PROJECT_TYPES,
   STUDY_GROUPS,
   UNDERGRAD_DEGREE_TYPES,
   type EducationLevel,
@@ -550,6 +552,26 @@ export function EducationSection({
 
 // ── Projects ────────────────────────────────────────────────────────────────
 
+const PROJECT_FORM_DEFAULTS: ProjectFormValues = {
+  title: '',
+  project_type: '',
+  description: '',
+  details: '',
+  role: '',
+  organization: '',
+  course_name: '',
+  is_team: false,
+  team_members: [],
+  tech_stack: [],
+  started_on: '',
+  completed_on: '',
+  url: '',
+  repo_url: '',
+  demo_url: '',
+  cover_url: '',
+  document_url: '',
+};
+
 interface ProjectsSectionProps {
   items: PortfolioProjectItem[];
   isSaving: boolean;
@@ -559,6 +581,11 @@ interface ProjectsSectionProps {
   errorMessage: string | null;
 }
 
+/**
+ * Projects for every student background — academic, lab, design, business,
+ * social, diploma — not just software. No link is required: a project can
+ * be showcased with description, role, cover image and documents alone.
+ */
 export function ProjectsSection({
   items,
   isSaving,
@@ -576,9 +603,11 @@ export function ProjectsSection({
     defaultValues: projectToFormValues(editing),
   });
 
+  const isTeam = useWatch({ control: form.control, name: 'is_team' }) ?? false;
+
   const startAdd = () => {
     setEditingId(null);
-    form.reset({ title: '', description: '', url: '', tech_stack: [], started_on: '', completed_on: '' });
+    form.reset({ ...PROJECT_FORM_DEFAULTS });
     setMode('add');
   };
 
@@ -589,7 +618,7 @@ export function ProjectsSection({
   };
 
   const cancel = () => {
-    form.reset({ title: '', description: '', url: '', tech_stack: [], started_on: '', completed_on: '' });
+    form.reset({ ...PROJECT_FORM_DEFAULTS });
     setEditingId(null);
     setMode('idle');
   };
@@ -615,7 +644,7 @@ export function ProjectsSection({
       count={items.length}
       emptyIcon="folder-open-outline"
       emptyTitle="No projects yet"
-      emptyMessage="Showcase things you've built. Each entry can include a description, URL and tech stack."
+      emptyMessage="Showcase any project — academic, lab, design, business, community or software. Links are optional."
       isSaving={isSaving}
       onSubmit={submit}
       saveLabel={editing ? 'Save changes' : 'Add project'}
@@ -623,18 +652,120 @@ export function ProjectsSection({
       {mode !== 'idle' && (
         <View>
           <ErrorBanner message={errorMessage} />
-          <RHFInput control={form.control} name="title" label="Title" placeholder="What did you build?" />
-          <RHFInput control={form.control} name="description" label="Description" placeholder="Short summary (optional)" multiline />
-          <RHFInput control={form.control} name="url" label="URL" placeholder="https://github.com/…" keyboardType="url" />
-          <RHFChipList control={form.control} name="tech_stack" label="Tech stack" placeholder="React Native, GraphQL…" />
+          <RHFInput
+            control={form.control}
+            name="title"
+            label="Project title"
+            placeholder="e.g. Low-cost Water Quality Sensor"
+          />
+          <RHFSelect
+            control={form.control}
+            name="project_type"
+            label="Project type"
+            options={PROJECT_TYPE_OPTIONS}
+            placeholder="Select type"
+            clearable={false}
+          />
+          <RHFInput
+            control={form.control}
+            name="description"
+            label="Short description"
+            placeholder="One or two lines about the project"
+            multiline
+          />
+          <RHFInput
+            control={form.control}
+            name="details"
+            label="Detailed description (optional)"
+            placeholder="Approach, results, outcomes…"
+            multiline
+          />
+          <RHFInput
+            control={form.control}
+            name="role"
+            label="Your role / contribution (optional)"
+            placeholder="e.g. Team lead, circuit design, field survey"
+          />
+          <RHFInput
+            control={form.control}
+            name="organization"
+            label="Institution / organization (optional)"
+            placeholder="University, college, club, NGO…"
+          />
+          <RHFInput
+            control={form.control}
+            name="course_name"
+            label="Course / subject (optional)"
+            placeholder="e.g. EEE 4101: Final Year Project"
+          />
+          <RHFToggle control={form.control} name="is_team" label="Team project" />
+          {isTeam ? (
+            <RHFChipList
+              control={form.control}
+              name="team_members"
+              label="Team members (optional)"
+              placeholder="Type a name and press return…"
+            />
+          ) : null}
+          <RHFChipList
+            control={form.control}
+            name="tech_stack"
+            label="Technologies / tools / skills (optional)"
+            placeholder="Arduino, Excel, Figma, lab equipment…"
+          />
           <View style={styles.row}>
             <View style={styles.col}>
-              <RHFInput control={form.control} name="started_on" label="Start date" placeholder="YYYY-MM-DD" />
+              <RHFInput control={form.control} name="started_on" label="Start date (optional)" placeholder="YYYY-MM-DD" />
             </View>
             <View style={styles.col}>
-              <RHFInput control={form.control} name="completed_on" label="End date" placeholder="YYYY-MM-DD" />
+              <RHFInput control={form.control} name="completed_on" label="End date (optional)" placeholder="YYYY-MM-DD" />
             </View>
           </View>
+          <Controller
+            control={form.control}
+            name="cover_url"
+            render={({ field }) => (
+              <FileField
+                label="Cover image (optional)"
+                hint="JPG, PNG or PDF · images up to 5 MB"
+                value={field.value ?? ''}
+                onChange={field.onChange}
+              />
+            )}
+          />
+          <Controller
+            control={form.control}
+            name="document_url"
+            render={({ field }) => (
+              <FileField
+                label="Report / presentation (optional)"
+                hint="JPG, PNG or PDF · PDF up to 10 MB"
+                value={field.value ?? ''}
+                onChange={field.onChange}
+              />
+            )}
+          />
+          <RHFInput
+            control={form.control}
+            name="url"
+            label="Project link (optional)"
+            placeholder="https://…"
+            keyboardType="url"
+          />
+          <RHFInput
+            control={form.control}
+            name="repo_url"
+            label="GitHub / code repository (optional)"
+            placeholder="https://github.com/…"
+            keyboardType="url"
+          />
+          <RHFInput
+            control={form.control}
+            name="demo_url"
+            label="Demo / video link (optional)"
+            placeholder="https://youtube.com/…"
+            keyboardType="url"
+          />
         </View>
       )}
       {mode === 'idle' && items.length > 0 && (
@@ -656,14 +787,25 @@ export function ProjectsSection({
 }
 
 function projectToFormValues(item: PortfolioProjectItem | null): ProjectFormValues {
-  if (!item) return { title: '', description: '', url: '', tech_stack: [], started_on: '', completed_on: '' };
+  if (!item) return { ...PROJECT_FORM_DEFAULTS };
   return {
     title: item.title,
+    project_type: toSelectValue(item.projectType, PROJECT_TYPES),
     description: item.description ?? '',
-    url: item.url ?? '',
+    details: item.details ?? '',
+    role: item.role ?? '',
+    organization: item.organization ?? '',
+    course_name: item.courseName ?? '',
+    is_team: item.isTeam,
+    team_members: item.teamMembers,
     tech_stack: item.techStack,
     started_on: item.startedOn ?? '',
     completed_on: item.completedOn ?? '',
+    url: item.url ?? '',
+    repo_url: item.repoUrl ?? '',
+    demo_url: item.demoUrl ?? '',
+    cover_url: item.coverUrl ?? '',
+    document_url: item.documentUrl ?? '',
   };
 }
 
