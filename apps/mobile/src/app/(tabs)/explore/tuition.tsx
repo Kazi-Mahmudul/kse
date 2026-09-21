@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { ActivityIndicator, Modal, Pressable, StyleSheet, View } from 'react-native';
 
@@ -36,7 +36,12 @@ const SORT_OPTIONS: { value: TutorSort; label: string }[] = [
  */
 export default function TuitionScreen() {
   const colors = useTheme();
-  const [text, setText] = useState('');
+  // `q` deep-links from the global Search screen's "See all tutors" so the
+  // query carries over instead of forcing a retype.
+  const params = useLocalSearchParams<{ q?: string }>();
+  const [text, setText] = useState(
+    typeof params.q === 'string' ? params.q : '',
+  );
   const [subjectId, setSubjectId] = useState<string | undefined>();
   const [sort, setSort] = useState<TutorSort>('popular');
   const [sortOpen, setSortOpen] = useState(false);

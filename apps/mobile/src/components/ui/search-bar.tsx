@@ -69,6 +69,17 @@ export function SearchBar({
           { color: colors.text },
         ]}
       />
+      {value.length > 0 && (
+        <Pressable
+          onPress={() => onChangeText('')}
+          accessibilityRole="button"
+          accessibilityLabel="Clear search"
+          hitSlop={8}
+          style={({ pressed }) => [styles.clearButton, pressed && styles.pressed]}
+        >
+          <Ionicons name="close-circle" size={16} color={colors.textMuted} />
+        </Pressable>
+      )}
     </View>
   );
 
@@ -136,6 +147,9 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  clearButton: {
+    padding: Spacing.one,
   },
   pressed: {
     opacity: 0.7,

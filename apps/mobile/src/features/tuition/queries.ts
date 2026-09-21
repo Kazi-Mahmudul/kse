@@ -60,8 +60,11 @@ export const tuitionKeys = {
   myTutorListing: () => [...tuitionKeys.all, 'myTutorListing'] as const,
 };
 
-/** Paginated tutor feed for the discovery screen (step 15). */
-export function useTutorFeed(filters: TutorFilters) {
+/** Paginated tutor feed for the discovery screen (step 15) and search. */
+export function useTutorFeed(
+  filters: TutorFilters,
+  options?: { enabled?: boolean },
+) {
   return useInfiniteQuery({
     queryKey: tuitionKeys.tutors(filters),
     queryFn: ({ pageParam }) => fetchTutors(filters, pageParam),
@@ -69,6 +72,7 @@ export function useTutorFeed(filters: TutorFilters) {
     getNextPageParam: (lastPage) =>
       lastPage.hasMore ? lastPage.page + 1 : undefined,
     placeholderData: keepPreviousData,
+    enabled: options?.enabled ?? true,
   });
 }
 
@@ -130,10 +134,11 @@ export function useToggleSavedTutor() {
 }
 
 /** Bookmarked tutor ids for the signed-in student. */
-export function useSavedTutorIds() {
+export function useSavedTutorIds(options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: tuitionKeys.savedTutors(),
     queryFn: listSavedTutorIds,
+    enabled: options?.enabled ?? true,
   } satisfies UseQueryOptions<string[], Error>);
 }
 

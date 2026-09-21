@@ -17,7 +17,7 @@ export interface SelectOption {
 interface SelectFieldProps {
   label: string;
   value: string | null;
-  options: SelectOption[];
+  options: readonly SelectOption[];
   onSelect: (value: string | null) => void;
   placeholder?: string;
   /** Show a "None" row that clears the value (default true). */

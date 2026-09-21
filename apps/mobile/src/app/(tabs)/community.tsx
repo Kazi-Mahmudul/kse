@@ -43,13 +43,30 @@ export default function CommunityScreen() {
     return [...joined, ...fallback].slice(0, 4);
   }, [all]);
 
-  // 2) Client-side filter on the grid by name (debouncing lives upstream
-  //    in TanStack Query; `setQuery` here is the immediate state).
+  // 2) Client-side filter. While searching, every matching community shows
+  //    (the 4-tile cap is a browse-state constraint, not a search limit) and
+  //    Recent Discussions narrows to matching posts.
   const normalizedQuery = query.trim().toLowerCase();
-  const filteredTiles = useMemo(() => {
-    if (!normalizedQuery) return gridTiles;
-    return all.filter((c) => c.name.toLowerCase().includes(normalizedQuery)).slice(0, 4);
-  }, [gridTiles, all, normalizedQuery]);
+  const communityMatches = useMemo(() => {
+    if (!normalizedQuery) return all;
+    return all.filter(
+      (c) =>
+        c.name.toLowerCase().includes(normalizedQuery) ||
+        (c.description ?? '').toLowerCase().includes(normalizedQuery) ||
+        (c.universityName ?? '').toLowerCase().includes(normalizedQuery) ||
+        c.slug.toLowerCase().includes(normalizedQuery),
+    );
+  }, [all, normalizedQuery]);
+  const filteredTiles = normalizedQuery ? communityMatches : gridTiles;
+  const filteredRecent = useMemo(() => {
+    if (!normalizedQuery) return recent;
+    return recent.filter(
+      (post) =>
+        post.content.toLowerCase().includes(normalizedQuery) ||
+        post.communityName.toLowerCase().includes(normalizedQuery) ||
+        post.authorName.toLowerCase().includes(normalizedQuery),
+    );
+  }, [recent, normalizedQuery]);
 
   const showFilterPlaceholder = () =>
     Alert.alert(
@@ -63,15 +80,9 @@ export default function CommunityScreen() {
       `You're a member of ${all.filter((c) => c.isMember).length} of ${all.length} communities. The full browse view ships in a future release.`,
     );
 
-  // Loading state for the grid: show while the communities request is in flight,
-  // OR when a non-empty search returns zero hits (debounced upstream; here we
-  // re-check immediately). `!!query` (not `query && …`) is intentional: when
-  // `query === ''`, the bare-string left-hand side used to leak an empty
-  // string into `<Screen>`'s children, which RN Web's View validator rejects
-  // with "Unexpected text node: . A text node cannot be a child of a <View>".
-  const showGridLoading =
-    communitiesQuery.isPending ||
-    (!!normalizedQuery && filteredTiles.length === 0);
+  // Spinner only while the request is in flight — the search filter itself is
+  // synchronous, so a no-match search shows the empty state, not a loader.
+  const showGridLoading = communitiesQuery.isPending;
 
   return (
     <Screen>
@@ -91,11 +102,20 @@ export default function CommunityScreen() {
         />
       </View>
 
+      {normalizedQuery ? (
+        <ThemedText type="small" themeColor="textSecondary">
+          {communityMatches.length} {communityMatches.length === 1 ? 'community' : 'communities'} ·{' '}
+          {filteredRecent.length} {filteredRecent.length === 1 ? 'discussion' : 'discussions'}
+        </ThemedText>
+      ) : null}
+
       <View style={styles.section}>
         <SectionHeader
-          title="Your Communities"
+          title={normalizedQuery ? 'Communities' : 'Your Communities'}
           actionLabel={
-            !communitiesQuery.isPending && all.length > 4 ? 'View All' : undefined
+            !normalizedQuery && !communitiesQuery.isPending && all.length > 4
+              ? 'View All'
+              : undefined
           }
           onAction={all.length > 4 ? showAllCommunitiesPlaceholder : undefined}
         />
@@ -135,7 +155,7 @@ export default function CommunityScreen() {
         <EmptyState
           icon="search-outline"
           title="No matches"
-          message={`No communities match "${query.trim()}".`}
+          message={`No communities or discussions match "${query.trim()}".`}
           actionLabel="Clear search"
           onAction={() => setQuery('')}
         />
@@ -162,11 +182,13 @@ export default function CommunityScreen() {
         </ThemedText>
       ) : null}
 
-      <View style={[styles.section, styles.recentSection]}>
-        <SectionHeader title="Recent Discussions" />
-      </View>
+      {(!normalizedQuery || filteredRecent.length > 0) && (
+        <View style={[styles.section, styles.recentSection]}>
+          <SectionHeader title="Recent Discussions" />
+        </View>
+      )}
 
-      {recentQuery.isPending ? (
+      {!normalizedQuery && recentQuery.isPending ? (
         <View style={styles.loading}>
           <ActivityIndicator color={colors.primary} />
         </View>
@@ -182,7 +204,7 @@ export default function CommunityScreen() {
         />
       ) : null}
 
-      {recentQuery.isSuccess && recent.length === 0 ? (
+      {!normalizedQuery && recentQuery.isSuccess && recent.length === 0 ? (
         <EmptyState
           icon="chatbubbles-outline"
           title="No discussions yet"
@@ -190,9 +212,9 @@ export default function CommunityScreen() {
         />
       ) : null}
 
-      {recentQuery.isSuccess && recent.length > 0 ? (
+      {filteredRecent.length > 0 ? (
         <View style={styles.recentList}>
-          {recent.map((post) => (
+          {filteredRecent.map((post) => (
             <RecentDiscussionCard key={post.id} post={post} />
           ))}
         </View>

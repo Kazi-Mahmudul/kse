@@ -63,6 +63,20 @@ export function sanitizeSearchQuery(q: string): string {
   return q.replace(/[^\p{L}\p{N}\s]/gu, ' ').trim();
 }
 
+/**
+ * `data eng` → `data:* & eng:*` — a `to_tsquery` prefix expression so partial
+ * words match ("intern" finds "Internships", "schol" finds "Scholarship").
+ * `plfts` (plainto_tsquery) demanded whole-word matches, which made the
+ * search bars feel broken the moment anyone typed a stem.
+ */
+export function toPrefixTsQuery(q: string): string {
+  return sanitizeSearchQuery(q)
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((token) => `${token}:*`)
+    .join(' & ');
+}
+
 export const SUMMARY_SELECT =
   'id, type, title, organization_name, summary, image_url, location, opportunity_mode, deadline, featured, verified, stipend_amount, stipend_currency, internship_type, degree_level, funding_type, country, event_type, starts_at';
 
@@ -121,12 +135,13 @@ export async function fetchOpportunities(
     ).toISOString();
     query = query.gte('deadline', now).lte('deadline', until);
   }
-  const sanitized = filters.q ? sanitizeSearchQuery(filters.q) : '';
-  if (sanitized) {
-    // PostgREST v16 parenthesizes the tsquery config (`plfts(simple).q`);
+  const tsQuery = filters.q ? toPrefixTsQuery(filters.q) : '';
+  if (tsQuery) {
+    // PostgREST v16 parenthesizes the tsquery config (`fts(simple).q`);
     // postgrest-js textSearch() still emits the old dot form, which silently
-    // matches nothing there — so build the operator ourselves.
-    query = query.filter('search_vector', 'plfts(simple)', sanitized);
+    // matches nothing there — so build the operator ourselves. `fts` maps to
+    // to_tsquery, which accepts our `token:*` prefix expression.
+    query = query.filter('search_vector', 'fts(simple)', tsQuery);
   }
 
   // Event listings are sorted by start time (upcoming first); other types

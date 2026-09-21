@@ -41,7 +41,8 @@ async function requireUserId(context: string): Promise<string> {
 export type TutorSort = 'popular' | 'fee_asc' | 'fee_desc';
 
 export interface TutorFilters {
-  /** Free-text query matched against name / headline / location / bio. */
+  /** Free-text query matched against name / headline / location / bio /
+   *  subject names (via tutor ids resolved from matching subjects). */
   q?: string;
   /** Exact subject chip selection. */
   subjectId?: string;
@@ -143,6 +144,32 @@ async function fetchTutorIdsByName(q: string): Promise<string[]> {
   return (data ?? []).map((row) => row.id);
 }
 
+/** Subjects whose name matches the query — the search bar promises
+ *  "Search subject or tutor…", so free text must hit subject names too. */
+async function fetchSubjectIdsByName(q: string): Promise<string[]> {
+  const { data, error } = await supabase
+    .from('subjects')
+    .select('id')
+    .ilike('name', `%${q}%`)
+    .limit(50);
+  if (error) fail('Could not load tutors', error.message);
+  return (data ?? []).map((row) => row.id);
+}
+
+/** Tutor ids teaching any of the given subjects. `or()` filters can only
+ *  reference `tutors` columns (PostgREST's logic tree rejects embedded
+ *  one-to-many columns), so subject matches are folded into `id.in.(…)`. */
+async function fetchTutorIdsBySubjects(subjectIds: string[]): Promise<string[]> {
+  if (subjectIds.length === 0) return [];
+  const { data, error } = await supabase
+    .from('tutor_subjects')
+    .select('tutor_id')
+    .in('subject_id', subjectIds)
+    .limit(200);
+  if (error) fail('Could not load tutors', error.message);
+  return [...new Set((data ?? []).map((row) => row.tutor_id))];
+}
+
 function orderFor(sort: TutorSort | undefined) {
   if (sort === 'fee_asc') {
     return [
@@ -182,12 +209,18 @@ export async function fetchTutors(
     // Embedded filter — PostgREST requires the embed in select (PGRST108).
     query = query.eq('tutor_subjects.subject_id', filters.subjectId);
   }
-  const q = filters.q?.replace(/[,()%]/g, ' ').trim();
+  // Strip characters PostgREST's `or=()` grammar reserves (or that would
+  // break the ilike pattern); keep everything else, including Bangla.
+  const q = filters.q?.replace(/[,()%"]/g, ' ').trim();
   if (q) {
-    const nameIds = await fetchTutorIdsByName(q);
+    const [nameIds, subjectIds] = await Promise.all([
+      fetchTutorIdsByName(q),
+      fetchSubjectIdsByName(q).then(fetchTutorIdsBySubjects),
+    ]);
+    const matchedIds = [...new Set([...nameIds, ...subjectIds])];
     query = query.or(
       `headline.ilike.%${q}%,location.ilike.%${q}%,bio.ilike.%${q}%` +
-        (nameIds.length > 0 ? `,id.in.(${nameIds.join(',')})` : ''),
+        (matchedIds.length > 0 ? `,id.in.(${matchedIds.join(',')})` : ''),
     );
   }
   for (const clause of orderFor(filters.sort)) {

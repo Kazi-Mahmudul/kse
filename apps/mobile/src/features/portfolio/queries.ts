@@ -4,9 +4,13 @@ import {
   useQueryClient,
   type UseQueryOptions,
 } from '@tanstack/react-query';
+import { Linking } from 'react-native';
+
+import { alertDialog } from '@/lib/confirm';
 import type {
   PortfolioAchievementItem,
   PortfolioCertificateItem,
+  PortfolioEducationItem,
   PortfolioLinkItem,
   PortfolioProjectItem,
   PortfolioResearchItem,
@@ -16,30 +20,38 @@ import type {
 import {
   createAchievement,
   createCertificate,
+  createEducation,
   createPortfolioLink,
   createProject,
   createResearch,
   createResume,
   deleteAchievement,
   deleteCertificate,
+  deleteEducation,
   deletePortfolioLink,
   deleteProject,
   deleteResearch,
   deleteResume,
   listMyAchievements,
   listMyCertificates,
+  listMyEducation,
   listMyPortfolioLinks,
   listMyProjects,
   listMyResearch,
   listMyResumes,
+  resolveViewableFileUrl,
   updateAchievement,
   updateCertificate,
+  updateEducation,
   updatePortfolioLink,
   updateProject,
   updateResearch,
   updateResume,
+  uploadPortfolioDocument,
   type AchievementUpsert,
   type CertificateUpsert,
+  type EducationUpsert,
+  type PortfolioDocumentInput,
   type PortfolioLinkUpsert,
   type ProjectUpsert,
   type ResearchUpsert,
@@ -48,6 +60,7 @@ import {
 
 export const portfolioKeys = {
   all: ['portfolio'] as const,
+  education: () => [...portfolioKeys.all, 'education'] as const,
   projects: () => [...portfolioKeys.all, 'projects'] as const,
   certificates: () => [...portfolioKeys.all, 'certificates'] as const,
   achievements: () => [...portfolioKeys.all, 'achievements'] as const,
@@ -55,6 +68,73 @@ export const portfolioKeys = {
   resumes: () => [...portfolioKeys.all, 'resumes'] as const,
   links: () => [...portfolioKeys.all, 'links'] as const,
 };
+
+// ── Education ────────────────────────────────────────────────────────────────
+
+export function useMyEducation() {
+  return useQuery({
+    queryKey: portfolioKeys.education(),
+    queryFn: listMyEducation,
+  } satisfies UseQueryOptions<PortfolioEducationItem[], Error>);
+}
+
+export function useCreateEducation() {
+  const queryClient = useQueryClient();
+  return useMutation<PortfolioEducationItem, Error, EducationUpsert>({
+    mutationFn: (input) => createEducation(input),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: portfolioKeys.education() });
+    },
+  });
+}
+
+export function useUpdateEducation() {
+  const queryClient = useQueryClient();
+  return useMutation<PortfolioEducationItem, Error, { id: string; input: EducationUpsert }>({
+    mutationFn: ({ id, input }) => updateEducation(id, input),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: portfolioKeys.education() });
+    },
+  });
+}
+
+export function useDeleteEducation() {
+  const queryClient = useQueryClient();
+  return useMutation<void, Error, string>({
+    mutationFn: (id) => deleteEducation(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: portfolioKeys.education() });
+    },
+  });
+}
+
+// ── Document upload / viewing (private `certificates` bucket) ────────────────
+
+/** Uploads a picked file and returns its storage path (set into the form). */
+export function useUploadPortfolioDocument() {
+  return useMutation<string, Error, PortfolioDocumentInput>({
+    mutationFn: (input) => uploadPortfolioDocument(input),
+  });
+}
+
+/**
+ * Opens a stored file reference: storage paths are resolved to a signed URL
+ * first (owner-only), external links open directly. Not a query — fire and
+ * forget with an Alert on failure.
+ */
+export async function openPortfolioFile(fileUrl: string | null | undefined): Promise<void> {
+  if (!fileUrl) return;
+  try {
+    const url = await resolveViewableFileUrl(fileUrl);
+    if (!url) return;
+    await Linking.openURL(url);
+  } catch {
+    await alertDialog({
+      title: 'Could not open file',
+      message: 'Please check your connection and try again.',
+    });
+  }
+}
 
 export function useMyProjects() {
   return useQuery({

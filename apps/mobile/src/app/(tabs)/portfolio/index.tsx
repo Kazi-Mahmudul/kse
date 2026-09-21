@@ -11,24 +11,28 @@ import { PortfolioOverview } from '@/features/portfolio/overview';
 import {
   useCreateAchievement,
   useCreateCertificate,
+  useCreateEducation,
   useCreatePortfolioLink,
   useCreateProject,
   useCreateResearch,
   useCreateResume,
   useDeleteAchievement,
   useDeleteCertificate,
+  useDeleteEducation,
   useDeletePortfolioLink,
   useDeleteProject,
   useDeleteResearch,
   useDeleteResume,
   useMyAchievements,
   useMyCertificates,
+  useMyEducation,
   useMyPortfolioLinks,
   useMyProjects,
   useMyResearch,
   useMyResumes,
   useUpdateAchievement,
   useUpdateCertificate,
+  useUpdateEducation,
   useUpdatePortfolioLink,
   useUpdateProject,
   useUpdateResearch,
@@ -37,14 +41,18 @@ import {
 import {
   AchievementsSection,
   CertificatesSection,
+  EducationSection,
   PortfolioLinksSection,
   ProjectsSection,
   ResearchSection,
   ResumesSection,
 } from '@/features/portfolio/sections';
+import { EDUCATION_LEVEL_SPECS } from '@/features/portfolio/education-levels';
+import type { EducationLevel } from '@kse/types';
 import type {
   AchievementFormValues,
   CertificateFormValues,
+  EducationFormValues,
   PortfolioLinkFormValues,
   ProjectFormValues,
   ResearchFormValues,
@@ -66,6 +74,7 @@ export default function PortfolioScreen() {
     <Screen>
       <BackHeader title="My portfolio" />
       <PortfolioOverview />
+      <EducationSectionBound />
       <ProjectsSectionBound />
       <CertificatesSectionBound />
       <AchievementsSectionBound />
@@ -105,6 +114,64 @@ function useErrorMessage(error: Error | null, mutationError: Error | null): stri
   if (mutationError) return mutationError.message;
   if (error) return error.message;
   return null;
+}
+
+function EducationSectionBound() {
+  const q = useMyEducation();
+  const create = useCreateEducation();
+  const update = useUpdateEducation();
+  const remove = useDeleteEducation();
+  const errorMessage = useErrorMessage(q.error, create.error ?? update.error ?? remove.error ?? null);
+  return (
+    <EducationSection
+      items={q.data ?? []}
+      isSaving={create.isPending || update.isPending || remove.isPending}
+      create={async (v) => {
+        await create.mutateAsync(toEducationPayload(v));
+      }}
+      update={async (id, v) => {
+        await update.mutateAsync({ id, input: toEducationPayload(v) });
+      }}
+      remove={async (id) => {
+        await remove.mutateAsync(id);
+      }}
+      errorMessage={errorMessage}
+    />
+  );
+}
+
+/**
+ * '' → null plus a per-level trim: fields the selected level doesn't use are
+ * nulled (not persisted) so rows stay clean, e.g. a bachelor's degree never
+ * carries an SSC study group.
+ */
+function toEducationPayload(v: EducationFormValues) {
+  // The schema rejects an empty level, so a submitted form always has one.
+  const spec = EDUCATION_LEVEL_SPECS[v.level as EducationLevel];
+  const str = (s: string) => (s.trim() === '' ? null : s.trim());
+  const num = (s: string) => (s === '' ? null : Number(s));
+  return {
+    level: v.level as EducationLevel,
+    institution: v.institution.trim(),
+    board: spec.boardLabel ? str(v.board) : null,
+    study_group: spec.showGroup ? str(v.study_group) : null,
+    degree_type: spec.degreeOptions ? str(v.degree_type) : null,
+    program_name: spec.programLabel ? str(v.program_name) : null,
+    major: spec.majorLabel ? str(v.major) : null,
+    campus: spec.showCampus ? str(v.campus) : null,
+    research_area: spec.showResearch ? str(v.research_area) : null,
+    thesis_title: spec.showResearch ? str(v.thesis_title) : null,
+    supervisor: spec.showResearch ? str(v.supervisor) : null,
+    roll_number: spec.showRoll ? str(v.roll_number) : null,
+    registration_number: spec.showRoll ? str(v.registration_number) : null,
+    start_year: spec.useRangeYears ? num(v.start_year) : null,
+    passing_year: num(v.passing_year),
+    is_ongoing: spec.useRangeYears ? v.is_ongoing : false,
+    result_type: str(v.result_type),
+    result: str(v.result),
+    result_scale: v.result_scale === '' ? null : Number(v.result_scale),
+    document_url: str(v.document_url),
+  };
 }
 
 function ProjectsSectionBound() {
@@ -167,11 +234,19 @@ function CertificatesSectionBound() {
 }
 
 function toCertificatePayload(v: CertificateFormValues) {
+  const str = (s: string) => (s.trim() === '' ? null : s.trim());
   return {
     title: v.title,
-    issuer: v.issuer.trim() === '' ? null : v.issuer,
-    issued_on: v.issued_on.trim() === '' ? null : v.issued_on,
-    file_url: v.file_url.trim() === '' ? null : v.file_url,
+    certificate_type: str(v.certificate_type),
+    issuer: str(v.issuer),
+    program_name: str(v.program_name),
+    issued_on: str(v.issued_on),
+    expires_on: str(v.expires_on),
+    credential_id: str(v.credential_id),
+    credential_url: str(v.credential_url),
+    verification_url: str(v.verification_url),
+    description: str(v.description),
+    file_url: str(v.file_url),
   };
 }
 

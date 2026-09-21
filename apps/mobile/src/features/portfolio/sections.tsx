@@ -1,7 +1,29 @@
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { useForm } from 'react-hook-form';
+import { Controller, useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import {
+  CERTIFICATE_TYPE_OPTIONS,
+  EDUCATION_LEVEL_OPTIONS,
+  EDUCATION_RESULT_SCALE_OPTIONS,
+  EDUCATION_RESULT_TYPE_OPTIONS,
+} from '@kse/shared';
+import {
+  EDUCATION_BOARDS,
+  EDUCATION_RESULT_SCALES,
+  EDUCATION_RESULT_TYPES,
+  POSTGRAD_DEGREE_TYPES,
+  STUDY_GROUPS,
+  UNDERGRAD_DEGREE_TYPES,
+  type EducationLevel,
+  type PortfolioAchievementItem,
+  type PortfolioCertificateItem,
+  type PortfolioEducationItem,
+  type PortfolioLinkItem,
+  type PortfolioProjectItem,
+  type PortfolioResearchItem,
+  type PortfolioResumeItem,
+} from '@kse/types';
 
 import {
   projectFormSchema,
@@ -10,21 +32,15 @@ import {
   researchFormSchema,
   resumeFormSchema,
   portfolioLinkFormSchema,
+  educationFormSchema,
   type ProjectFormValues,
   type CertificateFormValues,
   type AchievementFormValues,
   type ResearchFormValues,
   type ResumeFormValues,
   type PortfolioLinkFormValues,
+  type EducationFormValues,
 } from '@kse/validation';
-import type {
-  PortfolioAchievementItem,
-  PortfolioCertificateItem,
-  PortfolioLinkItem,
-  PortfolioProjectItem,
-  PortfolioResearchItem,
-  PortfolioResumeItem,
-} from '@kse/types';
 
 import { Card } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -34,7 +50,14 @@ import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import type { IconName } from '@/types/icon';
 import {
+  BOARD_OPTIONS,
+  EDUCATION_LEVEL_SPECS,
+  GROUP_OPTIONS,
+} from '@/features/portfolio/education-levels';
+import { FileField } from '@/features/portfolio/file-field';
+import {
   RHFInput,
+  RHFSelect,
   RHFToggle,
   RHFChipList,
   ErrorBanner,
@@ -42,6 +65,7 @@ import {
 import {
   AchievementCard,
   CertificateCard,
+  EducationCard,
   PortfolioLinkCard,
   ProjectCard,
   ResearchCard,
@@ -124,6 +148,403 @@ function ModeShell({
         </>
       )}
     </View>
+  );
+}
+
+// ── Education ────────────────────────────────────────────────────────────────
+
+const EDUCATION_FORM_DEFAULTS: EducationFormValues = {
+  level: '',
+  institution: '',
+  board: '',
+  study_group: '',
+  degree_type: '',
+  program_name: '',
+  major: '',
+  campus: '',
+  research_area: '',
+  thesis_title: '',
+  supervisor: '',
+  roll_number: '',
+  registration_number: '',
+  start_year: '',
+  passing_year: '',
+  is_ongoing: false,
+  result_type: '',
+  result: '',
+  result_scale: '',
+  document_url: '',
+};
+
+/**
+ * Item columns are free text (Zod gates them on write); coerce a stored value
+ * back into a select's union, falling back to '' when it doesn't match —
+ * legacy/manual rows simply re-open with that select unset.
+ */
+function toSelectValue<T extends string>(stored: string | null, allowed: readonly T[]): T | '' {
+  const value = stored ?? '';
+  return (allowed as readonly string[]).includes(value) ? (value as T) : '';
+}
+
+const DEGREE_TYPES: readonly string[] = [
+  ...UNDERGRAD_DEGREE_TYPES,
+  ...POSTGRAD_DEGREE_TYPES,
+];
+
+function educationToFormValues(item: PortfolioEducationItem | null): EducationFormValues {
+  if (!item) return { ...EDUCATION_FORM_DEFAULTS };
+  return {
+    level: item.level,
+    institution: item.institution,
+    board: toSelectValue(item.board, EDUCATION_BOARDS),
+    study_group: toSelectValue(item.studyGroup, STUDY_GROUPS),
+    degree_type: toSelectValue(item.degreeType, DEGREE_TYPES),
+    program_name: item.programName ?? '',
+    major: item.major ?? '',
+    campus: item.campus ?? '',
+    research_area: item.researchArea ?? '',
+    thesis_title: item.thesisTitle ?? '',
+    supervisor: item.supervisor ?? '',
+    roll_number: item.rollNumber ?? '',
+    registration_number: item.registrationNumber ?? '',
+    start_year: item.startYear != null ? String(item.startYear) : '',
+    passing_year: item.passingYear != null ? String(item.passingYear) : '',
+    is_ongoing: item.isOngoing,
+    result_type: toSelectValue(item.resultType, EDUCATION_RESULT_TYPES),
+    result: item.result ?? '',
+    // numeric 4 → "4.00", 5 → "5.00", 100 → "100" (the select values).
+    result_scale: toSelectValue(
+      item.resultScale == null
+        ? null
+        : item.resultScale === 100
+          ? '100'
+          : item.resultScale.toFixed(2),
+      EDUCATION_RESULT_SCALES,
+    ),
+    document_url: item.documentUrl ?? '',
+  };
+}
+
+interface EducationSectionProps {
+  items: PortfolioEducationItem[];
+  isSaving: boolean;
+  create(values: EducationFormValues): Promise<void>;
+  update(id: string, values: EducationFormValues): Promise<void>;
+  remove(id: string): Promise<void>;
+  errorMessage: string | null;
+}
+
+/**
+ * Add/edit education with level-driven fields (spec: Bangladesh education
+ * system). Selecting a level swaps in only the fields that level uses —
+ * SSC/HSC get board + group + roll, degrees get program + CGPA, MPhil/PhD
+ * get research details — per EDUCATION_LEVEL_SPECS.
+ */
+export function EducationSection({
+  items,
+  isSaving,
+  create,
+  update,
+  remove,
+  errorMessage,
+}: EducationSectionProps) {
+  const [mode, setMode] = useState<'idle' | 'add'>('idle');
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const editing = items.find((it) => it.id === editingId) ?? null;
+
+  const form = useForm<EducationFormValues>({
+    resolver: zodResolver(educationFormSchema),
+    defaultValues: educationToFormValues(editing),
+  });
+
+  const level = (useWatch({ control: form.control, name: 'level' }) ?? '') as EducationLevel | '';
+  const resultType = useWatch({ control: form.control, name: 'result_type' }) ?? '';
+  const isOngoing = useWatch({ control: form.control, name: 'is_ongoing' }) ?? false;
+  const spec = level ? EDUCATION_LEVEL_SPECS[level] : null;
+
+  const startAdd = () => {
+    setEditingId(null);
+    form.reset({ ...EDUCATION_FORM_DEFAULTS });
+    setMode('add');
+  };
+  const startEdit = (item: PortfolioEducationItem) => {
+    setEditingId(item.id);
+    form.reset(educationToFormValues(item));
+    setMode('add');
+  };
+  const cancel = () => {
+    form.reset({ ...EDUCATION_FORM_DEFAULTS });
+    setEditingId(null);
+    setMode('idle');
+  };
+
+  /** Switching levels re-applies the level's result defaults so a 5.00-scale
+   *  GPA doesn't leak into a 4.00-scale CGPA (and vice versa). */
+  const selectLevel = (next: string | null) => {
+    const value = (next ?? '') as EducationLevel | '';
+    form.setValue('level', value, { shouldDirty: true, shouldValidate: true });
+    if (!value) return;
+    const nextSpec = EDUCATION_LEVEL_SPECS[value];
+    form.setValue('result_type', nextSpec.defaultResultType ?? '', { shouldDirty: true });
+    form.setValue('result_scale', nextSpec.defaultResultScale ?? '', { shouldDirty: true });
+    form.setValue('is_ongoing', false, { shouldDirty: true });
+  };
+
+  const submit = form.handleSubmit(async (values) => {
+    // Soft duplicate guard: identical level + institution + year is almost
+    // always a double-submit, not two real qualifications.
+    const passing = values.passing_year === '' ? null : Number(values.passing_year);
+    const duplicate = items.some(
+      (it) =>
+        it.id !== editing?.id &&
+        it.level === values.level &&
+        it.institution.trim().toLowerCase() === values.institution.trim().toLowerCase() &&
+        it.passingYear === passing,
+    );
+    if (duplicate) {
+      form.setError('institution', {
+        message: 'This qualification is already in your portfolio (same level, institution and year).',
+      });
+      return;
+    }
+    if (editing) await update(editing.id, values);
+    else await create(values);
+    cancel();
+  });
+
+  const showResultValue =
+    resultType === 'gpa' ||
+    resultType === 'cgpa' ||
+    resultType === 'percentage' ||
+    resultType === 'division';
+
+  return (
+    <ModeShell
+      mode={mode === 'idle' ? 'idle' : 'add'}
+      onAdd={startAdd}
+      onCancel={cancel}
+      title="Education"
+      count={items.length}
+      emptyIcon="school-outline"
+      emptyTitle="No education added"
+      emptyMessage="Add your SSC, HSC, diploma or degree — everything from PSC to PhD, with boards, groups and GPA/CGPA."
+      isSaving={isSaving}
+      onSubmit={submit}
+      saveLabel={editing ? 'Save changes' : 'Add education'}
+    >
+      {mode === 'add' && (
+        <View>
+          <ErrorBanner message={errorMessage} />
+          <RHFSelect
+            control={form.control}
+            name="level"
+            label="Education level"
+            options={EDUCATION_LEVEL_OPTIONS}
+            placeholder="Select level"
+            clearable={false}
+            onSelect={selectLevel}
+          />
+          {spec ? (
+            <>
+              <RHFInput
+                control={form.control}
+                name="institution"
+                label={spec.institutionLabel}
+              />
+              {spec.degreeOptions ? (
+                <RHFSelect
+                  control={form.control}
+                  name="degree_type"
+                  label={spec.degreeLabel ?? 'Degree type'}
+                  options={spec.degreeOptions}
+                  placeholder="Select degree"
+                  clearable={false}
+                />
+              ) : null}
+              {spec.programLabel ? (
+                <RHFInput
+                  control={form.control}
+                  name="program_name"
+                  label={spec.programLabel}
+                  placeholder="e.g. Computer Science & Engineering"
+                />
+              ) : null}
+              {spec.majorLabel ? (
+                <RHFInput control={form.control} name="major" label={spec.majorLabel} />
+              ) : null}
+              {spec.showCampus ? (
+                <RHFInput
+                  control={form.control}
+                  name="campus"
+                  label="Campus (optional)"
+                />
+              ) : null}
+              {spec.boardLabel ? (
+                <RHFSelect
+                  control={form.control}
+                  name="board"
+                  label={spec.boardLabel}
+                  options={BOARD_OPTIONS}
+                  placeholder="Select board"
+                  clearable={spec.boardOptional}
+                />
+              ) : null}
+              {spec.showGroup ? (
+                <RHFSelect
+                  control={form.control}
+                  name="study_group"
+                  label="Group"
+                  options={GROUP_OPTIONS}
+                  placeholder="Select group"
+                  clearable={false}
+                />
+              ) : null}
+              {spec.showResearch ? (
+                <>
+                  <RHFInput
+                    control={form.control}
+                    name="research_area"
+                    label="Research area"
+                  />
+                  <RHFInput
+                    control={form.control}
+                    name="thesis_title"
+                    label="Thesis / Dissertation title (optional)"
+                  />
+                  <RHFInput
+                    control={form.control}
+                    name="supervisor"
+                    label="Supervisor (optional)"
+                  />
+                </>
+              ) : null}
+
+              <View style={styles.row}>
+                {spec.useRangeYears ? (
+                  <View style={styles.col}>
+                    <RHFInput
+                      control={form.control}
+                      name="start_year"
+                      label="Start year"
+                      placeholder="2025"
+                      keyboardType="numeric"
+                    />
+                  </View>
+                ) : null}
+                <View style={styles.col}>
+                  <RHFInput
+                    control={form.control}
+                    name="passing_year"
+                    label={
+                      spec.useRangeYears
+                        ? isOngoing
+                          ? 'Expected year'
+                          : 'Graduation year'
+                        : 'Passing year'
+                    }
+                    placeholder="2029"
+                    keyboardType="numeric"
+                  />
+                </View>
+              </View>
+              {spec.useRangeYears ? (
+                <RHFToggle
+                  control={form.control}
+                  name="is_ongoing"
+                  label="Still studying here"
+                />
+              ) : null}
+
+              <View style={styles.row}>
+                <View style={styles.col}>
+                  <RHFSelect
+                    control={form.control}
+                    name="result_type"
+                    label="Result type"
+                    options={EDUCATION_RESULT_TYPE_OPTIONS}
+                    placeholder="No result yet"
+                  />
+                </View>
+                {showResultValue ? (
+                  <View style={styles.col}>
+                    <RHFInput
+                      control={form.control}
+                      name="result"
+                      label="Result"
+                      placeholder={
+                        resultType === 'percentage'
+                          ? '85'
+                          : resultType === 'division'
+                            ? 'First Class'
+                            : '5.00'
+                      }
+                      keyboardType={resultType === 'division' ? 'default' : 'numeric'}
+                    />
+                  </View>
+                ) : null}
+              </View>
+              {resultType === 'gpa' || resultType === 'cgpa' ? (
+                <RHFSelect
+                  control={form.control}
+                  name="result_scale"
+                  label="Scale"
+                  options={EDUCATION_RESULT_SCALE_OPTIONS}
+                  clearable={false}
+                />
+              ) : null}
+
+              {spec.showRoll ? (
+                <View style={styles.row}>
+                  <View style={styles.col}>
+                    <RHFInput
+                      control={form.control}
+                      name="roll_number"
+                      label="Roll number (private)"
+                      keyboardType="numeric"
+                    />
+                  </View>
+                  <View style={styles.col}>
+                    <RHFInput
+                      control={form.control}
+                      name="registration_number"
+                      label="Registration (private)"
+                      keyboardType="numeric"
+                    />
+                  </View>
+                </View>
+              ) : null}
+
+              <Controller
+                control={form.control}
+                name="document_url"
+                render={({ field }) => (
+                  <FileField
+                    label={spec.documentLabel}
+                    hint="JPG, PNG or PDF · images up to 5 MB, PDF up to 10 MB"
+                    value={field.value ?? ''}
+                    onChange={field.onChange}
+                  />
+                )}
+              />
+            </>
+          ) : null}
+        </View>
+      )}
+      {mode === 'idle' && items.length > 0 && (
+        <View style={styles.list}>
+          {items.map((item) => (
+            <EducationCard
+              key={item.id}
+              item={item}
+              onEdit={() => startEdit(item)}
+              onDelete={() => {
+                void remove(item.id);
+              }}
+            />
+          ))}
+        </View>
+      )}
+    </ModeShell>
   );
 }
 
@@ -248,6 +669,37 @@ function projectToFormValues(item: PortfolioProjectItem | null): ProjectFormValu
 
 // ── Certificates ────────────────────────────────────────────────────────────
 
+const CERTIFICATE_FORM_DEFAULTS: CertificateFormValues = {
+  title: '',
+  certificate_type: '',
+  issuer: '',
+  program_name: '',
+  issued_on: '',
+  expires_on: '',
+  credential_id: '',
+  credential_url: '',
+  verification_url: '',
+  description: '',
+  file_url: '',
+};
+
+function certificateToFormValues(item: PortfolioCertificateItem | null): CertificateFormValues {
+  if (!item) return { ...CERTIFICATE_FORM_DEFAULTS };
+  return {
+    title: item.title,
+    certificate_type: (item.certificateType ?? '') as CertificateFormValues['certificate_type'],
+    issuer: item.issuer ?? '',
+    program_name: item.programName ?? '',
+    issued_on: item.issuedOn ?? '',
+    expires_on: item.expiresOn ?? '',
+    credential_id: item.credentialId ?? '',
+    credential_url: item.credentialUrl ?? '',
+    verification_url: item.verificationUrl ?? '',
+    description: item.description ?? '',
+    file_url: item.fileUrl ?? '',
+  };
+}
+
 interface CertificatesSectionProps {
   items: PortfolioCertificateItem[];
   isSaving: boolean;
@@ -257,6 +709,12 @@ interface CertificatesSectionProps {
   errorMessage: string | null;
 }
 
+/**
+ * Non-academic certificates: courses, training, competitions, workshops…
+ * (Academic qualifications belong to the Education section above.) Supports
+ * uploading the actual certificate (JPG/PNG/PDF into private storage) or
+ * linking an external credential URL.
+ */
 export function CertificatesSection({
   items,
   isSaving,
@@ -271,12 +729,12 @@ export function CertificatesSection({
 
   const form = useForm<CertificateFormValues>({
     resolver: zodResolver(certificateFormSchema),
-    defaultValues: { title: '', issuer: '', issued_on: '', file_url: '' },
+    defaultValues: certificateToFormValues(editing),
   });
 
   const startAdd = () => {
     setEditingId(null);
-    form.reset({ title: '', issuer: '', issued_on: '', file_url: '' });
+    form.reset({ ...CERTIFICATE_FORM_DEFAULTS });
     setMode('add');
   };
   const startEdit = (item: PortfolioCertificateItem) => {
@@ -285,7 +743,7 @@ export function CertificatesSection({
     setMode('add');
   };
   const cancel = () => {
-    form.reset({ title: '', issuer: '', issued_on: '', file_url: '' });
+    form.reset({ ...CERTIFICATE_FORM_DEFAULTS });
     setEditingId(null);
     setMode('idle');
   };
@@ -304,7 +762,7 @@ export function CertificatesSection({
       count={items.length}
       emptyIcon="shield-checkmark-outline"
       emptyTitle="No certificates yet"
-      emptyMessage="Add the certificates and credentials you've earned."
+      emptyMessage="Add course, training, competition or workshop certificates you've earned."
       isSaving={isSaving}
       onSubmit={submit}
       saveLabel={editing ? 'Save changes' : 'Add certificate'}
@@ -312,10 +770,77 @@ export function CertificatesSection({
       {mode === 'add' && (
         <View>
           <ErrorBanner message={errorMessage} />
-          <RHFInput control={form.control} name="title" label="Title" />
-          <RHFInput control={form.control} name="issuer" label="Issuing organization" placeholder="Coursera, KUET, IEEE…" />
-          <RHFInput control={form.control} name="issued_on" label="Issued on" placeholder="YYYY-MM-DD" />
-          <RHFInput control={form.control} name="file_url" label="File URL (optional)" placeholder="https://…" keyboardType="url" />
+          <RHFInput control={form.control} name="title" label="Certificate title" />
+          <RHFSelect
+            control={form.control}
+            name="certificate_type"
+            label="Certificate type"
+            options={CERTIFICATE_TYPE_OPTIONS}
+            placeholder="Select type"
+            clearable={false}
+          />
+          <RHFInput
+            control={form.control}
+            name="issuer"
+            label="Issuing organization"
+            placeholder="Coursera, ICT Division, IEEE…"
+          />
+          <RHFInput
+            control={form.control}
+            name="program_name"
+            label="Course / Program name (optional)"
+          />
+          <View style={styles.row}>
+            <View style={styles.col}>
+              <RHFInput
+                control={form.control}
+                name="issued_on"
+                label="Issued on"
+                placeholder="YYYY-MM-DD"
+              />
+            </View>
+            <View style={styles.col}>
+              <RHFInput
+                control={form.control}
+                name="expires_on"
+                label="Expires on (optional)"
+                placeholder="YYYY-MM-DD"
+              />
+            </View>
+          </View>
+          <RHFInput control={form.control} name="credential_id" label="Credential ID (optional)" />
+          <RHFInput
+            control={form.control}
+            name="credential_url"
+            label="Credential URL (optional)"
+            placeholder="https://…"
+            keyboardType="url"
+          />
+          <RHFInput
+            control={form.control}
+            name="verification_url"
+            label="Verification URL (optional)"
+            placeholder="https://…"
+            keyboardType="url"
+          />
+          <RHFInput
+            control={form.control}
+            name="description"
+            label="Description (optional)"
+            multiline
+          />
+          <Controller
+            control={form.control}
+            name="file_url"
+            render={({ field }) => (
+              <FileField
+                label="Certificate file"
+                hint="JPG, PNG or PDF · images up to 5 MB, PDF up to 10 MB"
+                value={field.value ?? ''}
+                onChange={field.onChange}
+              />
+            )}
+          />
         </View>
       )}
       {mode === 'idle' && items.length > 0 && (
@@ -334,15 +859,6 @@ export function CertificatesSection({
       )}
     </ModeShell>
   );
-}
-
-function certificateToFormValues(item: PortfolioCertificateItem): CertificateFormValues {
-  return {
-    title: item.title,
-    issuer: item.issuer ?? '',
-    issued_on: item.issuedOn ?? '',
-    file_url: item.fileUrl ?? '',
-  };
 }
 
 // ── Achievements ────────────────────────────────────────────────────────────

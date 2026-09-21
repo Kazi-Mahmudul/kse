@@ -1,6 +1,7 @@
 import type {
   PortfolioAchievementItem,
   PortfolioCertificateItem,
+  PortfolioEducationItem,
   PortfolioLinkItem,
   PortfolioProjectItem,
   PortfolioResearchItem,
@@ -17,6 +18,9 @@ import { supabase } from '@/lib/supabase';
  * Resume file upload + signed URLs are deferred to the storage step.
  * For now `user_resumes.file_url` is an external (public) link the
  * student hosts themselves (Drive, Notion, a profile site).
+ *
+ * Certificate / marksheet uploads go to the private `certificates`
+ * bucket (CLAUDE.md §15) and are viewed through short-lived signed URLs.
  */
 
 export class PortfolioError extends Error {}
@@ -36,6 +40,237 @@ async function requireUserId(context: string): Promise<string> {
   } = await supabase.auth.getUser();
   if (error || !user) fail(context, { message: 'You need to sign in first' });
   return user.id;
+}
+
+// ── File upload (private `certificates` bucket, CLAUDE.md §15) ──────────────
+
+const DOCUMENT_BUCKET = 'certificates';
+/** Client-side mirrors of the bucket limits (10 MB) and CLAUDE.md §15 image cap. */
+export const FILE_LIMITS = {
+  imageMaxBytes: 5 * 1024 * 1024,
+  pdfMaxBytes: 10 * 1024 * 1024,
+} as const;
+
+const EXT_BY_MIME: Record<string, string> = {
+  'application/pdf': 'pdf',
+  'image/jpeg': 'jpg',
+  'image/png': 'png',
+};
+
+/** Unique object-name suffix without a crypto dependency (see avatar upload). */
+let uploadCounter = 0;
+function uniqueSuffix(): string {
+  uploadCounter += 1;
+  return `${Date.now().toString(36)}-${uploadCounter.toString(36)}-${Math.random()
+    .toString(36)
+    .slice(2, 10)}`;
+}
+
+export interface PortfolioDocumentInput {
+  localUri: string;
+  mimeType: string;
+}
+
+/**
+ * Upload a picked certificate/marksheet into the private `certificates`
+ * bucket under `<userId>/<unique>.<ext>` (the bucket's RLS requires the
+ * first path segment to be auth.uid()). Returns the storage path, which is
+ * what gets stored in `user_certificates.file_url` / `user_education.document_url`
+ * — distinguishable from external links because it has no https scheme.
+ * Raw-ArrayBuffer body for the same MIME-override reason as the avatar upload.
+ */
+export async function uploadPortfolioDocument(
+  input: PortfolioDocumentInput,
+): Promise<string> {
+  const userId = await requireUserId('Could not upload the file');
+  const ext = EXT_BY_MIME[input.mimeType];
+  if (!ext) fail('Could not upload the file', { message: 'Unsupported file type' });
+
+  const path = `${userId}/${uniqueSuffix()}.${ext}`;
+  const response = await fetch(input.localUri);
+  const bytes = await response.arrayBuffer();
+  const { error } = await supabase.storage
+    .from(DOCUMENT_BUCKET)
+    .upload(path, bytes, { contentType: input.mimeType });
+  if (error) {
+    fail(
+      'Could not upload the file',
+      error.message ? { message: error.message } : null,
+    );
+  }
+  return path;
+}
+
+/** True when a stored file reference points into Supabase Storage. */
+export function isStoragePath(fileUrl: string | null | undefined): boolean {
+  return Boolean(fileUrl) && !/^https?:\/\//iu.test(fileUrl as string);
+}
+
+/**
+ * Resolve a stored file reference into something openable: storage paths
+ * become a 1-hour signed URL (owner-only via the bucket's select policy),
+ * external links pass through untouched.
+ */
+export async function resolveViewableFileUrl(
+  fileUrl: string | null | undefined,
+): Promise<string | null> {
+  if (!fileUrl) return null;
+  if (!isStoragePath(fileUrl)) return fileUrl;
+  const { data, error } = await supabase.storage
+    .from(DOCUMENT_BUCKET)
+    .createSignedUrl(fileUrl, 3600);
+  if (error || !data) {
+    fail('Could not open the file', error ? { message: error.message } : null);
+  }
+  return data.signedUrl;
+}
+
+/** Delete a previously uploaded document (ignored for external links). */
+export async function deletePortfolioDocument(
+  fileUrl: string | null | undefined,
+): Promise<void> {
+  if (!isStoragePath(fileUrl)) return;
+  const { error } = await supabase.storage
+    .from(DOCUMENT_BUCKET)
+    .remove([fileUrl as string]);
+  if (error) fail('Could not remove the old file', { message: error.message });
+}
+
+// ── Education ────────────────────────────────────────────────────────────────
+
+const EDUCATION_COLUMNS =
+  'id, level, institution, board, country, study_group, roll_number, registration_number, degree_type, program_name, major, campus, research_area, thesis_title, supervisor, start_year, passing_year, is_ongoing, result_type, result, result_scale, document_url, created_at, updated_at';
+
+interface EducationRow {
+  id: string;
+  level: PortfolioEducationItem['level'];
+  institution: string;
+  board: string | null;
+  country: string;
+  study_group: string | null;
+  roll_number: string | null;
+  registration_number: string | null;
+  degree_type: string | null;
+  program_name: string | null;
+  major: string | null;
+  campus: string | null;
+  research_area: string | null;
+  thesis_title: string | null;
+  supervisor: string | null;
+  start_year: number | null;
+  passing_year: number | null;
+  is_ongoing: boolean;
+  result_type: string | null;
+  result: string | null;
+  result_scale: number | null;
+  document_url: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+function rowToEducation(row: EducationRow): PortfolioEducationItem {
+  return {
+    id: row.id,
+    level: row.level,
+    institution: row.institution,
+    board: row.board,
+    country: row.country,
+    studyGroup: row.study_group,
+    rollNumber: row.roll_number,
+    registrationNumber: row.registration_number,
+    degreeType: row.degree_type,
+    programName: row.program_name,
+    major: row.major,
+    campus: row.campus,
+    researchArea: row.research_area,
+    thesisTitle: row.thesis_title,
+    supervisor: row.supervisor,
+    startYear: row.start_year,
+    passingYear: row.passing_year,
+    isOngoing: row.is_ongoing,
+    resultType: row.result_type,
+    result: row.result,
+    resultScale: row.result_scale,
+    documentUrl: row.document_url,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+export async function listMyEducation(): Promise<PortfolioEducationItem[]> {
+  const { data, error } = await supabase
+    .from('user_education')
+    .select(EDUCATION_COLUMNS)
+    // Ongoing (no passing year yet) first, then most recent first — the
+    // chronological order the portfolio displays qualifications in.
+    .order('passing_year', { ascending: false, nullsFirst: true })
+    .order('start_year', { ascending: false, nullsFirst: true })
+    .order('created_at', { ascending: false });
+  if (error) fail('Could not load education', error);
+  return ((data ?? []) as unknown as EducationRow[]).map(rowToEducation);
+}
+
+export interface EducationUpsert {
+  level: PortfolioEducationItem['level'];
+  institution: string;
+  board: string | null;
+  study_group: string | null;
+  degree_type: string | null;
+  program_name: string | null;
+  major: string | null;
+  campus: string | null;
+  research_area: string | null;
+  thesis_title: string | null;
+  supervisor: string | null;
+  roll_number: string | null;
+  registration_number: string | null;
+  start_year: number | null;
+  passing_year: number | null;
+  is_ongoing: boolean;
+  result_type: string | null;
+  result: string | null;
+  result_scale: number | null;
+  document_url: string | null;
+}
+
+export async function createEducation(
+  input: EducationUpsert,
+): Promise<PortfolioEducationItem> {
+  const userId = await requireUserId('Could not save the education entry');
+  const { data, error } = await supabase
+    .from('user_education')
+    .insert({ ...input, user_id: userId })
+    .select(EDUCATION_COLUMNS)
+    .single();
+  if (error || !data) fail('Could not save the education entry', error);
+  return rowToEducation(data as unknown as EducationRow);
+}
+
+export async function updateEducation(
+  id: string,
+  input: EducationUpsert,
+): Promise<PortfolioEducationItem> {
+  const { data, error } = await supabase
+    .from('user_education')
+    .update(input)
+    .eq('id', id)
+    .select(EDUCATION_COLUMNS)
+    .single();
+  if (error || !data) fail('Could not update the education entry', error);
+  return rowToEducation(data as unknown as EducationRow);
+}
+
+export async function deleteEducation(id: string): Promise<void> {
+  // Best-effort marksheet cleanup (same reason as deleteCertificate).
+  const { data } = await supabase
+    .from('user_education')
+    .select('document_url')
+    .eq('id', id)
+    .maybeSingle();
+  const documentUrl = (data as { document_url: string | null } | null)?.document_url;
+  const { error } = await supabase.from('user_education').delete().eq('id', id);
+  if (error) fail('Could not delete the education entry', error);
+  if (isStoragePath(documentUrl)) await deletePortfolioDocument(documentUrl);
 }
 
 // ── Projects ────────────────────────────────────────────────────────────────
@@ -121,11 +356,21 @@ export async function deleteProject(id: string): Promise<void> {
 
 // ── Certificates ────────────────────────────────────────────────────────────
 
+const CERTIFICATE_COLUMNS =
+  'id, title, certificate_type, issuer, program_name, issued_on, expires_on, credential_id, credential_url, verification_url, description, file_url, created_at, updated_at';
+
 interface CertificateRow {
   id: string;
   title: string;
+  certificate_type: string | null;
   issuer: string | null;
+  program_name: string | null;
   issued_on: string | null;
+  expires_on: string | null;
+  credential_id: string | null;
+  credential_url: string | null;
+  verification_url: string | null;
+  description: string | null;
   file_url: string | null;
   created_at: string;
   updated_at: string;
@@ -135,8 +380,15 @@ function rowToCertificate(row: CertificateRow): PortfolioCertificateItem {
   return {
     id: row.id,
     title: row.title,
+    certificateType: row.certificate_type,
     issuer: row.issuer,
+    programName: row.program_name,
     issuedOn: row.issued_on,
+    expiresOn: row.expires_on,
+    credentialId: row.credential_id,
+    credentialUrl: row.credential_url,
+    verificationUrl: row.verification_url,
+    description: row.description,
     fileUrl: row.file_url,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -146,7 +398,7 @@ function rowToCertificate(row: CertificateRow): PortfolioCertificateItem {
 export async function listMyCertificates(): Promise<PortfolioCertificateItem[]> {
   const { data, error } = await supabase
     .from('user_certificates')
-    .select('id, title, issuer, issued_on, file_url, created_at, updated_at')
+    .select(CERTIFICATE_COLUMNS)
     .order('issued_on', { ascending: false, nullsFirst: false })
     .order('created_at', { ascending: false });
   if (error) fail('Could not load certificates', error);
@@ -155,8 +407,15 @@ export async function listMyCertificates(): Promise<PortfolioCertificateItem[]> 
 
 export interface CertificateUpsert {
   title: string;
+  certificate_type: string | null;
   issuer: string | null;
+  program_name: string | null;
   issued_on: string | null;
+  expires_on: string | null;
+  credential_id: string | null;
+  credential_url: string | null;
+  verification_url: string | null;
+  description: string | null;
   file_url: string | null;
 }
 
@@ -167,7 +426,7 @@ export async function createCertificate(
   const { data, error } = await supabase
     .from('user_certificates')
     .insert({ ...input, user_id: userId })
-    .select('id, title, issuer, issued_on, file_url, created_at, updated_at')
+    .select(CERTIFICATE_COLUMNS)
     .single();
   if (error || !data) fail('Could not save the certificate', error);
   return rowToCertificate(data as unknown as CertificateRow);
@@ -181,15 +440,24 @@ export async function updateCertificate(
     .from('user_certificates')
     .update(input)
     .eq('id', id)
-    .select('id, title, issuer, issued_on, file_url, created_at, updated_at')
+    .select(CERTIFICATE_COLUMNS)
     .single();
   if (error || !data) fail('Could not update the certificate', error);
   return rowToCertificate(data as unknown as CertificateRow);
 }
 
 export async function deleteCertificate(id: string): Promise<void> {
+  // Best-effort storage cleanup: remove an uploaded file so deleted rows
+  // don't leave orphaned objects in the private bucket.
+  const { data } = await supabase
+    .from('user_certificates')
+    .select('file_url')
+    .eq('id', id)
+    .maybeSingle();
+  const fileUrl = (data as { file_url: string | null } | null)?.file_url;
   const { error } = await supabase.from('user_certificates').delete().eq('id', id);
   if (error) fail('Could not delete the certificate', error);
+  if (isStoragePath(fileUrl)) await deletePortfolioDocument(fileUrl);
 }
 
 // ── Achievements ────────────────────────────────────────────────────────────

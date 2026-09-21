@@ -1,23 +1,39 @@
 import type {
   AcademicLevel,
+  CertificateType,
   DegreeLevel,
+  EducationBoard,
+  EducationLevel,
+  EducationResultScale,
+  EducationResultType,
   EventType,
   FundingType,
   OpportunityInternshipType,
   OpportunityMode,
   OpportunityStatus,
   OpportunityType,
+  PostgradDegreeType,
+  StudyGroup,
+  UndergradDegreeType,
   UserRole,
 } from '@kse/types';
 import {
   ACADEMIC_LEVELS,
+  CERTIFICATE_TYPES,
   DEGREE_LEVELS,
+  EDUCATION_BOARDS,
+  EDUCATION_LEVELS,
+  EDUCATION_RESULT_SCALES,
+  EDUCATION_RESULT_TYPES,
   EVENT_TYPES,
   FUNDING_TYPES,
   OPPORTUNITY_INTERNSHIP_TYPES,
   OPPORTUNITY_MODES,
   OPPORTUNITY_STATUSES,
   OPPORTUNITY_TYPES,
+  POSTGRAD_DEGREE_TYPES,
+  STUDY_GROUPS,
+  UNDERGRAD_DEGREE_TYPES,
 } from '@kse/types';
 
 export const APP_NAME = 'KSE';
@@ -97,6 +113,143 @@ export const ACADEMIC_LEVEL_LABELS: Record<AcademicLevel, string> = {
   ssc: 'SSC',
   other: 'Other',
 };
+
+// ── Education (Bangladesh education system, user_education) ──────────────────
+
+export const EDUCATION_LEVEL_LABELS: Record<EducationLevel, string> = {
+  primary_psc: 'Primary / PSC',
+  jsc: 'JSC',
+  ssc: 'SSC',
+  hsc: 'HSC',
+  diploma: 'Diploma / Polytechnic',
+  certificate_course: 'Certificate Course',
+  bachelor: 'Bachelor / Undergraduate',
+  masters: "Master's / Postgraduate",
+  mphil: 'MPhil',
+  phd: 'PhD',
+  other: 'Other',
+};
+
+export const EDUCATION_BOARD_LABELS: Record<EducationBoard, string> = {
+  dhaka: 'Dhaka',
+  chattogram: 'Chattogram',
+  rajshahi: 'Rajshahi',
+  cumilla: 'Cumilla',
+  jashore: 'Jashore',
+  barishal: 'Barishal',
+  sylhet: 'Sylhet',
+  dinajpur: 'Dinajpur',
+  mymensingh: 'Mymensingh',
+  madrasah: 'Madrasah',
+  technical: 'Technical',
+  other: 'Other',
+};
+
+export const STUDY_GROUP_LABELS: Record<StudyGroup, string> = {
+  science: 'Science',
+  humanities: 'Humanities',
+  business_studies: 'Business Studies',
+  other: 'Other',
+};
+
+export const UNDERGRAD_DEGREE_LABELS: Record<UndergradDegreeType, string> = {
+  bsc: 'BSc',
+  bba: 'BBA',
+  ba: 'BA',
+  bss: 'BSS',
+  bcom: 'BCom',
+  llb: 'LLB',
+  beng: 'BEng',
+  other: 'Other',
+};
+
+export const POSTGRAD_DEGREE_LABELS: Record<PostgradDegreeType, string> = {
+  msc: 'MSc',
+  mba: 'MBA',
+  ma: 'MA',
+  mss: 'MSS',
+  mcom: 'MCom',
+  llm: 'LLM',
+  meng: 'MEng',
+  other: 'Other',
+};
+
+export const EDUCATION_RESULT_TYPE_LABELS: Record<EducationResultType, string> = {
+  gpa: 'GPA',
+  cgpa: 'CGPA',
+  percentage: 'Percentage',
+  division: 'Division',
+  other: 'Other',
+};
+
+export const EDUCATION_RESULT_SCALE_LABELS: Record<EducationResultScale, string> = {
+  '4.00': '4.00 (university CGPA)',
+  '5.00': '5.00 (SSC/HSC GPA)',
+  '100': '100 (percentage)',
+};
+
+export const CERTIFICATE_TYPE_LABELS: Record<CertificateType, string> = {
+  academic: 'Academic Certificate',
+  course: 'Course Certificate',
+  professional: 'Professional Certificate',
+  training: 'Training',
+  workshop: 'Workshop',
+  seminar_conference: 'Seminar / Conference',
+  competition: 'Competition',
+  olympiad: 'Olympiad',
+  hackathon: 'Hackathon',
+  programming_it: 'Programming / IT',
+  language: 'Language',
+  leadership: 'Leadership',
+  volunteering: 'Volunteering',
+  sports: 'Sports',
+  debate: 'Debate',
+  cultural: 'Cultural Activity',
+  entrepreneurship: 'Entrepreneurship',
+  internship_training: 'Internship / Industrial Training',
+  research: 'Research',
+  other: 'Other',
+};
+
+export const EDUCATION_LEVEL_OPTIONS = EDUCATION_LEVELS.map((value) => ({
+  value,
+  label: EDUCATION_LEVEL_LABELS[value],
+}));
+
+export const EDUCATION_BOARD_OPTIONS = EDUCATION_BOARDS.map((value) => ({
+  value,
+  label: EDUCATION_BOARD_LABELS[value],
+}));
+
+export const STUDY_GROUP_OPTIONS = STUDY_GROUPS.map((value) => ({
+  value,
+  label: STUDY_GROUP_LABELS[value],
+}));
+
+export const UNDERGRAD_DEGREE_OPTIONS = UNDERGRAD_DEGREE_TYPES.map((value) => ({
+  value,
+  label: UNDERGRAD_DEGREE_LABELS[value],
+}));
+
+export const POSTGRAD_DEGREE_OPTIONS = POSTGRAD_DEGREE_TYPES.map((value) => ({
+  value,
+  label: POSTGRAD_DEGREE_LABELS[value],
+}));
+
+export const EDUCATION_RESULT_TYPE_OPTIONS = EDUCATION_RESULT_TYPES.map((value) => ({
+  value,
+  label: EDUCATION_RESULT_TYPE_LABELS[value],
+}));
+
+export const EDUCATION_RESULT_SCALE_OPTIONS = EDUCATION_RESULT_SCALES.map((value) => ({
+  value,
+  label: EDUCATION_RESULT_SCALE_LABELS[value],
+}));
+
+export const CERTIFICATE_TYPE_OPTIONS = CERTIFICATE_TYPES.map((value) => ({
+  value,
+  label: CERTIFICATE_TYPE_LABELS[value],
+}));
 
 /** Iterating enum options in UI (filters, admin selects). */
 export const OPPORTUNITY_TYPE_OPTIONS = OPPORTUNITY_TYPES.map((value) => ({

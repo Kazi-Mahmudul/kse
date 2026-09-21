@@ -10,6 +10,7 @@ import { Pressable, StyleSheet, Switch, Text, TextInput, View } from 'react-nati
 import { ThemedText } from '@/components/themed-text';
 import { Card } from '@/components/ui/card';
 import { Chip } from '@/components/ui/chip';
+import { SelectField, type SelectOption } from '@/components/ui/select-field';
 import { useTheme } from '@/hooks/use-theme';
 import { Spacing } from '@/constants/theme';
 
@@ -95,6 +96,61 @@ export function RHFToggle<T extends FieldValues>({
             value={Boolean(value)}
             onValueChange={onChange}
             trackColor={{ false: colors.backgroundElement, true: colors.primary }}
+          />
+          {fieldState.error && (
+            <Text style={[styles.error, { color: colors.danger }]}>
+              {fieldState.error.message}
+            </Text>
+          )}
+        </View>
+      )}
+    />
+  );
+}
+
+interface RHFSelectProps<T extends FieldValues> {
+  control: Control<T>;
+  name: Path<T>;
+  label: string;
+  options: readonly SelectOption[];
+  placeholder?: string;
+  /** Show a "None" row that clears the value — pass false for required fields. */
+  clearable?: boolean;
+  /** Side-effect hook when the user picks a value, e.g. re-applying
+   *  level-specific defaults after the education level changes. */
+  onSelect?: (value: string | null) => void;
+}
+
+/**
+ * RHF-backed bottom-sheet select (wraps the shared SelectField). Form values
+ * use '' as the "unset" sentinel; the picker's null is mapped back to ''.
+ */
+export function RHFSelect<T extends FieldValues>({
+  control,
+  name,
+  label,
+  options,
+  placeholder = 'Not set',
+  clearable,
+  onSelect,
+}: RHFSelectProps<T>) {
+  const colors = useTheme();
+  return (
+    <Controller
+      control={control}
+      name={name}
+      render={({ field: { onChange, value }, fieldState }) => (
+        <View style={styles.field}>
+          <SelectField
+            label={label}
+            value={(value as string | undefined | null) ?? null}
+            options={options}
+            onSelect={(next) => {
+              onSelect?.(next);
+              onChange(next ?? '');
+            }}
+            placeholder={placeholder}
+            clearable={clearable}
           />
           {fieldState.error && (
             <Text style={[styles.error, { color: colors.danger }]}>

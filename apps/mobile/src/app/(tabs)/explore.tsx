@@ -32,6 +32,24 @@ export default function ExploreScreen() {
   const counts = countsQuery.data;
   const tutorCount = tutorCountQuery.data;
 
+  // Live category filter: typing "intern" narrows the rows immediately, so
+  // the bar gives feedback before the user commits to the global search.
+  const normalized = query.trim().toLowerCase();
+  const visibleCategories = normalized
+    ? EXPLORE_CATEGORIES.filter(
+        (category) =>
+          category.label.toLowerCase().includes(normalized) ||
+          category.description.toLowerCase().includes(normalized) ||
+          category.slug.includes(normalized),
+      )
+    : EXPLORE_CATEGORIES;
+
+  const openSearch = () =>
+    router.push({
+      pathname: '/(tabs)/search',
+      params: query.trim() ? { q: query.trim() } : {},
+    });
+
   return (
     <Screen>
       <ThemedText type="title">Explore</ThemedText>
@@ -40,15 +58,18 @@ export default function ExploreScreen() {
         value={query}
         onChangeText={setQuery}
         placeholder="Search opportunities, tutors…"
-        onSubmitEditing={() =>
-          router.push({
-            pathname: '/(tabs)/search',
-            params: query.trim() ? { q: query.trim() } : {},
-          })
-        }
+        onSubmitEditing={openSearch}
       />
 
-      {EXPLORE_CATEGORIES.length === 0 ? (
+      {normalized && visibleCategories.length === 0 ? (
+        <EmptyState
+          icon="search-outline"
+          title="No categories match"
+          message={`Nothing in Explore matches "${query.trim()}" — search every listing instead.`}
+          actionLabel={`Search all for "${query.trim()}"`}
+          onAction={openSearch}
+        />
+      ) : EXPLORE_CATEGORIES.length === 0 ? (
         <EmptyState
           icon="grid-outline"
           title="No categories yet"
@@ -56,7 +77,7 @@ export default function ExploreScreen() {
         />
       ) : (
         <View style={styles.list}>
-          {EXPLORE_CATEGORIES.map((category) => (
+          {visibleCategories.map((category) => (
             <CategoryRow
               key={category.slug}
               category={category}

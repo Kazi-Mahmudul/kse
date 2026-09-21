@@ -6,6 +6,7 @@ import { FontFamilies, type TintKey } from '@/constants/theme';
 import {
   useMyAchievements,
   useMyCertificates,
+  useMyEducation,
   useMyPortfolioLinks,
   useMyProjects,
   useMyResearch,
@@ -24,6 +25,7 @@ interface TileSpec {
 
 /** Same tile set as the item-card badges (items.tsx SPECS) — one identity per kind. */
 const PORTFOLIO_TILES: readonly TileSpec[] = [
+  { key: 'education', label: 'Education', icon: 'school-outline', tint: 'teal' },
   { key: 'projects', label: 'Projects', icon: 'folder-open-outline', tint: 'indigo' },
   { key: 'certificates', label: 'Certificates', icon: 'shield-checkmark-outline', tint: 'cyan' },
   { key: 'achievements', label: 'Achievements', icon: 'trophy-outline', tint: 'amber' },
@@ -33,7 +35,7 @@ const PORTFOLIO_TILES: readonly TileSpec[] = [
 ] as const;
 
 /**
- * Portfolio overview strip — a 2×3 grid of live per-kind counts in the
+ * Portfolio overview strip — a grid of live per-kind counts in the
  * profile "My Portfolio" tile language (design 05._profile_kse). Counts
  * render `—` while in flight so the grid doesn't reflow on hydration;
  * the grid always shows, giving the page a stable skeleton.
@@ -41,6 +43,7 @@ const PORTFOLIO_TILES: readonly TileSpec[] = [
 export function PortfolioOverview() {
   const colors = useTheme();
   const tints = useTints();
+  const educationQ = useMyEducation();
   const projectsQ = useMyProjects();
   const certificatesQ = useMyCertificates();
   const achievementsQ = useMyAchievements();
@@ -49,6 +52,7 @@ export function PortfolioOverview() {
   const linksQ = useMyPortfolioLinks();
 
   const counts: Record<string, number | undefined> = {
+    education: educationQ.data?.length,
     projects: projectsQ.data?.length,
     certificates: certificatesQ.data?.length,
     achievements: achievementsQ.data?.length,
