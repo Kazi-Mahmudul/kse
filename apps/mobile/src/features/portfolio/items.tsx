@@ -26,6 +26,7 @@ import type {
 import { ThemedText } from '@/components/themed-text';
 import { Spacing, type TintKey } from '@/constants/theme';
 import { openPortfolioFile } from '@/features/portfolio/queries';
+import { isStoragePath } from '@/features/portfolio/service';
 import { useTheme } from '@/hooks/use-theme';
 import { useTints } from '@/hooks/use-tints';
 import { formatDate } from '@/lib/dates';
@@ -455,15 +456,28 @@ export function ResumeCard({
   onEdit(): void;
   onDelete(): void;
 }) {
+  const uploaded = isStoragePath(item.fileUrl);
   return (
     <CardShell
       kind="resume"
-      title={item.isPrimary ? 'Primary resume' : 'Resume'}
-      meta={item.isPrimary ? 'Shared with applications' : null}
+      title={item.fileName ?? (uploaded ? 'Resume' : 'Resume link')}
+      meta={[
+        item.isPrimary ? 'Primary · shared with applications' : null,
+        `Updated ${formatDate(item.updatedAt)}`,
+      ]
+        .filter(Boolean)
+        .join(' · ') || null}
       onEdit={onEdit}
       onDelete={onDelete}
+      onView={() => void openPortfolioFile(item.fileUrl)}
     >
-      <UrlRow url={item.fileUrl} />
+      {uploaded ? (
+        <ThemedText themeColor="textSecondary" style={styles.body} numberOfLines={1}>
+          PDF · stored privately in your portfolio
+        </ThemedText>
+      ) : (
+        <UrlRow url={item.fileUrl} />
+      )}
     </CardShell>
   );
 }

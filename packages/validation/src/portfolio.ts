@@ -262,10 +262,10 @@ export type ResearchFormValues = ResearchInput;
 // ── Resume entries ──────────────────────────────────────────────────────────
 
 export const resumeSchema = z.object({
-  file_url: z
-    .string()
-    .trim()
-    .url('Enter a valid URL pointing to your resume PDF'),
+  // Storage path (`resumes/<uid>/<file>.pdf`) or an external https link.
+  file_url: fileRef,
+  /** Original filename of the upload — display-only, blank for links. */
+  file_name: z.string().trim().max(200),
   is_primary: z.boolean(),
 });
 

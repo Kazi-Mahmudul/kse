@@ -196,6 +196,8 @@ export interface PortfolioResearchItem {
 export interface PortfolioResumeItem {
   id: string;
   fileUrl: string;
+  /** Display filename of the uploaded PDF (null for external links). */
+  fileName: string | null;
   isPrimary: boolean;
   createdAt: string;
   updatedAt: string;

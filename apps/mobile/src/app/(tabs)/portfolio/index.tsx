@@ -342,7 +342,11 @@ function ResumesSectionBound() {
 }
 
 function toResumePayload(v: ResumeFormValues) {
-  return { file_url: v.file_url, is_primary: v.is_primary };
+  return {
+    file_url: v.file_url,
+    file_name: v.file_name.trim() === '' ? null : v.file_name.trim(),
+    is_primary: v.is_primary,
+  };
 }
 
 function PortfolioLinksSectionBound() {

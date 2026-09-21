@@ -1092,21 +1092,25 @@ export function ResumesSection({
 
   const form = useForm<ResumeFormValues>({
     resolver: zodResolver(resumeFormSchema),
-    defaultValues: { file_url: '', is_primary: false },
+    defaultValues: { file_url: '', file_name: '', is_primary: false },
   });
 
   const startAdd = () => {
     setEditingId(null);
-    form.reset({ file_url: '', is_primary: items.length === 0 });
+    form.reset({ file_url: '', file_name: '', is_primary: items.length === 0 });
     setMode('add');
   };
   const startEdit = (item: PortfolioResumeItem) => {
     setEditingId(item.id);
-    form.reset({ file_url: item.fileUrl, is_primary: item.isPrimary });
+    form.reset({
+      file_url: item.fileUrl,
+      file_name: item.fileName ?? '',
+      is_primary: item.isPrimary,
+    });
     setMode('add');
   };
   const cancel = () => {
-    form.reset({ file_url: '', is_primary: false });
+    form.reset({ file_url: '', file_name: '', is_primary: false });
     setEditingId(null);
     setMode('idle');
   };
@@ -1121,11 +1125,11 @@ export function ResumesSection({
       mode={mode === 'idle' ? 'idle' : 'add'}
       onAdd={startAdd}
       onCancel={cancel}
-      title="Resumes"
+      title="Resume / CV"
       count={items.length}
       emptyIcon="document-text-outline"
-      emptyTitle="No resumes yet"
-      emptyMessage="Add a public link to your PDF resume. Storage uploads arrive in a later release."
+      emptyTitle="No resume yet"
+      emptyMessage="Upload your CV as a PDF — stored privately and opened with a secure link — or add a public link."
       isSaving={isSaving}
       onSubmit={submit}
       saveLabel={editing ? 'Save changes' : 'Add resume'}
@@ -1133,12 +1137,19 @@ export function ResumesSection({
       {mode === 'add' && (
         <View>
           <ErrorBanner message={errorMessage} />
-          <RHFInput
+          <Controller
             control={form.control}
             name="file_url"
-            label="Resume URL"
-            placeholder="https://drive.google.com/…"
-            keyboardType="url"
+            render={({ field }) => (
+              <FileField
+                label="Resume file"
+                hint="PDF up to 10 MB · private to you"
+                bucket="resumes"
+                value={field.value ?? ''}
+                onChange={field.onChange}
+                onFileName={(name) => form.setValue('file_name', name ?? '')}
+              />
+            )}
           />
           <RHFToggle
             control={form.control}

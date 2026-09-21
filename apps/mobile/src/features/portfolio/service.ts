@@ -15,12 +15,9 @@ import { supabase } from '@/lib/supabase';
  * authenticated reads on this client stay scoped to the current user's
  * own rows; inserts/updates enforce user_id = auth.uid() server-side.
  *
- * Resume file upload + signed URLs are deferred to the storage step.
- * For now `user_resumes.file_url` is an external (public) link the
- * student hosts themselves (Drive, Notion, a profile site).
- *
  * Certificate / marksheet uploads go to the private `certificates`
  * bucket (CLAUDE.md §15) and are viewed through short-lived signed URLs.
+ * Resumes upload into the private PDF-only `resumes` bucket the same way.
  */
 
 export class PortfolioError extends Error {}
@@ -45,6 +42,24 @@ async function requireUserId(context: string): Promise<string> {
 // ── File upload (private `certificates` bucket, CLAUDE.md §15) ──────────────
 
 const DOCUMENT_BUCKET = 'certificates';
+/** Private PDF-only bucket for resumes (see 20260906120011_storage_buckets.sql). */
+export const RESUME_BUCKET = 'resumes';
+
+export type PortfolioBucket = typeof DOCUMENT_BUCKET | typeof RESUME_BUCKET;
+
+/**
+ * Split a stored storage reference into bucket + object path. Uploads now
+ * store bucket-qualified refs (`resumes/<uid>/x.pdf`); rows written before
+ * that hold bare `<uid>/x.ext` paths, which belong to the certificates
+ * bucket. (A uid can never collide with a bucket name.)
+ */
+function splitStorageRef(fileUrl: string): { bucket: PortfolioBucket; path: string } {
+  const [first, ...rest] = fileUrl.split('/');
+  if (rest.length > 0 && first === RESUME_BUCKET) {
+    return { bucket: RESUME_BUCKET, path: rest.join('/') };
+  }
+  return { bucket: DOCUMENT_BUCKET, path: fileUrl };
+}
 /** Client-side mirrors of the bucket limits (10 MB) and CLAUDE.md §15 image cap. */
 export const FILE_LIMITS = {
   imageMaxBytes: 5 * 1024 * 1024,
@@ -69,14 +84,18 @@ function uniqueSuffix(): string {
 export interface PortfolioDocumentInput {
   localUri: string;
   mimeType: string;
+  /** Destination bucket — defaults to `certificates`; resumes use `resumes`. */
+  bucket?: PortfolioBucket;
 }
 
 /**
- * Upload a picked certificate/marksheet into the private `certificates`
- * bucket under `<userId>/<unique>.<ext>` (the bucket's RLS requires the
- * first path segment to be auth.uid()). Returns the storage path, which is
- * what gets stored in `user_certificates.file_url` / `user_education.document_url`
- * — distinguishable from external links because it has no https scheme.
+ * Upload a picked certificate/marksheet/resume into its private bucket under
+ * `<userId>/<unique>.<ext>` (the bucket's RLS requires the first path segment
+ * to be auth.uid()). Returns the bucket-qualified storage path
+ * (`<bucket>/<userId>/<unique>.<ext>`), which is what gets stored in
+ * `user_certificates.file_url` / `user_education.document_url` /
+ * `user_resumes.file_url` — distinguishable from external links because it
+ * has no https scheme.
  * Raw-ArrayBuffer body for the same MIME-override reason as the avatar upload.
  */
 export async function uploadPortfolioDocument(
@@ -86,11 +105,12 @@ export async function uploadPortfolioDocument(
   const ext = EXT_BY_MIME[input.mimeType];
   if (!ext) fail('Could not upload the file', { message: 'Unsupported file type' });
 
+  const bucket = input.bucket ?? DOCUMENT_BUCKET;
   const path = `${userId}/${uniqueSuffix()}.${ext}`;
   const response = await fetch(input.localUri);
   const bytes = await response.arrayBuffer();
   const { error } = await supabase.storage
-    .from(DOCUMENT_BUCKET)
+    .from(bucket)
     .upload(path, bytes, { contentType: input.mimeType });
   if (error) {
     fail(
@@ -98,7 +118,7 @@ export async function uploadPortfolioDocument(
       error.message ? { message: error.message } : null,
     );
   }
-  return path;
+  return `${bucket}/${path}`;
 }
 
 /** True when a stored file reference points into Supabase Storage. */
@@ -116,9 +136,10 @@ export async function resolveViewableFileUrl(
 ): Promise<string | null> {
   if (!fileUrl) return null;
   if (!isStoragePath(fileUrl)) return fileUrl;
+  const { bucket, path } = splitStorageRef(fileUrl);
   const { data, error } = await supabase.storage
-    .from(DOCUMENT_BUCKET)
-    .createSignedUrl(fileUrl, 3600);
+    .from(bucket)
+    .createSignedUrl(path, 3600);
   if (error || !data) {
     fail('Could not open the file', error ? { message: error.message } : null);
   }
@@ -130,9 +151,8 @@ export async function deletePortfolioDocument(
   fileUrl: string | null | undefined,
 ): Promise<void> {
   if (!isStoragePath(fileUrl)) return;
-  const { error } = await supabase.storage
-    .from(DOCUMENT_BUCKET)
-    .remove([fileUrl as string]);
+  const { bucket, path } = splitStorageRef(fileUrl as string);
+  const { error } = await supabase.storage.from(bucket).remove([path]);
   if (error) fail('Could not remove the old file', { message: error.message });
 }
 
@@ -617,9 +637,12 @@ export async function deleteResearch(id: string): Promise<void> {
 
 // ── Resumes ────────────────────────────────────────────────────────────────
 
+const RESUME_COLUMNS = 'id, file_url, file_name, is_primary, created_at, updated_at';
+
 interface ResumeRow {
   id: string;
   file_url: string;
+  file_name: string | null;
   is_primary: boolean;
   created_at: string;
   updated_at: string;
@@ -629,6 +652,7 @@ function rowToResume(row: ResumeRow): PortfolioResumeItem {
   return {
     id: row.id,
     fileUrl: row.file_url,
+    fileName: row.file_name,
     isPrimary: row.is_primary,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -638,7 +662,7 @@ function rowToResume(row: ResumeRow): PortfolioResumeItem {
 export async function listMyResumes(): Promise<PortfolioResumeItem[]> {
   const { data, error } = await supabase
     .from('user_resumes')
-    .select('id, file_url, is_primary, created_at, updated_at')
+    .select(RESUME_COLUMNS)
     .order('is_primary', { ascending: false })
     .order('created_at', { ascending: false });
   if (error) fail('Could not load resumes', error);
@@ -647,6 +671,7 @@ export async function listMyResumes(): Promise<PortfolioResumeItem[]> {
 
 export interface ResumeUpsert {
   file_url: string;
+  file_name: string | null;
   is_primary: boolean;
 }
 
@@ -672,7 +697,7 @@ export async function createResume(
   const { data, error } = await supabase
     .from('user_resumes')
     .insert({ ...input, user_id: userId })
-    .select('id, file_url, is_primary, created_at, updated_at')
+    .select(RESUME_COLUMNS)
     .single();
   if (error || !data) fail('Could not save the resume', error);
   return rowToResume(data as unknown as ResumeRow);
@@ -689,15 +714,24 @@ export async function updateResume(
     .from('user_resumes')
     .update(input)
     .eq('id', id)
-    .select('id, file_url, is_primary, created_at, updated_at')
+    .select(RESUME_COLUMNS)
     .single();
   if (error || !data) fail('Could not update the resume', error);
   return rowToResume(data as unknown as ResumeRow);
 }
 
 export async function deleteResume(id: string): Promise<void> {
+  // Best-effort storage cleanup so a deleted resume doesn't leave an
+  // orphaned PDF in the private bucket (same reason as deleteCertificate).
+  const { data } = await supabase
+    .from('user_resumes')
+    .select('file_url')
+    .eq('id', id)
+    .maybeSingle();
+  const fileUrl = (data as { file_url: string | null } | null)?.file_url;
   const { error } = await supabase.from('user_resumes').delete().eq('id', id);
   if (error) fail('Could not delete the resume', error);
+  if (isStoragePath(fileUrl)) await deletePortfolioDocument(fileUrl);
 }
 
 // ── Portfolio links ─────────────────────────────────────────────────────────
