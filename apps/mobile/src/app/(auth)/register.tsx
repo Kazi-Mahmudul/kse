@@ -1,5 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
+import { useState } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -9,15 +10,18 @@ import {
   View,
 } from 'react-native';
 
+import { AuthDivider, GoogleButton, googleSignInSupported } from '@/components/ui/google-button';
 import { PrimaryButton } from '@/components/ui/primary-button';
 import { TextField } from '@/components/ui/text-field';
 import { TextLink } from '@/components/ui/text-link';
+import { signInWithGoogle } from '@/features/auth/google';
 import { AuthError, signUp } from '@/features/auth/service';
 import { useTheme } from '@/hooks/use-theme';
 import { registerSchema } from '@kse/validation';
 
 export default function RegisterScreen() {
   const colors = useTheme();
+  const [googleLoading, setGoogleLoading] = useState(false);
   const { control, handleSubmit, setError, formState } = useForm({
     resolver: zodResolver(registerSchema),
     defaultValues: { full_name: '', email: '', password: '' },
@@ -39,6 +43,21 @@ export default function RegisterScreen() {
       }
     }
   });
+
+  const onGooglePress = async () => {
+    setGoogleLoading(true);
+    try {
+      // First Google sign-in creates the account (same handle_new_user
+      // trigger, with Google's name as full_name); cancellation is silent.
+      await signInWithGoogle();
+    } catch (error) {
+      if (error instanceof AuthError) {
+        setError('root', { message: error.message });
+      }
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
 
   return (
     <KeyboardAvoidingView
@@ -88,6 +107,13 @@ export default function RegisterScreen() {
           loading={formState.isSubmitting}
           onPress={onSubmit}
         />
+
+        {googleSignInSupported && (
+          <>
+            <AuthDivider />
+            <GoogleButton loading={googleLoading} onPress={onGooglePress} />
+          </>
+        )}
 
         <View style={styles.footer}>
           <Text style={{ color: colors.textSecondary }}>Already have an account? </Text>

@@ -1,5 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
+import { useState } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -9,15 +10,18 @@ import {
   View,
 } from 'react-native';
 
+import { AuthDivider, GoogleButton, googleSignInSupported } from '@/components/ui/google-button';
 import { PrimaryButton } from '@/components/ui/primary-button';
 import { TextField } from '@/components/ui/text-field';
 import { TextLink } from '@/components/ui/text-link';
 import { AuthError, signIn } from '@/features/auth/service';
+import { signInWithGoogle } from '@/features/auth/google';
 import { useTheme } from '@/hooks/use-theme';
 import { loginSchema } from '@kse/validation';
 
 export default function LoginScreen() {
   const colors = useTheme();
+  const [googleLoading, setGoogleLoading] = useState(false);
   const { control, handleSubmit, setError, formState } = useForm({
     resolver: zodResolver(loginSchema),
     defaultValues: { email: '', password: '' },
@@ -34,6 +38,20 @@ export default function LoginScreen() {
       }
     }
   });
+
+  const onGooglePress = async () => {
+    setGoogleLoading(true);
+    try {
+      // Cancellation resolves quietly; success redirects via the root gate.
+      await signInWithGoogle();
+    } catch (error) {
+      if (error instanceof AuthError) {
+        setError('root', { message: error.message });
+      }
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
 
   return (
     <KeyboardAvoidingView
@@ -78,6 +96,13 @@ export default function LoginScreen() {
         />
 
         <TextLink href="/(auth)/forgot-password">Forgot password?</TextLink>
+
+        {googleSignInSupported && (
+          <>
+            <AuthDivider />
+            <GoogleButton loading={googleLoading} onPress={onGooglePress} />
+          </>
+        )}
 
         <View style={styles.footer}>
           <Text style={{ color: colors.textSecondary }}>New to KSE? </Text>

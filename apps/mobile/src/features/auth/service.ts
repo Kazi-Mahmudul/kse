@@ -1,11 +1,14 @@
+import { Platform } from 'react-native';
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
+
 import { supabase } from '@/lib/supabase';
 
 /**
- * Auth service (spec §9): email + password now, Google OAuth later.
+ * Auth service (spec §9): email + password + Google sign-in (google.ts).
  * Screens stay thin — all Supabase calls and error translation live here.
  */
 
-function friendlyError(error: unknown): string {
+export function friendlyError(error: unknown): string {
   const message = error instanceof Error ? error.message : String(error);
 
   if (message.includes('Invalid login credentials')) {
@@ -19,6 +22,12 @@ function friendlyError(error: unknown): string {
   }
   if (message.includes('Email not confirmed')) {
     return 'Please confirm your email first — check your inbox.';
+  }
+  if (message.includes('Sign in with google') || message.includes('provider is disabled')) {
+    return "Google sign-in isn't enabled for this app yet.";
+  }
+  if (message.includes('ID token') || message.includes('audience') || message.includes('invalid claim')) {
+    return "We couldn't verify your Google sign-in. Please try again.";
   }
   if (message.includes('rate limit') || message.includes('Too many')) {
     return 'Too many attempts. Please wait a moment and try again.';
@@ -70,6 +79,15 @@ export async function signUp({ full_name, email, password }: SignUpParams): Prom
 export async function signOut() {
   const { error } = await supabase.auth.signOut();
   fail(error);
+  // Clear the native Google session too (best effort) so the account picker
+  // reappears on the next Google sign-in instead of the last account.
+  if (Platform.OS !== 'web') {
+    try {
+      await GoogleSignin.signOut();
+    } catch {
+      // Never signed in with Google — nothing to clear.
+    }
+  }
 }
 
 export async function requestPasswordReset(email: string) {
