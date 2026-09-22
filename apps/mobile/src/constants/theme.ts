@@ -111,6 +111,15 @@ export const FontFamilies = {
   bold: 'Poppins_700Bold',
 } as const;
 
+/** Hind Siliguri families for Bangla copy (e.g. the home promo carousel) —
+ *  Poppins ships no Bengali glyphs, so Bangla text needs its own stack.
+ *  Loaded in src/app/_layout.tsx. */
+export const BanglaFontFamilies = {
+  regular: 'HindSiliguri_400Regular',
+  semiBold: 'HindSiliguri_600SemiBold',
+  bold: 'HindSiliguri_700Bold',
+} as const;
+
 export const Fonts = Platform.select({
   ios: {
     /** iOS `UIFontDescriptorSystemDesignDefault` */

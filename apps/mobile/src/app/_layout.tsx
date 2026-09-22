@@ -1,4 +1,9 @@
 import {
+  HindSiliguri_400Regular,
+  HindSiliguri_600SemiBold,
+  HindSiliguri_700Bold,
+} from '@expo-google-fonts/hind-siliguri';
+import {
   Poppins_400Regular,
   Poppins_500Medium,
   Poppins_600SemiBold,
@@ -18,6 +23,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
 import { Appearance, Platform } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { blurActiveElement } from '@/lib/focus';
@@ -88,6 +94,9 @@ export default function RootLayout() {
     Poppins_500Medium,
     Poppins_600SemiBold,
     Poppins_700Bold,
+    HindSiliguri_400Regular,
+    HindSiliguri_600SemiBold,
+    HindSiliguri_700Bold,
   });
 
   // Push the user's preference into RN's `Appearance` so internals follow:
@@ -116,31 +125,34 @@ export default function RootLayout() {
     ) => void)(next);
   }, [themePreference]);
 
-  if (!fontsLoaded) return null; // keep splash until Poppins is ready
+  if (!fontsLoaded) return null; // keep splash until Poppins + Hind Siliguri are ready
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
-      <QueryClientProvider client={client}>
-        <AuthGate>
-          <Stack
-            screenOptions={{ headerShown: false }}
-            screenListeners={{
-              // Expo-router keeps covered stack screens mounted but marks
-              // them `aria-hidden` (its Screen element). On web the button
-              // that triggered the navigation keeps DOM focus, so Chrome
-              // blocks the hide ("Blocked aria-hidden … descendant retained
-              // focus"). Listeners fire during dispatch — before the covered
-              // screen commits — so dropping focus here prevents it.
-              state: blurActiveElement,
-            }}
-          >
-            <Stack.Screen name="(tabs)" />
-            <Stack.Screen name="(auth)" />
-            <Stack.Screen name="create" options={{ presentation: 'modal' }} />
-          </Stack>
-        </AuthGate>
-      </QueryClientProvider>
-    </ThemeProvider>
+    // GestureDetector (home promo carousel) needs the gesture-handler root.
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+        <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
+        <QueryClientProvider client={client}>
+          <AuthGate>
+            <Stack
+              screenOptions={{ headerShown: false }}
+              screenListeners={{
+                // Expo-router keeps covered stack screens mounted but marks
+                // them `aria-hidden` (its Screen element). On web the button
+                // that triggered the navigation keeps DOM focus, so Chrome
+                // blocks the hide ("Blocked aria-hidden … descendant retained
+                // focus"). Listeners fire during dispatch — before the covered
+                // screen commits — so dropping focus here prevents it.
+                state: blurActiveElement,
+              }}
+            >
+              <Stack.Screen name="(tabs)" />
+              <Stack.Screen name="(auth)" />
+              <Stack.Screen name="create" options={{ presentation: 'modal' }} />
+            </Stack>
+          </AuthGate>
+        </QueryClientProvider>
+      </ThemeProvider>
+    </GestureHandlerRootView>
   );
 }

@@ -9,7 +9,7 @@ import { SectionHeader } from '@/components/ui/section-header';
 import { HomeGreeting } from '@/features/home/greeting';
 import { LatestOpportunityCard } from '@/features/home/latest-opportunity-card';
 import { ProfileCompletionCard } from '@/features/home/profile-completion-card';
-import { PromoBanner } from '@/features/home/promo-banner';
+import { PromoCarousel } from '@/features/home/promo-carousel';
 import { QuickAccess } from '@/features/home/quick-access';
 import { HomeTopBar } from '@/features/home/top-bar';
 import { useUnreadNotificationCount } from '@/features/notifications/queries';
@@ -20,9 +20,9 @@ import { useAuthStore } from '@/store/auth-store';
 
 /**
  * Home screen — matches design `03._home_kse`: location + notification top
- * bar, time-aware greeting, search with filter, gradient promo banner, the
- * eight-tile Quick Access grid, profile-completion recommendation, and the
- * latest published opportunities (spec §6).
+ * bar, time-aware greeting, search with filter, auto-playing Bangla promo
+ * carousel, the eight-tile Quick Access grid, profile-completion
+ * recommendation, and the latest published opportunities (spec §6).
  */
 export default function HomeScreen() {
   const colors = useTheme();
@@ -70,7 +70,7 @@ export default function HomeScreen() {
       </View>
 
       <View style={styles.banner}>
-        <PromoBanner />
+        <PromoCarousel />
       </View>
 
       <View style={styles.section}>

@@ -12,7 +12,7 @@ import { useTheme } from '@/hooks/use-theme';
 /**
  * Decorative glow palette for the hero card. Fixed (not themed) because the
  * cyan accent and translucent glows sit on top of the gradient in both color
- * schemes — same rationale as `promo-banner.tsx`'s `ART` constant.
+ * schemes — same rationale as `promo-slide.tsx`'s `ART` constant.
  */
 const HERO_ART = {
   glowPrimary: 'rgba(59, 130, 246, 0.20)', // blue-400 / 20 — large blurred disc
