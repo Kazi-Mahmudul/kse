@@ -311,12 +311,14 @@ Deno.serve(async (req) => {
     const action = String((body as { action?: unknown })?.action ?? '');
     const payload = (body as { payload?: unknown })?.payload ?? {};
 
+    const isAdminAction = action.startsWith('admin:');
     const rule = RATE_RULES[action];
-    if (!rule) return json({ error: `Unknown action: ${action || '(none)'}` }, 400);
+    if (!rule && !isAdminAction) {
+      return json({ error: `Unknown action: ${action || '(none)'}` }, 400);
+    }
     // Admin actions skip rate limiting (the queue lives in the admin panel);
     // we still go through the same dispatch for symmetry.
-    const isAdminAction = action.startsWith('admin:');
-    if (!isAdminAction) await checkRateLimit(rule, user.id);
+    if (rule) await checkRateLimit(rule, user.id);
 
     switch (action) {
       case 'create_post': {
