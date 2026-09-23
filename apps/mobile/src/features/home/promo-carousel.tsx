@@ -2,7 +2,7 @@
    intentionally mutable channel between the JS and UI threads (the documented
    way to drive `useAnimatedStyle`); the rule reads their `.value` writes as
    unsafe render-scope mutations. */
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   AppState,
   Pressable,
@@ -15,6 +15,7 @@ import Animated, {
   cancelAnimation,
   Easing,
   runOnJS,
+  useAnimatedReaction,
   useAnimatedStyle,
   useSharedValue,
   withSpring,
@@ -43,9 +44,6 @@ const LAST_DISPLAY = LOOP_BANNERS.length - 1;
 /** Map a display position (including guard clones) to the real slide index. */
 const realIndex = (display: number) =>
   (((display - FIRST_DISPLAY) % COUNT) + COUNT) % COUNT;
-
-const clamp = (value: number, min: number, max: number) =>
-  Math.min(Math.max(value, min), max);
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
@@ -88,6 +86,10 @@ export function PromoCarousel() {
   const colors = useTheme();
   const [width, setWidth] = useState(0);
   const [activeIndex, setActiveIndex] = useState(0);
+  /** Display slot (including guard clones) whose index is currently
+   *  `activeIndex`. Drives slide virtualisation — we only render the
+   *  slide at this slot + its two neighbours. */
+  const [currentDisplay, setCurrentDisplay] = useState(FIRST_DISPLAY);
   const [interacting, setInteracting] = useState(false);
   const [appActive, setAppActive] = useState(true);
 
@@ -96,17 +98,39 @@ export function PromoCarousel() {
   const widthSv = useSharedValue(0);
   const dragStartX = useSharedValue(0);
 
+  /** Mirror of `position` on the JS side. Reading `.value` from JS while a
+   *  worklet might be writing it is a known source of release-build crashes
+   *  in Reanimated 4; `useAnimatedReaction` is the documented way to bridge
+   *  the value across the thread boundary, and the JS timer reads from the
+   *  ref instead of from the shared value. */
+  const positionRef = useRef(FIRST_DISPLAY);
+  useAnimatedReaction(
+    () => position.value,
+    (current) => {
+      // This runs on the UI thread — keep it trivial.
+      positionRef.current = current;
+    },
+    [],
+  );
+
   /** After an animated snap (autoplay, fling or dot tap): publish the real
    *  index, and if a guard clone was reached, jump without animating to the
    *  identical real slide so the loop can keep going the same way. */
   const settle = useCallback(
     (display: number) => {
-      setActiveIndex(realIndex(display));
+      // Guard against width-0 transitions (NaN would otherwise poison the
+      // track offset and on the next render cause a layout crash on Android
+      // release builds).
+      const w = widthSv.value;
+      if (!(w > 0)) return;
+      const real = realIndex(display);
+      setActiveIndex(real);
+      setCurrentDisplay(display);
       if (display === 0) {
-        translateX.value = -COUNT * widthSv.value;
+        translateX.value = -COUNT * w;
         position.value = COUNT;
       } else if (display === LAST_DISPLAY) {
-        translateX.value = -FIRST_DISPLAY * widthSv.value;
+        translateX.value = -FIRST_DISPLAY * w;
         position.value = FIRST_DISPLAY;
       }
     },
@@ -116,6 +140,7 @@ export function PromoCarousel() {
   const goTo = useCallback(
     (display: number) => {
       cancelAnimation(translateX);
+      setCurrentDisplay(display);
       position.value = display;
       translateX.value = withTiming(
         -display * widthSv.value,
@@ -125,7 +150,7 @@ export function PromoCarousel() {
         },
       );
     },
-    [position, settle, translateX, widthSv],
+    [position, setCurrentDisplay, settle, translateX, widthSv],
   );
 
   const pan = useMemo(
@@ -140,26 +165,41 @@ export function PromoCarousel() {
           runOnJS(setInteracting)(true);
         })
         .onUpdate((event) => {
-          translateX.value = clamp(
-            dragStartX.value + event.translationX,
-            -LAST_DISPLAY * widthSv.value,
-            0,
-          );
+          const raw = dragStartX.value + event.translationX;
+          const min = -LAST_DISPLAY * widthSv.value;
+          // Inline clamp — calling a JS helper from a worklet triggers
+          // Reanimated 4's "Tried to synchronously call a Remote Function"
+          // and crashes the app. (Same reason constants here must stay
+          // primitive numbers; function references don't survive the
+          // worklet boundary.)
+          translateX.value = Math.min(Math.max(raw, min), 0);
         })
         .onEnd((event) => {
-          const base = -translateX.value / widthSv.value;
-          const target = clamp(
+          // Guard against divide-by-zero / NaN if the gesture ends before
+          // onLayout has reported a width (can happen on first mount when a
+          // swipe is faster than the layout pass).
+          const w = widthSv.value;
+          if (!(w > 0)) return;
+          const base = -translateX.value / w;
+          const chosen =
             event.velocityX < -FLING_VELOCITY
               ? Math.ceil(base)
               : event.velocityX > FLING_VELOCITY
                 ? Math.floor(base)
-                : Math.round(base),
-            0,
-            LAST_DISPLAY,
-          );
+                : Math.round(base);
+          const target = Math.min(Math.max(chosen, 0), LAST_DISPLAY);
+          // Update the virtualisation window eagerly so the destination slide
+          // mounts BEFORE the snap-spring fires (prevents ~400ms of an empty
+          // background visible mid-spring while we wait for `settle` to run).
+          // Must wrap in runOnJS — calling a React state setter from a
+          // gesture worklet synchronously hits a "Remote Function" error in
+          // Reanimated 4 / Worklets and crashes the entire app (FATAL:
+          // "Tried to synchronously call a Remote Function. Called 'anonymous'
+          // on the UI Runtime").
+          runOnJS(setCurrentDisplay)(target);
           position.value = target;
           translateX.value = withSpring(
-            -target * widthSv.value,
+            -target * w,
             { velocity: event.velocityX, damping: 30, stiffness: 280, overshootClamping: true },
             (finished) => {
               if (finished) runOnJS(settle)(target);
@@ -169,7 +209,7 @@ export function PromoCarousel() {
         .onFinalize(() => {
           runOnJS(setInteracting)(false);
         }),
-    [dragStartX, position, settle, translateX, widthSv],
+    [dragStartX, position, settle, setCurrentDisplay, translateX, widthSv],
   );
 
   // Pause autoplay while the app is backgrounded.
@@ -183,13 +223,16 @@ export function PromoCarousel() {
   // Autoplay: every 4.5s, pausing while the user is touching the banner.
   // `activeIndex` in the deps resets the countdown after each slide change
   // (so a manual swipe buys a full interval before the next auto-advance).
+  // Reads from `positionRef` (JS-side mirror) instead of `position.value`
+  // — the latter crosses threads and races with worklets writing the same
+  // value, which has been seen to terminate the app on Android release.
   useEffect(() => {
     if (!width || interacting || !appActive) return;
     const id = setInterval(() => {
-      goTo((position.value + 1) % LOOP_BANNERS.length);
+      goTo((positionRef.current + 1) % LOOP_BANNERS.length);
     }, AUTOPLAY_INTERVAL_MS);
     return () => clearInterval(id);
-  }, [width, interacting, appActive, activeIndex, goTo, position]);
+  }, [width, interacting, appActive, activeIndex, goTo]);
 
   const onLayout = (event: LayoutChangeEvent) => {
     const next = event.nativeEvent.layout.width;
@@ -209,11 +252,22 @@ export function PromoCarousel() {
         <View style={styles.frame} onLayout={onLayout}>
           {width > 0 && (
             <Animated.View style={[styles.track, trackStyle]}>
-              {LOOP_BANNERS.map((banner, display) => (
-                <View key={`${banner.key}-${display}`} style={{ width }}>
-                  <PromoSlide banner={banner} />
-                </View>
-              ))}
+              {LOOP_BANNERS.map((banner, display) => {
+                // Virtualise: only render the slide at the current display
+                // position + its neighbours. The other 5 slots become empty
+                // Views of the same width so the row geometry is preserved
+                // for the looping math but no native views are kept alive.
+                // Each banner contains a LinearGradient + ~30 react-native-svg
+                // elements (~200 native views); keeping all 8 alive was
+                // pushing the native view tree past a budget device's limit
+                // and crashing during gesture updates on Android.
+                const visible = Math.abs(display - currentDisplay) <= 1;
+                return (
+                  <View key={`${banner.key}-${display}`} style={{ width }}>
+                    {visible ? <PromoSlide banner={banner} /> : null}
+                  </View>
+                );
+              })}
             </Animated.View>
           )}
           <View style={styles.dots}>
