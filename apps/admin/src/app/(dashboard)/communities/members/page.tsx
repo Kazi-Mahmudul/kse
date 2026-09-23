@@ -15,7 +15,7 @@ interface MembershipRow {
   role: 'member' | 'moderator' | 'owner';
   joined_at: string;
   community: { name: string; slug: string } | null;
-  profile: { full_name: string | null } | null;
+  profile: { full_name: string | null; username: string | null; email: string | null } | null;
 }
 
 /**
@@ -37,14 +37,17 @@ export default async function CommunityMembersPage({
     .from('community_members')
     .select(
       'community_id, user_id, role, joined_at, community:communities(name, slug), ' +
-        'profile:profiles!inner(full_name)',
+        'profile:profiles!inner(full_name, username, email)',
       { count: 'exact' },
     )
     .order('joined_at', { ascending: false });
 
   if (sanitized) {
     query = query.or(
-      `profile.full_name.ilike.%${sanitized}%,community.name.ilike.%${sanitized}%`,
+      `profile.full_name.ilike.%${sanitized}%,` +
+        `profile.username.ilike.%${sanitized}%,` +
+        `profile.email.ilike.%${sanitized}%,` +
+        `community.name.ilike.%${sanitized}%`,
     );
   }
   if (['member', 'moderator', 'owner'].includes(roleFilter)) {
@@ -143,7 +146,17 @@ export default async function CommunityMembersPage({
                   className="border-b border-zinc-100 last:border-0 hover:bg-zinc-50"
                 >
                   <td className="px-4 py-3 font-medium text-zinc-900">
-                    {membership.profile?.full_name ?? 'User'}
+                    <span>{membership.profile?.full_name ?? 'User'}</span>
+                    {membership.profile?.username && (
+                      <span className="ml-2 text-xs text-zinc-400">
+                        @{membership.profile.username}
+                      </span>
+                    )}
+                    {membership.profile?.email && (
+                      <div className="text-xs text-zinc-400">
+                        {membership.profile.email}
+                      </div>
+                    )}
                   </td>
                   <td className="px-4 py-3">
                     <Link

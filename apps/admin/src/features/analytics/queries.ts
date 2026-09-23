@@ -22,7 +22,10 @@ export interface DashboardKpis {
   activeCommunities: number;
   pendingCommunityRequests: number;
   openCommunityReports: number;
-  activeCommunityMembers: number;
+  /** Total memberships across active communities. Not a true
+   *  "active users" KPI (we don't track per-user last_active_at yet) —
+   *  see the corresponding query comment. */
+  communityMemberships: number;
 }
 
 export interface RecentRegistration {
@@ -205,17 +208,14 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
       .select('id', { count: 'exact', head: true })
       .eq('status', 'pending'),
     admin
-      .from('reports')
+      .from('community_reports')
       .select('id', { count: 'exact', head: true })
-      .in('status', ['open', 'reviewing'])
-      .in('target_type', [
-        'community',
-        'community_post',
-        'community_comment',
-        'community_event',
-        'community_poll',
-      ]),
+      .eq('status', 'open'),
     admin
+      // Sum of memberships across active communities. RLS-free via the
+      // service-role client. (community_members.last_active_at is not
+      // populated yet, so we report memberships rather than "active in
+      // the last 30 days".)
       .from('community_members')
       .select('community:communities!inner(id)', { count: 'exact', head: true })
       .eq('community.status', 'active'),
@@ -342,7 +342,7 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
       activeCommunities: (activeCommunitiesR as unknown as CountResult).count ?? 0,
       pendingCommunityRequests: (pendingCommunityRequestsR as unknown as CountResult).count ?? 0,
       openCommunityReports: (openCommunityReportsR as unknown as CountResult).count ?? 0,
-      activeCommunityMembers: (activeCommunityMembersR as unknown as CountResult).count ?? 0,
+      communityMemberships: (activeCommunityMembersR as unknown as CountResult).count ?? 0,
     },
     recentRegistrations,
     expiring: expiringList,

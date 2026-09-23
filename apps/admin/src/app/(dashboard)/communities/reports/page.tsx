@@ -14,11 +14,28 @@ const COMMUNITY_TARGETS = [
   'community_poll',
 ] as const;
 
+type CommunityReportReason =
+  | 'spam'
+  | 'harassment'
+  | 'inappropriate'
+  | 'scam'
+  | 'misleading'
+  | 'other';
+
+const COMMUNITY_REASONS: CommunityReportReason[] = [
+  'spam',
+  'harassment',
+  'inappropriate',
+  'scam',
+  'misleading',
+  'other',
+];
+
 interface ReportRow {
   id: string;
   target_type: (typeof COMMUNITY_TARGETS)[number];
   target_id: string;
-  reason: string;
+  reason: CommunityReportReason;
   details: string | null;
   status: 'open' | 'reviewing' | 'resolved' | 'dismissed';
   resolution_note: string | null;
@@ -34,6 +51,68 @@ const STATUS_PILLS: Record<ReportRow['status'], string> = {
 };
 
 const REMOVABLE_TARGETS = new Set(COMMUNITY_TARGETS);
+
+/**
+ * Resolve a community_id for a report so the community filter can scope
+ * the queue. `community` reports point at the community directly;
+ * `community_post` / `community_event` rows have community_id; comments
+ * resolve via their parent post.
+ */
+async function resolveCommunityIds(
+  admin: ReturnType<typeof createAdminClient>,
+  rows: ReportRow[],
+): Promise<Map<string, string>> {
+  const out = new Map<string, string>();
+  const postIds = rows.filter((r) => r.target_type === 'community_post').map((r) => r.target_id);
+  const eventIds = rows.filter((r) => r.target_type === 'community_event').map((r) => r.target_id);
+  const commentIds = rows
+    .filter((r) => r.target_type === 'community_comment')
+    .map((r) => r.target_id);
+
+  const [posts, events, comments] = await Promise.all([
+    postIds.length
+      ? admin.from('community_posts').select('id, community_id').in('id', postIds)
+      : Promise.resolve({ data: [] }),
+    eventIds.length
+      ? admin.from('community_events').select('id, community_id').in('id', eventIds)
+      : Promise.resolve({ data: [] }),
+    commentIds.length
+      ? admin.from('community_comments').select('id, post_id').in('id', commentIds)
+      : Promise.resolve({ data: [] }),
+  ]);
+
+  for (const row of (posts.data ?? []) as { id: string; community_id: string | null }[]) {
+    if (row.community_id) out.set(`community_post:${row.id}`, row.community_id);
+  }
+  for (const row of (events.data ?? []) as { id: string; community_id: string | null }[]) {
+    if (row.community_id) out.set(`community_event:${row.id}`, row.community_id);
+  }
+  for (const row of (comments.data ?? []) as { id: string; post_id: string }[]) {
+    out.set(`community_comment:${row.id}:post`, row.post_id);
+  }
+  // Second hop: parent posts of comments.
+  const parentIds = Array.from(new Set(((comments.data ?? []) as { post_id: string }[]).map((c) => c.post_id)));
+  if (parentIds.length > 0) {
+    const { data: parents } = await admin
+      .from('community_posts')
+      .select('id, community_id')
+      .in('id', parentIds);
+    const postToCommunity = new Map(
+      ((parents ?? []) as { id: string; community_id: string | null }[])
+        .filter((p) => p.community_id)
+        .map((p) => [p.id, p.community_id as string]),
+    );
+    for (const row of (comments.data ?? []) as { id: string; post_id: string }[]) {
+      const communityId = postToCommunity.get(row.post_id);
+      if (communityId) out.set(`community_comment:${row.id}`, communityId);
+    }
+  }
+  // community-level reports map directly.
+  for (const row of rows.filter((r) => r.target_type === 'community')) {
+    out.set(`community:${row.target_id}`, row.target_id);
+  }
+  return out;
+}
 
 /** Human-readable preview of what a report points at. */
 async function describeTargets(
@@ -81,6 +160,10 @@ async function describeTargets(
 /**
  * Community reports (spec §Moderation): reported posts, comments, events,
  * polls and communities with resolve / dismiss + optional content removal.
+ *
+ * Reads from the dedicated `community_reports` table (created in the
+ * community redesign migration) rather than the legacy generic `reports`
+ * table.
  */
 export default async function CommunityReportsPage({
   searchParams,
@@ -89,22 +172,52 @@ export default async function CommunityReportsPage({
   const status = ['open', 'reviewing', 'resolved', 'dismissed'].includes(String(params.status))
     ? String(params.status)
     : 'open';
+  const reasonParam = String(params.reason ?? '');
+  const reason = COMMUNITY_REASONS.includes(reasonParam as CommunityReportReason)
+    ? (reasonParam as CommunityReportReason)
+    : null;
+  const communityId =
+    typeof params.community === 'string' && params.community.length > 0
+      ? params.community
+      : null;
   const page = Math.max(1, Number.parseInt(String(params.page ?? '1'), 10) || 1);
 
   const admin = createAdminClient();
-  const { data: rows, count, error } = await admin
-    .from('reports')
+
+  // First read the candidate rows. We resolve the community-id filter in a
+  // second hop because the table only stores target_type/target_id — we have
+  // to look up which row they belong to before filtering.
+  let query = admin
+    .from('community_reports')
     .select(
       'id, target_type, target_id, reason, details, status, resolution_note, created_at, reporter_id',
       { count: 'exact' },
     )
-    .in('target_type', [...COMMUNITY_TARGETS])
     .eq('status', status)
-    .order('created_at', { ascending: false })
-    .range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1);
+    .order('created_at', { ascending: false });
 
-  const reports = (rows ?? []) as ReportRow[];
-  const total = count ?? 0;
+  if (reason) {
+    query = query.eq('reason', reason);
+  }
+
+  const { data: rows, count, error } = await query;
+  const allReports = (rows ?? []) as ReportRow[];
+
+  // Community filter — fetch communities (the user's filter is a name slug
+  // that matches both communities directly and communities-of-content).
+  let filtered = allReports;
+  if (communityId) {
+    const communityMap = await resolveCommunityIds(admin, allReports);
+    filtered = allReports.filter((r) => {
+      const key =
+        r.target_type === 'community' ? `community:${r.target_id}` : communityMap.get(`${r.target_type}:${r.target_id}`);
+      return key === communityId;
+    });
+  }
+
+  const total = communityId ? filtered.length : count ?? 0;
+  const paged = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const reports = paged;
   const previews = await describeTargets(admin, reports);
 
   const reporterIds = Array.from(new Set(reports.map((r) => r.reporter_id)));
@@ -120,8 +233,16 @@ export default async function CommunityReportsPage({
   );
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
-  const pageHref = (target: number) =>
-    `/communities/reports?status=${status}${target > 1 ? `&page=${target}` : ''}`;
+  const baseParams = new URLSearchParams();
+  baseParams.set('status', status);
+  if (reason) baseParams.set('reason', reason);
+  if (communityId) baseParams.set('community', communityId);
+  const pageHref = (target: number) => {
+    const p = new URLSearchParams(baseParams);
+    if (target > 1) p.set('page', String(target));
+    const qs = p.toString();
+    return `/communities/reports${qs ? `?${qs}` : ''}`;
+  };
 
   return (
     <div>
@@ -136,7 +257,14 @@ export default async function CommunityReportsPage({
         {(['open', 'reviewing', 'resolved', 'dismissed'] as const).map((value) => (
           <Link
             key={value}
-            href={`/communities/reports?status=${value}`}
+            href={(() => {
+              const p = new URLSearchParams();
+              p.set('status', value);
+              if (reason) p.set('reason', reason);
+              if (communityId) p.set('community', communityId);
+              const qs = p.toString();
+              return `/communities/reports${qs ? `?${qs}` : ''}`;
+            })()}
             className={`rounded-lg px-3 py-1.5 font-medium capitalize transition ${
               status === value
                 ? 'bg-indigo-600 text-white'
@@ -147,6 +275,64 @@ export default async function CommunityReportsPage({
           </Link>
         ))}
       </div>
+
+      <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-zinc-500">
+        <span>Reason filter:</span>
+        <Link
+          href={(() => {
+            const p = new URLSearchParams();
+            p.set('status', status);
+            if (communityId) p.set('community', communityId);
+            const qs = p.toString();
+            return `/communities/reports${qs ? `?${qs}` : ''}`;
+          })()}
+          className={`rounded-full px-2.5 py-0.5 capitalize ${
+            reason === null
+              ? 'bg-indigo-100 text-indigo-700'
+              : 'border border-zinc-300 bg-white text-zinc-600 hover:bg-zinc-100'
+          }`}
+        >
+          any
+        </Link>
+        {COMMUNITY_REASONS.map((r) => (
+          <Link
+            key={r}
+            href={(() => {
+              const p = new URLSearchParams();
+              p.set('status', status);
+              p.set('reason', r);
+              if (communityId) p.set('community', communityId);
+              const qs = p.toString();
+              return `/communities/reports${qs ? `?${qs}` : ''}`;
+            })()}
+            className={`rounded-full px-2.5 py-0.5 capitalize ${
+              reason === r
+                ? 'bg-indigo-100 text-indigo-700'
+                : 'border border-zinc-300 bg-white text-zinc-600 hover:bg-zinc-100'
+            }`}
+          >
+            {r}
+          </Link>
+        ))}
+      </div>
+
+      {communityId && (
+        <div className="mt-3 inline-flex items-center gap-2 rounded-lg bg-zinc-100 px-3 py-1.5 text-xs text-zinc-700">
+          Community: <span className="font-mono">{communityId}</span>
+          <Link
+            href={(() => {
+              const p = new URLSearchParams();
+              p.set('status', status);
+              if (reason) p.set('reason', reason);
+              const qs = p.toString();
+              return `/communities/reports${qs ? `?${qs}` : ''}`;
+            })()}
+            className="text-indigo-600 hover:underline"
+          >
+            clear
+          </Link>
+        </div>
+      )}
 
       {error && (
         <p className="mt-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">

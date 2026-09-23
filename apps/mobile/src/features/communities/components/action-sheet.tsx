@@ -40,7 +40,7 @@ export function ActionSheet({
       animationType="slide"
       onRequestClose={onClose}
     >
-      <Pressable style={styles.scrim} onPress={onClose}>
+      <Pressable style={[styles.scrim, { backgroundColor: colors.scrim }]} onPress={onClose}>
         <Pressable
           style={[styles.sheet, { backgroundColor: colors.background }]}
           onPress={(e) => e.stopPropagation()}
@@ -101,7 +101,9 @@ const styles = StyleSheet.create({
   scrim: {
     flex: 1,
     justifyContent: 'flex-end',
-    backgroundColor: 'rgba(15, 23, 42, 0.45)',
+    // colors.scrim applied via inline style below (theme tokens can't
+    // be resolved from a module-level StyleSheet because the theme
+    // mode is determined at render time).
   },
   sheet: {
     borderTopLeftRadius: 20,

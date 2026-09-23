@@ -211,9 +211,9 @@ export type CommunityEventFormValues = z.infer<typeof communityEventFormSchema>;
 export const COMMUNITY_REPORT_REASON_VALUES = [
   'spam',
   'harassment',
-  'inappropriate_content',
+  'inappropriate',
   'scam',
-  'misleading_information',
+  'misleading',
   'other',
 ] as const;
 

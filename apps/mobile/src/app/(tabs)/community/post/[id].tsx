@@ -68,6 +68,23 @@ export default function CommunityPostScreen() {
     );
   }
 
+  // Spec §Moderation: soft-deleted posts keep the row but blank the body
+  // for everyone — including mods who are not the remover.
+  if (postQuery.data.status !== 'active') {
+    return (
+      <Screen scroll={false}>
+        <BackHeader title="Post" />
+        <EmptyState
+          icon="eye-off-outline"
+          title="Removed by moderator"
+          message="This post was removed for violating community rules. Recent comments may have been hidden too."
+          actionLabel="Back"
+          onAction={() => postQuery.refetch()}
+        />
+      </Screen>
+    );
+  }
+
   const post = postQuery.data;
   const community = communityQuery.data;
   const canModerate =

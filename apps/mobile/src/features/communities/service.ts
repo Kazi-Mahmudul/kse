@@ -869,6 +869,9 @@ export async function createCommunityRequest(input: CreateRequestInput): Promise
   if (fnError) fail('Could not submit request', fnError);
 }
 
+/** Hard cap for a settings-style list — not an infinite scroll feed. */
+const MY_REQUESTS_LIMIT = 50;
+
 /** The viewer's own requests (pending badge on the discovery screen). */
 export async function listMyRequests(): Promise<CommunityRequest[]> {
   const viewerId = await requireUserId();
@@ -880,7 +883,8 @@ export async function listMyRequests(): Promise<CommunityRequest[]> {
         'category:community_categories(id, name), university:universities(name)',
     )
     .eq('requested_by', viewerId)
-    .order('created_at', { ascending: false });
+    .order('created_at', { ascending: false })
+    .limit(MY_REQUESTS_LIMIT);
   if (error) fail('Could not load your requests', error.message);
 
   return ((data ?? []) as unknown as {
@@ -941,4 +945,65 @@ export async function uploadCommunityImage(localUri: string, mimeType: string): 
 
   const { data } = supabase.storage.from(COMMUNITY_BUCKET).getPublicUrl(path);
   return data.publicUrl;
+}
+
+// ── Followed topics (discovery signal) ────────────────────────────────────────
+
+/** A topic the viewer follows. Topics are short free-text tokens matched
+ *  against community.name / description / category.name by the
+ *  recommended_communities SQL function. */
+export interface FollowedTopic {
+  topic: string;
+  createdAt: string;
+}
+
+/** A static, server-agnostic suggestion list rendered in the empty state
+ *  when the user has no profile data yet — same tokens are accepted by
+ *  the SQL scoring, so following any of these immediately biases the
+ *  recommended feed. */
+export const SUGGESTED_TOPICS: readonly string[] = [
+  'Engineering',
+  'Career',
+  'Research',
+  'Programming',
+  'Design',
+  'Mathematics',
+  'Business',
+  'Robotics',
+];
+
+/** List the viewer's followed topics. */
+export async function listFollowedTopics(): Promise<FollowedTopic[]> {
+  await requireUserId();
+  const { data, error } = await supabase
+    .from('user_followed_topics')
+    .select('topic, created_at')
+    .order('created_at', { ascending: false });
+  if (error) fail('Could not load followed topics', error.message);
+  return ((data ?? []) as { topic: string; created_at: string }[]).map((row) => ({
+    topic: row.topic,
+    createdAt: row.created_at,
+  }));
+}
+
+export async function followTopic(topic: string): Promise<void> {
+  await requireUserId();
+  const trimmed = topic.trim().slice(0, 40);
+  if (trimmed.length < 1) return;
+  // Insert with on-conflict do-nothing so re-following is safe.
+  const { error } = await supabase
+    .from('user_followed_topics')
+    .insert({ topic: trimmed });
+  if (error && error.code !== '23505') {
+    fail('Could not follow topic', error.message);
+  }
+}
+
+export async function unfollowTopic(topic: string): Promise<void> {
+  await requireUserId();
+  const { error } = await supabase
+    .from('user_followed_topics')
+    .delete()
+    .eq('topic', topic);
+  if (error) fail('Could not unfollow topic', error.message);
 }

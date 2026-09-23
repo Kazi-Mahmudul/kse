@@ -179,36 +179,49 @@ export function PostCard({
         </View>
       )}
 
-      <ThemedText style={styles.content}>{post.content}</ThemedText>
-
-      {post.imageUrl ? (
-        <Image
-          source={{ uri: post.imageUrl }}
-          style={styles.image}
-          contentFit="cover"
-          transition={120}
-          recyclingKey={post.id}
-        />
-      ) : null}
-
-      {post.linkUrl ? (
-        <Pressable
-          accessibilityRole="link"
-          style={({ pressed }) => [
-            styles.linkRow,
-            { borderColor: colors.border, backgroundColor: colors.backgroundElement },
-            pressed && styles.pressed,
-          ]}
-          onPress={() => Linking.openURL(post.linkUrl!).catch(() => undefined)}
-        >
-          <Ionicons name="link-outline" size={13} color={colors.primary} />
-          <ThemedText type="small" themeColor="primary" numberOfLines={1} style={styles.linkText}>
-            {post.linkUrl}
+      {post.status !== 'active' ? (
+        <View style={styles.removedPlaceholder}>
+          <Ionicons name="eye-off-outline" size={14} color={colors.textMuted} />
+          <ThemedText type="small" themeColor="textMuted">
+            Removed by moderator
           </ThemedText>
-        </Pressable>
-      ) : null}
+        </View>
+      ) : (
+        <>
+          <ThemedText style={styles.content}>{post.content}</ThemedText>
 
-      {post.postType === 'poll' && post.poll ? <PollBlock poll={post.poll} postId={post.id} /> : null}
+          {post.imageUrl ? (
+            <Image
+              source={{ uri: post.imageUrl }}
+              style={styles.image}
+              contentFit="cover"
+              transition={120}
+              recyclingKey={post.id}
+            />
+          ) : null}
+
+          {post.linkUrl ? (
+            <Pressable
+              accessibilityRole="link"
+              style={({ pressed }) => [
+                styles.linkRow,
+                { borderColor: colors.border, backgroundColor: colors.backgroundElement },
+                pressed && styles.pressed,
+              ]}
+              onPress={() => Linking.openURL(post.linkUrl!).catch(() => undefined)}
+            >
+              <Ionicons name="link-outline" size={13} color={colors.primary} />
+              <ThemedText type="small" themeColor="primary" numberOfLines={1} style={styles.linkText}>
+                {post.linkUrl}
+              </ThemedText>
+            </Pressable>
+          ) : null}
+
+          {post.postType === 'poll' && post.poll ? (
+            <PollBlock poll={post.poll} postId={post.id} />
+          ) : null}
+        </>
+      )}
 
       <View style={styles.footer}>
         <Pressable
@@ -349,5 +362,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.one + 2,
+  },
+  removedPlaceholder: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.one + 2,
+    paddingVertical: Spacing.two,
+    paddingHorizontal: Spacing.two,
+    borderRadius: 10,
   },
 });

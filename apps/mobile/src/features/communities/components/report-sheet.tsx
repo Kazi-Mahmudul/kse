@@ -14,9 +14,9 @@ import type { CommunityReportReason } from '@kse/types';
 const REASONS: { value: CommunityReportReason; label: string }[] = [
   { value: 'spam', label: 'Spam' },
   { value: 'harassment', label: 'Harassment' },
-  { value: 'inappropriate_content', label: 'Inappropriate' },
+  { value: 'inappropriate', label: 'Inappropriate' },
   { value: 'scam', label: 'Scam' },
-  { value: 'misleading_information', label: 'Misleading' },
+  { value: 'misleading', label: 'Misleading' },
   { value: 'other', label: 'Other' },
 ];
 
@@ -63,7 +63,7 @@ export function ReportSheet({
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <Pressable style={styles.scrim} onPress={onClose}>
+      <Pressable style={[styles.scrim, { backgroundColor: colors.scrim }]} onPress={onClose}>
         <Pressable
           style={[styles.sheet, { backgroundColor: colors.background }]}
           onPress={(e) => e.stopPropagation()}
@@ -114,7 +114,7 @@ const styles = StyleSheet.create({
   scrim: {
     flex: 1,
     justifyContent: 'flex-end',
-    backgroundColor: 'rgba(15, 23, 42, 0.45)',
+    // colors.scrim applied via inline style below — see <Modal>
   },
   sheet: {
     borderTopLeftRadius: 20,

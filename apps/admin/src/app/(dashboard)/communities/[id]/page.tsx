@@ -118,10 +118,10 @@ export default async function CommunityDetailPage({
   }
 
   const c = communityResult.data as unknown as CommunityRow;
-  const memberRows = (membersResult.data ?? []) as MembershipRow[];
-  const postRows = (postsResult.data ?? []) as PostRow[];
-  const eventRows = (eventsResult.data ?? []) as EventRow[];
-  const ruleRows = (rulesResult.data ?? []) as RuleRow[];
+  const memberRows = (membersResult.data ?? []) as unknown as MembershipRow[];
+  const postRows = (postsResult.data ?? []) as unknown as PostRow[];
+  const eventRows = (eventsResult.data ?? []) as unknown as EventRow[];
+  const ruleRows = (rulesResult.data ?? []) as unknown as RuleRow[];
 
   const userIds = Array.from(
     new Set([

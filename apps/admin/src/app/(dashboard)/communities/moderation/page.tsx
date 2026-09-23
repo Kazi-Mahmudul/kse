@@ -58,9 +58,13 @@ export default async function CommunityModerationPage() {
       .from('community_posts')
       .select(
         'id, content, post_type, status, created_at, author_id, community_id, ' +
-          'community:communities(name)',
+          'community:communities(name, status)',
       )
       .neq('status', 'active')
+      // Audit #9: removed posts only surface in the live queue when the
+      // parent community is still active. Archived/suspended communities
+      // keep their own history on /communities/[id].
+      .eq('community.status', 'active')
       .order('updated_at', { ascending: false })
       .range(0, QUEUE_SIZE - 1),
     admin
@@ -202,7 +206,7 @@ export default async function CommunityModerationPage() {
                 </div>
                 <div className="flex shrink-0 flex-col gap-2">
                   <RestoreTargetButton
-                    table="community_posts"
+                    contentType="community_post"
                     id={post.id}
                     label="Restore"
                   />
@@ -238,7 +242,7 @@ export default async function CommunityModerationPage() {
                 </div>
                 <div className="flex shrink-0 flex-col gap-2">
                   <RestoreTargetButton
-                    table="community_comments"
+                    contentType="community_comment"
                     id={comment.id}
                     label="Restore"
                   />
@@ -266,6 +270,7 @@ export default async function CommunityModerationPage() {
                   <th className="px-4 py-3 font-medium">Actor</th>
                   <th className="px-4 py-3 font-medium">Action</th>
                   <th className="px-4 py-3 font-medium">Entity</th>
+                  <th className="px-4 py-3 font-medium">Entity ID</th>
                 </tr>
               </thead>
               <tbody>
@@ -284,6 +289,9 @@ export default async function CommunityModerationPage() {
                       {row.action}
                     </td>
                     <td className="px-4 py-3 text-zinc-500">{row.entity_type}</td>
+                    <td className="px-4 py-3 font-mono text-xs text-zinc-400">
+                      {row.entity_id}
+                    </td>
                   </tr>
                 ))}
               </tbody>

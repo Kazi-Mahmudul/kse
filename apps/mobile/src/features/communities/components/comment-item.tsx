@@ -169,7 +169,7 @@ export function CommentItem({
       )}
 
       {replies.length > 0 && (
-        <View style={styles.replies}>
+        <View style={[styles.replies, { borderTopColor: colors.border }]}>
           {replies.map((reply) => (
             <View key={reply.id} style={styles.replyRow}>
               <View
@@ -291,7 +291,8 @@ const styles = StyleSheet.create({
   replies: {
     marginLeft: Spacing.four,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: 'rgba(100,116,139,0.25)',
+    // borderTopColor: colors.border — applied at the call site because the
+    // theme token isn't reachable from a module-level StyleSheet.
     paddingTop: Spacing.two - 2,
     gap: Spacing.two - 2,
   },

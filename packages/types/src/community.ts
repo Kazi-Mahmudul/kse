@@ -38,9 +38,9 @@ export type CommunityEventRsvp = (typeof COMMUNITY_EVENT_RSVP_VALUES)[number];
 export const COMMUNITY_REPORT_REASONS = [
   'spam',
   'harassment',
-  'inappropriate_content',
+  'inappropriate',
   'scam',
-  'misleading_information',
+  'misleading',
   'other',
 ] as const;
 export type CommunityReportReason = (typeof COMMUNITY_REPORT_REASONS)[number];

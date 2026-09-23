@@ -6,6 +6,7 @@ import { useRouter } from 'expo-router';
 import { ThemedText } from '@/components/themed-text';
 import { Badge } from '@/components/ui/badge';
 import { EmptyState } from '@/components/ui/empty-state';
+import { PrimaryButton } from '@/components/ui/primary-button';
 import { Screen } from '@/components/ui/screen';
 import { SearchBar } from '@/components/ui/search-bar';
 import { SectionHeader } from '@/components/ui/section-header';
@@ -22,12 +23,15 @@ import { PostCard } from '@/features/communities/components/post-card';
 import {
   useCategories,
   useCommunitySearch,
+  useFollowedTopics,
   useJoinedCommunities,
   useMyRequests,
   useRecommendedCommunities,
+  useToggleFollowTopic,
   useTrendingPosts,
   useUpcomingEvents,
 } from '@/features/communities/queries';
+import { SUGGESTED_TOPICS } from '@/features/communities/service';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { useTheme } from '@/hooks/use-theme';
 import { supabase } from '@/lib/supabase';
@@ -68,10 +72,14 @@ export default function CommunityScreen() {
       <SegmentedControl options={TAB_OPTIONS} value={tab} onChange={setTab} />
       <View style={styles.tabBody}>
         {tab === 'for-you' && <ForYouTab viewerId={viewerId} />}
-        {tab === 'following' && <FollowingTab />}
-        {tab === 'discover' && <DiscoverTab />}
+        {tab === 'following' && <FollowingTab viewerId={viewerId} />}
+        {tab === 'discover' && <DiscoverTab viewerId={viewerId} />}
       </View>
-      <CommunityActionsFab />
+      {viewerId === null ? (
+        <SignInPrompt />
+      ) : (
+        <CommunityActionsFab />
+      )}
     </Screen>
   );
 }
@@ -79,12 +87,35 @@ export default function CommunityScreen() {
 // ── For You ──────────────────────────────────────────────────────────────────
 
 function ForYouTab({ viewerId }: { viewerId: string | null }) {
+  const colors = useTheme();
   const trending = useTrendingPosts(4);
   const recommended = useRecommendedCommunities(4);
   const events = useUpcomingEvents(3);
+  const followed = useFollowedTopics(viewerId !== null);
+  const toggleFollow = useToggleFollowTopic();
+  const isAuthed = viewerId !== null;
+
+  const recommendedEmpty =
+    isAuthed &&
+    recommended.isSuccess &&
+    (recommended.data?.length ?? 0) === 0;
+  const trendingEmpty =
+    !recommendedEmpty &&
+    trending.isSuccess &&
+    (trending.data?.length ?? 0) === 0;
 
   return (
     <View style={styles.stack}>
+      {isAuthed && (
+        <FollowedTopicsRow
+          followed={followed.data ?? []}
+          isAuthed={isAuthed}
+          onToggle={(topic, shouldFollow) =>
+            toggleFollow.mutate({ topic, shouldFollow })
+          }
+        />
+      )}
+
       <SectionHeader title="Trending discussions" />
       {trending.isPending && <Loading />}
       {trending.isError && (
@@ -93,7 +124,7 @@ function ForYouTab({ viewerId }: { viewerId: string | null }) {
           onRetry={() => trending.refetch()}
         />
       )}
-      {trending.data?.length === 0 && (
+      {trendingEmpty && (
         <EmptyState
           icon="chatbubbles-outline"
           title="No discussions yet"
@@ -104,14 +135,29 @@ function ForYouTab({ viewerId }: { viewerId: string | null }) {
         <PostCard key={post.id} post={post} viewerId={viewerId} viewerCanModerate={false} />
       ))}
 
-      {recommended.data && recommended.data.length > 0 && (
-        <>
-          <SectionHeader title="Recommended for you" />
-          {recommended.data.map((community) => (
-            <CommunityListCard key={community.id} community={community} />
-          ))}
-        </>
+      <SectionHeader title="Recommended for you" />
+      {recommended.isPending && <Loading />}
+      {recommended.isError && (
+        <ErrorState
+          message={(recommended.error as Error).message}
+          onRetry={() => recommended.refetch()}
+        />
       )}
+      {recommendedEmpty && (
+        <EmptyState
+          icon="compass-outline"
+          title="No recommendations yet"
+          message={
+            isAuthed
+              ? 'Follow a few topics above to seed the recommendation feed.'
+              : 'Sign in and follow topics to get personalized suggestions.'
+          }
+        />
+      )}
+      {recommended.data && recommended.data.length > 0 &&
+        recommended.data.map((community) => (
+          <CommunityListCard key={community.id} community={community} />
+        ))}
 
       {events.data && events.data.length > 0 && (
         <>
@@ -125,11 +171,88 @@ function ForYouTab({ viewerId }: { viewerId: string | null }) {
   );
 }
 
+/** Followed-topic chip row for the For You empty state. Tap a chip to
+ *  follow / unfollow; the row seeds the recommendation signal when the
+ *  user has no interests / skills / topics yet. */
+function FollowedTopicsRow({
+  followed,
+  isAuthed,
+  onToggle,
+}: {
+  followed: string[];
+  isAuthed: boolean;
+  onToggle: (topic: string, shouldFollow: boolean) => void;
+}) {
+  const colors = useTheme();
+  const allTopics = followed.slice();
+  for (const t of SUGGESTED_TOPICS) {
+    if (!allTopics.includes(t)) allTopics.push(t);
+  }
+  return (
+    <View style={styles.topicSection}>
+      <ThemedText type="smallBold" style={styles.topicTitle}>
+        Follow topics
+      </ThemedText>
+      <ThemedText type="small" themeColor="textSecondary" style={styles.topicHint}>
+        Topics you follow influence your recommendation feed.
+      </ThemedText>
+      <View style={styles.topicRow}>
+        {allTopics.map((topic) => {
+          const isFollowed = followed.includes(topic);
+          return (
+            <Pressable
+              key={topic}
+              accessibilityRole="button"
+              accessibilityState={{ selected: isFollowed }}
+              disabled={!isAuthed}
+              onPress={() => isAuthed && onToggle(topic, !isFollowed)}
+              style={({ pressed }) => [
+                styles.topicChip,
+                {
+                  borderColor: isFollowed ? colors.primary : colors.border,
+                  backgroundColor: isFollowed ? `${colors.primary}14` : colors.background,
+                },
+                pressed && styles.pressed,
+                !isAuthed && styles.topicChipDisabled,
+              ]}
+            >
+              <Ionicons
+                name={isFollowed ? 'bookmark' : 'bookmark-outline'}
+                size={12}
+                color={isFollowed ? colors.primary : colors.textMuted}
+              />
+              <ThemedText
+                type="small"
+                themeColor={isFollowed ? 'primary' : 'textSecondary'}
+                style={styles.topicChipLabel}
+              >
+                {topic}
+              </ThemedText>
+            </Pressable>
+          );
+        })}
+      </View>
+    </View>
+  );
+}
+
 // ── Following ────────────────────────────────────────────────────────────────
 
-function FollowingTab() {
-  const joined = useJoinedCommunities();
+function FollowingTab({ viewerId }: { viewerId: string | null }) {
+  const joined = useJoinedCommunities(viewerId !== null);
   const requests = useMyRequests();
+
+  if (viewerId === null) {
+    return (
+      <View style={styles.stack}>
+        <EmptyState
+          icon="lock-closed-outline"
+          title="Sign in to follow communities"
+          message="Once you sign in you can join communities, post discussions and request new ones."
+        />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.stack}>
@@ -196,7 +319,7 @@ function FollowingTab() {
 
 // ── Discover ─────────────────────────────────────────────────────────────────
 
-function DiscoverTab() {
+function DiscoverTab({ viewerId }: { viewerId: string | null }) {
   const colors = useTheme();
   const [query, setQuery] = useState('');
   const [categoryId, setCategoryId] = useState<string | null>(null);
@@ -216,6 +339,14 @@ function DiscoverTab() {
 
   return (
     <View style={styles.stack}>
+      {viewerId === null && (
+        <View style={styles.signInRibbon}>
+          <Ionicons name="lock-closed-outline" size={14} color={colors.primary} />
+          <ThemedText type="small" themeColor="primary" style={styles.signInRibbonText}>
+            Sign in to join a community or post in one.
+          </ThemedText>
+        </View>
+      )}
       <SearchBar
         value={query}
         onChangeText={setQuery}
@@ -341,11 +472,42 @@ function ErrorState({ message, onRetry }: { message: string; onRetry: () => void
   );
 }
 
+/**
+ * Auth-gated CTA rendered in place of the create-FAB when there is no
+ * signed-in viewer. Goes to the login screen via expo-router so the user
+ * comes back to /community afterwards.
+ */
+function SignInPrompt() {
+  const router = useRouter();
+  const colors = useTheme();
+  return (
+    <View
+      style={[
+        styles.signInPrompt,
+        { backgroundColor: colors.surfaceMuted, borderColor: colors.border },
+      ]}
+    >
+      <Ionicons name="lock-closed-outline" size={18} color={colors.primary} />
+      <View style={styles.signInPromptText}>
+        <ThemedText type="smallBold">Sign in to participate</ThemedText>
+        <ThemedText type="small" themeColor="textSecondary">
+          Join communities, post discussions, run polls and request new ones.
+        </ThemedText>
+      </View>
+      <PrimaryButton
+        label="Sign in"
+        size="compact"
+        onPress={() => router.push('/(auth)/login')}
+      />
+    </View>
+  );
+}
+
 // ── FAB + action sheets ──────────────────────────────────────────────────────
 
 function CommunityActionsFab() {
   const router = useRouter();
-  const joined = useJoinedCommunities();
+  const joined = useJoinedCommunities(true);
   const [mainOpen, setMainOpen] = useState(false);
   const [pickerFor, setPickerFor] = useState<'post' | 'poll' | null>(null);
 
@@ -468,5 +630,58 @@ const styles = StyleSheet.create({
   },
   pressed: {
     opacity: 0.7,
+  },
+  signInRibbon: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.one,
+    paddingHorizontal: Spacing.two - 2,
+    paddingVertical: Spacing.one + 2,
+    borderRadius: 999,
+    backgroundColor: 'rgba(124, 58, 237, 0.08)',
+  },
+  signInRibbonText: {
+    flexShrink: 1,
+  },
+  signInPrompt: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.two,
+    padding: Spacing.two,
+    borderRadius: 16,
+    borderWidth: 1,
+  },
+  signInPromptText: {
+    flex: 1,
+    gap: 2,
+  },
+  topicSection: {
+    gap: Spacing.one,
+  },
+  topicTitle: {
+    color: undefined,
+  },
+  topicHint: {
+    marginBottom: Spacing.one,
+  },
+  topicRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.one + 2,
+  },
+  topicChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    borderWidth: 1,
+    borderRadius: 999,
+    paddingHorizontal: Spacing.two - 2,
+    paddingVertical: 4,
+  },
+  topicChipLabel: {
+    fontSize: 12,
+  },
+  topicChipDisabled: {
+    opacity: 0.5,
   },
 });

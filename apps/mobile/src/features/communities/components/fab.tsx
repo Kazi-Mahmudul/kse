@@ -25,7 +25,7 @@ export function CommunityFab({ onPress }: { onPress: () => void }) {
         pressed && styles.pressed,
       ]}
     >
-      <Ionicons name="add" size={26} color="#FFFFFF" />
+      <Ionicons name="add" size={26} color={colors.onPrimary} />
     </Pressable>
   );
 }

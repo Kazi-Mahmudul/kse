@@ -29,6 +29,7 @@ import {
   fetchRecommendedCommunities,
   fetchTrendingPosts,
   fetchUpcomingEvents,
+  followTopic,
   getCommunity,
   getPost,
   joinCommunity,
@@ -37,6 +38,7 @@ import {
   listComments,
   listCommunityEvents,
   listCommunityPosts,
+  listFollowedTopics,
   listMyRequests,
   reportContent,
   setEventRsvp,
@@ -45,6 +47,7 @@ import {
   softDeleteComment,
   softDeletePost,
   toggleReaction,
+  unfollowTopic,
   votePoll,
   type CommunityListFilters,
   type CreateEventInput,
@@ -68,6 +71,7 @@ export const communityKeys = {
   comments: (postId: string) => [...communityKeys.all, 'comments', postId] as const,
   events: (id: string) => [...communityKeys.all, 'events', id] as const,
   myRequests: () => [...communityKeys.all, 'my-requests'] as const,
+  followedTopics: () => [...communityKeys.all, 'followed-topics'] as const,
 };
 
 // ── Discovery ────────────────────────────────────────────────────────────────
@@ -133,6 +137,50 @@ export function useMyRequests() {
   } satisfies UseQueryOptions<CommunityRequest[], Error>);
 }
 
+export function useFollowedTopics(enabled = true) {
+  return useQuery({
+    queryKey: communityKeys.followedTopics(),
+    queryFn: async () => {
+      const rows = await listFollowedTopics();
+      // Cache the simpler shape (just topic names) so the optimistic toggle
+      // doesn't have to construct full row objects.
+      return rows.map((row) => row.topic);
+    },
+    enabled,
+  } satisfies UseQueryOptions<string[], Error>);
+}
+
+export function useToggleFollowTopic() {
+  const queryClient = useQueryClient();
+  return useMutation<void, Error, { topic: string; shouldFollow: boolean }, { previous: string[] }>(
+    {
+      mutationFn: ({ topic, shouldFollow }) =>
+        shouldFollow ? followTopic(topic) : unfollowTopic(topic),
+      onMutate: async ({ topic, shouldFollow }) => {
+        await queryClient.cancelQueries({ queryKey: communityKeys.followedTopics() });
+        const previous =
+          (queryClient.getQueryData<string[]>(communityKeys.followedTopics()) as string[] | undefined) ??
+          null;
+        queryClient.setQueryData<string[]>(communityKeys.followedTopics(), (prev) => {
+          const set = new Set(prev ?? []);
+          if (shouldFollow) set.add(topic);
+          else set.delete(topic);
+          return Array.from(set);
+        });
+        return { previous: previous ?? [] };
+      },
+      onError: (_err, _vars, context) => {
+        queryClient.setQueryData(communityKeys.followedTopics(), context?.previous ?? []);
+      },
+      onSettled: () => {
+        // Followed topics change the recommended feed, so refresh it.
+        queryClient.invalidateQueries({ queryKey: communityKeys.recommended() });
+        queryClient.invalidateQueries({ queryKey: communityKeys.followedTopics() });
+      },
+    },
+  );
+}
+
 // ── Community detail ─────────────────────────────────────────────────────────
 
 export function useCommunity(id: string) {
@@ -188,11 +236,13 @@ function useCommunityMutation(mutationFn: (id: string) => Promise<void>) {
   return useMutation<void, Error, string>({
     mutationFn,
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: communityKeys.list({}) });
-      queryClient.invalidateQueries({ queryKey: ['communities', 'list'] });
-      queryClient.invalidateQueries({ queryKey: communityKeys.detail(variables) });
+      // Invalidate the membership-sensitive slices only — not the entire
+      // community graph. The list/joined/recommended feeds all show
+      // membership counts, so they must refresh when a user joins/leaves.
       queryClient.invalidateQueries({ queryKey: communityKeys.joined() });
       queryClient.invalidateQueries({ queryKey: communityKeys.recommended() });
+      queryClient.invalidateQueries({ queryKey: communityKeys.active() });
+      queryClient.invalidateQueries({ queryKey: communityKeys.detail(variables) });
     },
   });
 }
@@ -266,8 +316,12 @@ export function useToggleReaction() {
         queryClient.setQueryData(key, data);
       }
     },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: communityKeys.all });
+    onSettled: (_data, _err, { post, communityId }) => {
+      // Only the affected post + that community's feed need the server count.
+      queryClient.invalidateQueries({ queryKey: communityKeys.post(post.id) });
+      if (communityId) {
+        queryClient.invalidateQueries({ queryKey: communityKeys.posts(communityId) });
+      }
     },
   });
 }

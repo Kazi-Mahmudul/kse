@@ -52,7 +52,7 @@ function buildKpis(kpis: DashboardKpis): KpiSpec[] {
     {
       label: 'Active communities',
       value: kpis.activeCommunities,
-      hint: `${kpis.activeCommunityMembers} memberships`,
+      hint: `${kpis.communityMemberships} memberships`,
     },
     {
       label: 'Community requests',

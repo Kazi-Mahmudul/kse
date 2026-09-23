@@ -63,10 +63,15 @@ export default async function CommunitiesPage({
     );
   }
 
-  const [{ data: rows, count, error }, { data: categories }] = await Promise.all([
-    query.range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1),
-    admin.from('community_categories').select('id, name').order('sort_order'),
-  ]);
+  const [{ data: rows, count, error }, { data: categories }, { count: pendingCount }] =
+    await Promise.all([
+      query.range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1),
+      admin.from('community_categories').select('id, name').order('sort_order'),
+      admin
+        .from('community_requests')
+        .select('id', { count: 'exact', head: true })
+        .eq('status', 'pending'),
+    ]);
 
   const communities = (rows ?? []) as unknown as CommunityRow[];
   const total = count ?? 0;
@@ -94,12 +99,14 @@ export default async function CommunitiesPage({
             see membership + posts on the detail screen.
           </p>
         </div>
-        <Link
-          href="/communities/new"
-          className="h-10 rounded-lg bg-indigo-600 px-4 leading-10 text-sm font-semibold text-white transition hover:bg-indigo-500"
-        >
-          New community
-        </Link>
+        {(pendingCount ?? 0) > 0 ? (
+          <Link
+            href="/communities/pending"
+            className="h-10 rounded-lg bg-indigo-600 px-4 leading-10 text-sm font-semibold text-white transition hover:bg-indigo-500"
+          >
+            Review {pendingCount} pending request{pendingCount === 1 ? '' : 's'}
+          </Link>
+        ) : null}
       </div>
 
       <form
