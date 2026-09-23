@@ -38,3 +38,21 @@ export function formatMemberCount(count: number): string {
   const rounded = Math.round(thousands * 10) / 10;
   return `${Number.isInteger(rounded) ? rounded.toFixed(0) : rounded.toFixed(1)}K`;
 }
+
+/**
+ * Event date/time line: "Sat, 12 Sep · 4:00 PM" (same-day events also show
+ * "Today"/"Tomorrow" prefixes). Falls back to a locale string.
+ */
+export function formatEventDate(iso: string | null | undefined): string {
+  if (!iso) return '';
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return '';
+  const time = date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+  const today = new Date();
+  const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  const dayDiff = Math.round((startOfDay(date) - startOfDay(today)) / 86_400_000);
+  if (dayDiff === 0) return `Today · ${time}`;
+  if (dayDiff === 1) return `Tomorrow · ${time}`;
+  const day = date.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+  return `${day} · ${time}`;
+}

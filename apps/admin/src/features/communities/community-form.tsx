@@ -16,6 +16,17 @@ export interface CommunityUniversityOption {
   name: string;
 }
 
+export interface CommunityCategoryOption {
+  id: string;
+  name: string;
+}
+
+export interface CommunityDepartmentOption {
+  id: string;
+  name: string;
+  university_id: string;
+}
+
 /** Slugify a name into the a-z0-9-dash format communities.slug requires. */
 function slugify(value: string): string {
   return value
@@ -31,8 +42,12 @@ const initialSaveState: SaveCommunityState = { error: null, fieldErrors: {} };
 /** Admin create-community form (spec §7) — slug auto-suggested from name. */
 export function CommunityForm({
   universities,
+  categories,
+  departments,
 }: {
   universities: CommunityUniversityOption[];
+  categories: CommunityCategoryOption[];
+  departments: CommunityDepartmentOption[];
 }) {
   const [state, formAction, isPending] = useActionState(
     saveCommunityAction,
@@ -92,6 +107,19 @@ export function CommunityForm({
         </label>
       </div>
 
+      <label className="flex flex-col gap-1.5 md:max-w-80">
+        <span className="text-sm font-medium text-zinc-700">Category</span>
+        <select name="category_id" defaultValue="" className={inputClass}>
+          <option value="">— No category —</option>
+          {categories.map((category) => (
+            <option key={category.id} value={category.id}>
+              {category.name}
+            </option>
+          ))}
+        </select>
+        {err('category_id')}
+      </label>
+
       <label className="flex flex-col gap-1.5">
         <span className="text-sm font-medium text-zinc-700">University (optional)</span>
         <select name="university_id" defaultValue="" className={inputClass}>
@@ -103,6 +131,19 @@ export function CommunityForm({
           ))}
         </select>
         {err('university_id')}
+      </label>
+
+      <label className="flex flex-col gap-1.5">
+        <span className="text-sm font-medium text-zinc-700">Department (optional)</span>
+        <select name="department_id" defaultValue="" className={inputClass}>
+          <option value="">— No department —</option>
+          {departments.map((department) => (
+            <option key={department.id} value={department.id}>
+              {department.name}
+            </option>
+          ))}
+        </select>
+        {err('department_id')}
       </label>
 
       <label className="flex flex-col gap-1.5">

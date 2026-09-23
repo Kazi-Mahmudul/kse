@@ -24,6 +24,7 @@ const STATUS_LABELS: Record<ContentStatus, string> = {
   active: 'Active',
   hidden: 'Hidden',
   removed: 'Removed',
+  archived: 'Archived',
 };
 
 /** Tutor management (spec §7): search, verification state + quick verify. */

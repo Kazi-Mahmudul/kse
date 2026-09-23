@@ -1,272 +1,472 @@
-import { useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, StyleSheet, View } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, FlatList, Pressable, StyleSheet, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 
 import { ThemedText } from '@/components/themed-text';
+import { Badge } from '@/components/ui/badge';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Screen } from '@/components/ui/screen';
 import { SearchBar } from '@/components/ui/search-bar';
 import { SectionHeader } from '@/components/ui/section-header';
-import { FontFamilies, Spacing } from '@/constants/theme';
-import { CommunityTileCard } from '@/features/communities/components/community-tile-card';
-import { RecentDiscussionCard } from '@/features/communities/components/recent-discussion-card';
+import { SegmentedControl } from '@/components/ui/segmented-control';
+import { Spacing } from '@/constants/theme';
 import {
-  useCommunities,
-  useRecentPosts,
+  ActionSheet,
+  type ActionOption,
+} from '@/features/communities/components/action-sheet';
+import { CommunityListCard } from '@/features/communities/components/community-list-card';
+import { CommunityFab } from '@/features/communities/components/fab';
+import { EventCard } from '@/features/communities/components/event-card';
+import { PostCard } from '@/features/communities/components/post-card';
+import {
+  useCategories,
+  useCommunitySearch,
+  useJoinedCommunities,
+  useMyRequests,
+  useRecommendedCommunities,
+  useTrendingPosts,
+  useUpcomingEvents,
 } from '@/features/communities/queries';
+import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { useTheme } from '@/hooks/use-theme';
+import { supabase } from '@/lib/supabase';
+
+type Tab = 'for-you' | 'following' | 'discover';
+
+const TAB_OPTIONS = [
+  { value: 'for-you' as const, label: 'For You' },
+  { value: 'following' as const, label: 'Following' },
+  { value: 'discover' as const, label: 'Discover' },
+];
 
 /**
- * Community tab (spec 09._community_kse):
- *   • 24px page title
- *   • Search bar + filter button
- *   • "Your Communities" — 2×2 grid (top 4 joined, or first 4 active if none)
- *   • "Recent Discussions" — latest active posts across every community
- *   • "Browse all communities" link below the grid for discovery
- *
- * No schema migrations were required for this redesign — `community_posts`
- * already had everything the Recent Discussions list needed; only a new
- * `listRecentPosts(limit)` query was added in `features/communities/`.
+ * Community home (spec §Discovery): For You (trending + recommendations +
+ * upcoming events), Following (joined communities + own requests) and
+ * Discover (search + category browse). The FAB offers post/poll/request
+ * creation scoped to what the current user may do.
  */
 export default function CommunityScreen() {
-  const colors = useTheme();
-  const communitiesQuery = useCommunities();
-  const recentQuery = useRecentPosts(8);
-  const [query, setQuery] = useState('');
+  const [tab, setTab] = useState<Tab>('for-you');
+  const [viewerId, setViewerId] = useState<string | null>(null);
 
-  const all = useMemo(() => communitiesQuery.data ?? [], [communitiesQuery.data]);
-  const recent = useMemo(() => recentQuery.data ?? [], [recentQuery.data]);
-
-  // 1) Joined communities first, then the rest. Cap at 4 for the 2x2 grid.
-  const gridTiles = useMemo(() => {
-    const joined = all.filter((c) => c.isMember);
-    const fallback = all.filter((c) => !c.isMember);
-    return [...joined, ...fallback].slice(0, 4);
-  }, [all]);
-
-  // 2) Client-side filter. While searching, every matching community shows
-  //    (the 4-tile cap is a browse-state constraint, not a search limit) and
-  //    Recent Discussions narrows to matching posts.
-  const normalizedQuery = query.trim().toLowerCase();
-  const communityMatches = useMemo(() => {
-    if (!normalizedQuery) return all;
-    return all.filter(
-      (c) =>
-        c.name.toLowerCase().includes(normalizedQuery) ||
-        (c.description ?? '').toLowerCase().includes(normalizedQuery) ||
-        (c.universityName ?? '').toLowerCase().includes(normalizedQuery) ||
-        c.slug.toLowerCase().includes(normalizedQuery),
-    );
-  }, [all, normalizedQuery]);
-  const filteredTiles = normalizedQuery ? communityMatches : gridTiles;
-  const filteredRecent = useMemo(() => {
-    if (!normalizedQuery) return recent;
-    return recent.filter(
-      (post) =>
-        post.content.toLowerCase().includes(normalizedQuery) ||
-        post.communityName.toLowerCase().includes(normalizedQuery) ||
-        post.authorName.toLowerCase().includes(normalizedQuery),
-    );
-  }, [recent, normalizedQuery]);
-
-  const showFilterPlaceholder = () =>
-    Alert.alert(
-      'Filter communities',
-      'University + topic filters are coming soon. For now, use the search bar above.',
-    );
-
-  const showAllCommunitiesPlaceholder = () =>
-    Alert.alert(
-      'All communities',
-      `You're a member of ${all.filter((c) => c.isMember).length} of ${all.length} communities. The full browse view ships in a future release.`,
-    );
-
-  // Spinner only while the request is in flight — the search filter itself is
-  // synchronous, so a no-match search shows the empty state, not a loader.
-  const showGridLoading = communitiesQuery.isPending;
+  useEffect(() => {
+    let cancelled = false;
+    supabase.auth.getUser().then(({ data }) => {
+      if (!cancelled) setViewerId(data.user?.id ?? null);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   return (
     <Screen>
-      <View style={styles.headerRow}>
-        <ThemedText type="subtitle" style={styles.pageTitle}>
-          Community
-        </ThemedText>
+      <ThemedText type="title" style={styles.title}>
+        Community
+      </ThemedText>
+      <SegmentedControl options={TAB_OPTIONS} value={tab} onChange={setTab} />
+      <View style={styles.tabBody}>
+        {tab === 'for-you' && <ForYouTab viewerId={viewerId} />}
+        {tab === 'following' && <FollowingTab />}
+        {tab === 'discover' && <DiscoverTab />}
       </View>
-
-      <View style={styles.searchRow}>
-        <SearchBar
-          value={query}
-          onChangeText={setQuery}
-          placeholder="Search communities..."
-          variant="card"
-          onFilterPress={showFilterPlaceholder}
-        />
-      </View>
-
-      {normalizedQuery ? (
-        <ThemedText type="small" themeColor="textSecondary">
-          {communityMatches.length} {communityMatches.length === 1 ? 'community' : 'communities'} ·{' '}
-          {filteredRecent.length} {filteredRecent.length === 1 ? 'discussion' : 'discussions'}
-        </ThemedText>
-      ) : null}
-
-      <View style={styles.section}>
-        <SectionHeader
-          title={normalizedQuery ? 'Communities' : 'Your Communities'}
-          actionLabel={
-            !normalizedQuery && !communitiesQuery.isPending && all.length > 4
-              ? 'View All'
-              : undefined
-          }
-          onAction={all.length > 4 ? showAllCommunitiesPlaceholder : undefined}
-        />
-      </View>
-
-      {showGridLoading && !communitiesQuery.isError && (
-        <View style={styles.loading}>
-          <ActivityIndicator color={colors.primary} />
-        </View>
-      )}
-
-      {communitiesQuery.isError ? (
-        <EmptyState
-          icon="cloud-offline-outline"
-          title="Could not load communities"
-          message={(communitiesQuery.error as Error).message}
-          actionLabel="Try again"
-          onAction={() => communitiesQuery.refetch()}
-        />
-      ) : null}
-
-      {!communitiesQuery.isError && !communitiesQuery.isPending && filteredTiles.length > 0 ? (
-        <View style={styles.grid}>
-          {filteredTiles.map((community) => (
-            <View key={community.id} style={styles.gridCell}>
-              <CommunityTileCard community={community} />
-            </View>
-          ))}
-        </View>
-      ) : null}
-
-      {!communitiesQuery.isError &&
-      !communitiesQuery.isPending &&
-      communitiesQuery.isSuccess &&
-      all.length > 0 &&
-      filteredTiles.length === 0 ? (
-        <EmptyState
-          icon="search-outline"
-          title="No matches"
-          message={`No communities or discussions match "${query.trim()}".`}
-          actionLabel="Clear search"
-          onAction={() => setQuery('')}
-        />
-      ) : null}
-
-      {!communitiesQuery.isError &&
-      !communitiesQuery.isPending &&
-      communitiesQuery.isSuccess &&
-      all.length === 0 ? (
-        <EmptyState
-          icon="people-outline"
-          title="No communities yet"
-          message="Verified communities around Khulna universities will appear here."
-        />
-      ) : null}
-
-      {all.length > filteredTiles.length && filteredTiles.length > 0 && !normalizedQuery ? (
-        <ThemedText
-          type="small"
-          themeColor="textSecondary"
-          style={styles.moreLine}
-        >
-          +{all.length - filteredTiles.length} more communities
-        </ThemedText>
-      ) : null}
-
-      {(!normalizedQuery || filteredRecent.length > 0) && (
-        <View style={[styles.section, styles.recentSection]}>
-          <SectionHeader title="Recent Discussions" />
-        </View>
-      )}
-
-      {!normalizedQuery && recentQuery.isPending ? (
-        <View style={styles.loading}>
-          <ActivityIndicator color={colors.primary} />
-        </View>
-      ) : null}
-
-      {recentQuery.isError ? (
-        <EmptyState
-          icon="cloud-offline-outline"
-          title="Could not load discussions"
-          message={(recentQuery.error as Error).message}
-          actionLabel="Try again"
-          onAction={() => recentQuery.refetch()}
-        />
-      ) : null}
-
-      {!normalizedQuery && recentQuery.isSuccess && recent.length === 0 ? (
-        <EmptyState
-          icon="chatbubbles-outline"
-          title="No discussions yet"
-          message="Posts from every community will show here."
-        />
-      ) : null}
-
-      {filteredRecent.length > 0 ? (
-        <View style={styles.recentList}>
-          {filteredRecent.map((post) => (
-            <RecentDiscussionCard key={post.id} post={post} />
-          ))}
-        </View>
-      ) : null}
+      <CommunityActionsFab />
     </Screen>
   );
 }
 
-/**
- * The screen rides inside the shared `Screen` chrome so it inherits the
- * themed background, centered 480 max-width and bottom-tab inset. We add
- * tighter section rhythm (12 / 20) that matches the spec's denser
- * community layout.
- */
+// ── For You ──────────────────────────────────────────────────────────────────
+
+function ForYouTab({ viewerId }: { viewerId: string | null }) {
+  const trending = useTrendingPosts(4);
+  const recommended = useRecommendedCommunities(4);
+  const events = useUpcomingEvents(3);
+
+  return (
+    <View style={styles.stack}>
+      <SectionHeader title="Trending discussions" />
+      {trending.isPending && <Loading />}
+      {trending.isError && (
+        <ErrorState
+          message={(trending.error as Error).message}
+          onRetry={() => trending.refetch()}
+        />
+      )}
+      {trending.data?.length === 0 && (
+        <EmptyState
+          icon="chatbubbles-outline"
+          title="No discussions yet"
+          message="Community activity from the past week will show up here."
+        />
+      )}
+      {trending.data?.map((post) => (
+        <PostCard key={post.id} post={post} viewerId={viewerId} viewerCanModerate={false} />
+      ))}
+
+      {recommended.data && recommended.data.length > 0 && (
+        <>
+          <SectionHeader title="Recommended for you" />
+          {recommended.data.map((community) => (
+            <CommunityListCard key={community.id} community={community} />
+          ))}
+        </>
+      )}
+
+      {events.data && events.data.length > 0 && (
+        <>
+          <SectionHeader title="Upcoming community events" />
+          {events.data.map((event) => (
+            <EventCard key={event.id} event={event} />
+          ))}
+        </>
+      )}
+    </View>
+  );
+}
+
+// ── Following ────────────────────────────────────────────────────────────────
+
+function FollowingTab() {
+  const joined = useJoinedCommunities();
+  const requests = useMyRequests();
+
+  return (
+    <View style={styles.stack}>
+      <SectionHeader title="Your communities" />
+      {joined.isPending && <Loading />}
+      {joined.isError && (
+        <ErrorState
+          message={(joined.error as Error).message}
+          onRetry={() => joined.refetch()}
+        />
+      )}
+      {joined.isSuccess && joined.data.length === 0 && (
+        <EmptyState
+          icon="people-outline"
+          title="Not following any community"
+          message="Discover communities matched to your university and interests."
+        />
+      )}
+      {joined.data?.map((community) => (
+        <CommunityListCard key={community.id} community={community} />
+      ))}
+
+      {requests.data && requests.data.length > 0 && (
+        <>
+          <SectionHeader title="Your community requests" />
+          {requests.data.map((request) => (
+            <View key={request.id} style={styles.requestRow}>
+              <View style={styles.requestInfo}>
+                <ThemedText type="smallBold" numberOfLines={1}>
+                  {request.name}
+                </ThemedText>
+                <ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
+                  {request.categoryName ?? 'Uncategorized'} ·{' '}
+                  {request.status === 'pending'
+                    ? 'waiting for review'
+                    : request.status === 'approved'
+                      ? 'approved'
+                      : (request.reviewNote ?? 'rejected')}
+                </ThemedText>
+              </View>
+              <Badge
+                label={
+                  request.status === 'pending'
+                    ? 'Pending'
+                    : request.status === 'approved'
+                      ? 'Approved'
+                      : 'Rejected'
+                }
+                tone={
+                  request.status === 'approved'
+                    ? 'success'
+                    : request.status === 'rejected'
+                      ? 'danger'
+                      : 'warning'
+                }
+              />
+            </View>
+          ))}
+        </>
+      )}
+    </View>
+  );
+}
+
+// ── Discover ─────────────────────────────────────────────────────────────────
+
+function DiscoverTab() {
+  const colors = useTheme();
+  const [query, setQuery] = useState('');
+  const [categoryId, setCategoryId] = useState<string | null>(null);
+  const debouncedQuery = useDebouncedValue(query, 350);
+  const categories = useCategories();
+
+  const filters = useMemo(
+    () => ({
+      query: debouncedQuery.trim() || undefined,
+      categoryId,
+    }),
+    [debouncedQuery, categoryId],
+  );
+  const search = useCommunitySearch(filters);
+
+  const items = search.data?.pages.flatMap((page) => page.items) ?? [];
+
+  return (
+    <View style={styles.stack}>
+      <SearchBar
+        value={query}
+        onChangeText={setQuery}
+        placeholder="Search communities…"
+        variant="card"
+      />
+      {categories.data && categories.data.length > 0 && (
+        <View style={styles.categoryRow}>
+          <CategoryChip
+            label="All"
+            active={categoryId === null}
+            onPress={() => setCategoryId(null)}
+          />
+          {categories.data.map((category) => (
+            <CategoryChip
+              key={category.id}
+              label={category.name}
+              active={categoryId === category.id}
+              onPress={() => setCategoryId(category.id)}
+            />
+          ))}
+        </View>
+      )}
+
+      {search.isPending && <Loading />}
+      {search.isError && (
+        <ErrorState
+          message={(search.error as Error).message}
+          onRetry={() => search.refetch()}
+        />
+      )}
+      {search.isSuccess && items.length === 0 && (
+        <EmptyState
+          icon="search-outline"
+          title="No communities found"
+          message="Try a different search or category — or request a new community."
+        />
+      )}
+
+      {items.length > 0 && (
+        <FlatList
+          data={items}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => <CommunityListCard community={item} />}
+          onEndReached={() => {
+            if (search.hasNextPage && !search.isFetchingNextPage) search.fetchNextPage();
+          }}
+          onEndReachedThreshold={0.4}
+          ListFooterComponent={
+            search.isFetchingNextPage ? (
+              <View style={styles.footerLoader}>
+                <ActivityIndicator size="small" color={colors.primary} />
+              </View>
+            ) : null
+          }
+          scrollEnabled={false}
+          contentContainerStyle={styles.stack}
+        />
+      )}
+    </View>
+  );
+}
+
+function CategoryChip({
+  label,
+  active,
+  onPress,
+}: {
+  label: string;
+  active: boolean;
+  onPress: () => void;
+}) {
+  const colors = useTheme();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.categoryChip,
+        {
+          borderColor: active ? colors.primary : colors.border,
+          backgroundColor: active ? `${colors.primary}14` : colors.background,
+        },
+        pressed && styles.pressed,
+      ]}
+    >
+      <Ionicons
+        name={active ? 'checkmark-circle' : 'checkmark-circle-outline'}
+        size={12}
+        color={active ? colors.primary : colors.textMuted}
+      />
+      <ThemedText
+        type="small"
+        themeColor={active ? 'primary' : 'textSecondary'}
+        style={styles.categoryChipLabel}
+      >
+        {label}
+      </ThemedText>
+    </Pressable>
+  );
+}
+
+// ── Shared bits ──────────────────────────────────────────────────────────────
+
+function Loading() {
+  const colors = useTheme();
+  return (
+    <View style={styles.loading}>
+      <ActivityIndicator size="small" color={colors.primary} />
+    </View>
+  );
+}
+
+function ErrorState({ message, onRetry }: { message: string; onRetry: () => void }) {
+  return (
+    <EmptyState
+      icon="cloud-offline-outline"
+      title="Could not load"
+      message={message}
+      actionLabel="Try again"
+      onAction={onRetry}
+    />
+  );
+}
+
+// ── FAB + action sheets ──────────────────────────────────────────────────────
+
+function CommunityActionsFab() {
+  const router = useRouter();
+  const joined = useJoinedCommunities();
+  const [mainOpen, setMainOpen] = useState(false);
+  const [pickerFor, setPickerFor] = useState<'post' | 'poll' | null>(null);
+
+  const mainOptions: ActionOption[] = [
+    {
+      key: 'post',
+      label: 'Create post',
+      description: 'Share a discussion, question or opportunity',
+      icon: 'create-outline',
+    },
+    {
+      key: 'poll',
+      label: 'Create poll',
+      description: 'Ask members a quick question',
+      icon: 'stats-chart-outline',
+    },
+    {
+      key: 'request',
+      label: 'Request a community',
+      description: 'Admins review new community requests',
+      icon: 'add-circle-outline',
+    },
+  ];
+
+  const joinedCommunities = joined.data ?? [];
+
+  return (
+    <>
+      <CommunityFab onPress={() => setMainOpen(true)} />
+      <ActionSheet
+        visible={mainOpen}
+        title="Create in community"
+        options={mainOptions}
+        onSelect={(key) => {
+          if (key === 'request') {
+            router.push('/(tabs)/community/create-request');
+          } else {
+            setPickerFor(key as 'post' | 'poll');
+          }
+        }}
+        onClose={() => setMainOpen(false)}
+      />
+      <ActionSheet
+        visible={pickerFor !== null}
+        title={pickerFor === 'poll' ? 'Create poll in…' : 'Create post in…'}
+        options={
+          joinedCommunities.length > 0
+            ? joinedCommunities.map((community) => ({
+                key: community.id,
+                label: community.name,
+                icon: 'people-outline' as const,
+              }))
+            : [
+                {
+                  key: '__empty__',
+                  label: 'Join a community first',
+                  icon: 'information-circle-outline' as const,
+                },
+              ]
+        }
+        onSelect={(key) => {
+          if (key === '__empty__' || !pickerFor) return;
+          router.push({
+            pathname:
+              pickerFor === 'poll'
+                ? '/(tabs)/community/[id]/create-poll'
+                : '/(tabs)/community/[id]/create-post',
+            params: { id: key },
+          });
+        }}
+        onClose={() => setPickerFor(null)}
+      />
+    </>
+  );
+}
+
 const styles = StyleSheet.create({
-  headerRow: {
-    marginTop: Spacing.two,
+  title: {
+    marginBottom: Spacing.two + 2,
   },
-  pageTitle: {
-    fontFamily: FontFamilies.bold,
-    fontSize: 24,
-    lineHeight: 30,
-    letterSpacing: -0.4,
+  tabBody: {
+    marginTop: Spacing.two + 2,
   },
-  searchRow: {
-    marginTop: Spacing.two,
-  },
-  section: {
-    marginTop: Spacing.four,
-  },
-  recentSection: {
-    marginTop: Spacing.five,
+  stack: {
+    gap: Spacing.two + 2,
   },
   loading: {
     alignItems: 'center',
-    paddingVertical: Spacing.four,
+    paddingVertical: Spacing.three,
   },
-  grid: {
+  footerLoader: {
+    paddingVertical: Spacing.two,
+    alignItems: 'center',
+  },
+  requestRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.two,
+  },
+  requestInfo: {
+    flex: 1,
+    gap: 1,
+  },
+  categoryRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    marginHorizontal: -Spacing.one,
+    gap: Spacing.one + 2,
   },
-  gridCell: {
-    width: '50%',
-    paddingHorizontal: Spacing.one,
-    paddingVertical: Spacing.one,
+  categoryChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    borderWidth: 1,
+    borderRadius: 999,
+    paddingHorizontal: Spacing.two - 2,
+    paddingVertical: 4,
   },
-  moreLine: {
-    marginTop: Spacing.one,
-    textAlign: 'right',
+  categoryChipLabel: {
+    fontSize: 12,
   },
-  recentList: {
-    gap: Spacing.two,
+  pressed: {
+    opacity: 0.7,
   },
 });

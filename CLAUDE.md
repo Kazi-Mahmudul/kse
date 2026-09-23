@@ -1480,3 +1480,18 @@ This is the preferred architecture because it provides a production-capable syst
 Start with high-quality manually managed content and strong admin tooling.
 
 Automate only after the manual workflow is understood and repeated often enough to justify automation.
+
+---
+
+## 40. Claude Project Files (`.claude/`)
+
+Persistent session-to-session context lives in `.claude/` and **must be maintained by Claude in every session**:
+
+| File | Purpose |
+|---|---|
+| `.claude/MEMORY.md` | Project state: status, decisions log, gotchas, environment facts — update every substantive session |
+| `.claude/AGENT.md` | Operating procedure: session checklists, invariants, commands, git rules |
+| `.claude/SKILLS.md` | Repeatable playbooks for common tasks in this repo |
+| `.claude/TESTS.md` | Test strategy, commands, coverage status |
+
+Protocol: read them at session start (after CLAUDE.md), update them as work concludes. They record **state and workflows**; CLAUDE.md remains the authoritative architecture spec — on conflict, CLAUDE.md wins. See `.claude/README.md`.

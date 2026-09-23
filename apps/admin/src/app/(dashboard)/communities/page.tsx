@@ -13,14 +13,16 @@ interface CommunityRow {
   status: ContentStatus;
   description: string | null;
   created_at: string;
+  member_count: number;
   university: { name: string } | null;
-  community_members: { user_id: string }[];
+  category: { name: string } | null;
 }
 
 const STATUS_LABELS: Record<ContentStatus, string> = {
   active: 'Active',
   hidden: 'Hidden',
   removed: 'Removed',
+  archived: 'Archived',
 };
 
 /**
@@ -37,18 +39,22 @@ export default async function CommunitiesPage({
   const page = Math.max(1, Number.parseInt(String(params.page ?? '1'), 10) || 1);
 
   const admin = createAdminClient();
+  const categoryId = typeof params.category === 'string' ? params.category : '';
 
   let query = admin
     .from('communities')
     .select(
-      'id, name, slug, status, description, created_at, university:universities(name), ' +
-        'community_members(user_id)',
+      'id, name, slug, status, description, created_at, member_count, ' +
+        'university:universities(name), category:community_categories(id, name)',
       { count: 'exact' },
     )
     .order('created_at', { ascending: false });
 
   if (status) {
     query = query.eq('status', status);
+  }
+  if (categoryId) {
+    query = query.eq('category_id', categoryId);
   }
   const sanitized = q.replace(/[^\p{L}\p{N}\s]/gu, ' ').trim();
   if (sanitized) {
@@ -57,10 +63,10 @@ export default async function CommunitiesPage({
     );
   }
 
-  const { data: rows, count, error } = await query.range(
-    (page - 1) * PAGE_SIZE,
-    page * PAGE_SIZE - 1,
-  );
+  const [{ data: rows, count, error }, { data: categories }] = await Promise.all([
+    query.range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1),
+    admin.from('community_categories').select('id, name').order('sort_order'),
+  ]);
 
   const communities = (rows ?? []) as unknown as CommunityRow[];
   const total = count ?? 0;
@@ -70,6 +76,7 @@ export default async function CommunitiesPage({
     const sp = new URLSearchParams();
     if (q) sp.set('q', q);
     if (status) sp.set('status', status);
+    if (categoryId) sp.set('category', categoryId);
     if (target > 1) sp.set('page', String(target));
     const qs = sp.toString();
     return qs ? `/communities?${qs}` : '/communities';
@@ -114,8 +121,22 @@ export default async function CommunitiesPage({
         >
           <option value="">All statuses</option>
           <option value="active">Active</option>
-          <option value="hidden">Hidden</option>
+          <option value="hidden">Hidden (suspended)</option>
           <option value="removed">Removed</option>
+          <option value="archived">Archived</option>
+        </select>
+        <select
+          name="category"
+          defaultValue={categoryId}
+          className="h-10 rounded-lg border border-zinc-300 bg-white px-2 text-sm text-zinc-700"
+          aria-label="Filter by category"
+        >
+          <option value="">All categories</option>
+          {((categories ?? []) as { id: string; name: string }[]).map((category) => (
+            <option key={category.id} value={category.id}>
+              {category.name}
+            </option>
+          ))}
         </select>
         <button
           type="submit"
@@ -123,7 +144,7 @@ export default async function CommunitiesPage({
         >
           Apply
         </button>
-        {(q || status) && (
+        {(q || status || categoryId) && (
           <Link
             href="/communities"
             className="px-2 text-sm font-medium text-zinc-500 transition hover:text-zinc-800"
@@ -150,6 +171,7 @@ export default async function CommunitiesPage({
             <thead>
               <tr className="border-b border-zinc-200 text-xs uppercase tracking-wide text-zinc-400">
                 <th className="px-4 py-3 font-medium">Community</th>
+                <th className="px-4 py-3 font-medium">Category</th>
                 <th className="px-4 py-3 font-medium">University</th>
                 <th className="px-4 py-3 font-medium">Members</th>
                 <th className="px-4 py-3 font-medium">Status</th>
@@ -178,10 +200,13 @@ export default async function CommunitiesPage({
                     )}
                   </td>
                   <td className="px-4 py-3 text-zinc-600">
+                    {community.category?.name ?? '—'}
+                  </td>
+                  <td className="px-4 py-3 text-zinc-600">
                     {community.university?.name ?? '—'}
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap text-zinc-600">
-                    {community.community_members.length}
+                    {community.member_count}
                   </td>
                   <td className="px-4 py-3">
                     {community.status === 'active' ? (

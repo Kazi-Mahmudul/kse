@@ -14,7 +14,7 @@ import { SearchBar } from '@/components/ui/search-bar';
 import { SectionHeader } from '@/components/ui/section-header';
 import { Spacing } from '@/constants/theme';
 import { CommunityTileCard } from '@/features/communities/components/community-tile-card';
-import { useCommunities } from '@/features/communities/queries';
+import { useCommunitySearch } from '@/features/communities/queries';
 import { useOpportunityFeed } from '@/features/opportunities/queries';
 import type { OpportunityFilters } from '@/features/opportunities/service';
 import {
@@ -56,7 +56,8 @@ export default function SearchScreen() {
     q && !filters.type && !filters.mode && !filters.deadlineWithinDays,
   );
   const tutorQuery = useTutorFeed({ q }, { enabled: searchAll });
-  const communitiesQuery = useCommunities();
+  // Server-side ilike search; only the first page is needed for the preview.
+  const communitiesQuery = useCommunitySearch({ query: q });
   const savedQuery = useSavedTutorIds({ enabled: Boolean(session) });
   const toggleSave = useToggleSavedTutor();
   const savedIds = new Set(savedQuery.data ?? []);
@@ -64,16 +65,10 @@ export default function SearchScreen() {
   const tutorMatches = searchAll
     ? (tutorQuery.data?.pages[0]?.rows ?? [])
     : [];
-  const communityMatches = useMemo(() => {
-    if (!q) return [];
-    const needle = q.toLowerCase();
-    return (communitiesQuery.data ?? []).filter(
-      (community) =>
-        community.name.toLowerCase().includes(needle) ||
-        (community.description ?? '').toLowerCase().includes(needle) ||
-        (community.universityName ?? '').toLowerCase().includes(needle),
-    );
-  }, [communitiesQuery.data, q]);
+  const communityMatches = useMemo(
+    () => (q ? (communitiesQuery.data?.pages[0]?.items ?? []) : []),
+    [communitiesQuery.data, q],
+  );
 
   const hasCriteria = Boolean(q || filters.type || filters.mode || filters.deadlineWithinDays);
 

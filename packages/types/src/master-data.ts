@@ -36,6 +36,6 @@ export interface Subject {
 }
 
 /** Lifecycle of user-generated/content rows (tutors, communities, …). */
-export const CONTENT_STATUSES = ['active', 'hidden', 'removed'] as const;
+export const CONTENT_STATUSES = ['active', 'hidden', 'removed', 'archived'] as const;
 
 export type ContentStatus = (typeof CONTENT_STATUSES)[number];

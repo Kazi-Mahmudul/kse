@@ -1,68 +1,64 @@
-import { zodResolver } from '@hookform/resolvers/zod';
 import { Ionicons } from '@expo/vector-icons';
-import { useLocalSearchParams } from 'expo-router';
+import { Image } from 'expo-image';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
-import { useForm } from 'react-hook-form';
+import { ActivityIndicator, FlatList, Pressable, StyleSheet, View } from 'react-native';
 
 import { BackHeader } from '@/components/back-header';
 import { ThemedText } from '@/components/themed-text';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
-import { Chip } from '@/components/ui/chip';
 import { EmptyState } from '@/components/ui/empty-state';
 import { PrimaryButton } from '@/components/ui/primary-button';
 import { Screen } from '@/components/ui/screen';
 import { SectionHeader } from '@/components/ui/section-header';
-import { TextField } from '@/components/ui/text-field';
+import { SegmentedControl } from '@/components/ui/segmented-control';
 import { FontFamilies, Spacing } from '@/constants/theme';
+import { ActionSheet, type ActionOption } from '@/features/communities/components/action-sheet';
+import { CommunityFab } from '@/features/communities/components/fab';
+import { EventCard } from '@/features/communities/components/event-card';
+import { PostCard } from '@/features/communities/components/post-card';
+import { ReportSheet } from '@/features/communities/components/report-sheet';
+import { formatMemberCount } from '@/features/communities/format';
 import {
   useCommunity,
+  useCommunityEvents,
   useCommunityPosts,
-  useCreateCommunityPost,
-  useDeleteCommunityPost,
   useJoinCommunity,
   useLeaveCommunity,
 } from '@/features/communities/queries';
-import { CommunityAvatar } from '@/features/communities/components/community-avatar';
-import {
-  formatMemberCount,
-  formatRelativeTime,
-} from '@/features/communities/format';
 import { useTheme } from '@/hooks/use-theme';
-import { useTints } from '@/hooks/use-tints';
 import { analytics } from '@/lib/analytics';
-import { confirmDialog } from '@/lib/confirm';
 import { supabase } from '@/lib/supabase';
-import {
-  communityPostFormSchema,
-  type CommunityPostFormValues,
-} from '@kse/validation';
-import type { CommunityMemberRole, CommunityPost } from '@kse/types';
 
-/** Membership badges shown next to the community name (hero card). */
-const ROLE_LABELS: Partial<Record<CommunityMemberRole, string>> = {
+type DetailTab = 'posts' | 'events';
+
+const ROLE_LABELS: Partial<Record<'moderator' | 'owner', string>> = {
   moderator: 'Moderator',
   owner: 'Owner',
 };
 
 /**
- * Community detail (step 16, spec 09._community_kse visual language): brand
- * hero card (avatar + counts + join toggle), a discussion feed of post
- * cards with initials avatars, and the composer for members.
+ * Community page (spec §Community page): header with image, member count and
+ * join/leave, description, rules and moderators, then Posts / Events tabs.
+ * The feed lists pinned posts first; members get the create FAB.
  */
 export default function CommunityDetailScreen() {
   const colors = useTheme();
+  const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
+  const [tab, setTab] = useState<DetailTab>('posts');
+  const [viewerId, setViewerId] = useState<string | null>(null);
+  const [fabOpen, setFabOpen] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
+  const [rulesOpen, setRulesOpen] = useState(false);
+
   const communityQuery = useCommunity(id);
   const postsQuery = useCommunityPosts(id);
+  const eventsQuery = useCommunityEvents(id);
   const joinMutation = useJoinCommunity();
   const leaveMutation = useLeaveCommunity();
-  const deletePostMutation = useDeleteCommunityPost(id);
-  const [viewerId, setViewerId] = useState<string | null>(null);
 
-  // Lightweight viewer id — auth.getUser is also called by service.ts internals,
-  // but the post-card "delete" gate needs the id without re-querying RLS.
   useEffect(() => {
     let cancelled = false;
     supabase.auth.getUser().then(({ data }) => {
@@ -98,34 +94,56 @@ export default function CommunityDetailScreen() {
   }
 
   const community = communityQuery.data;
-  const posts = postsQuery.data ?? [];
-  const canAnnounce = community.role === 'moderator' || community.role === 'owner';
   const isMember = community.isMember;
+  const canModerate = community.role === 'moderator' || community.role === 'owner';
   const togglingMembership = joinMutation.isPending || leaveMutation.isPending;
   const toggleMembership = () => {
     if (togglingMembership) return;
     if (isMember) {
       leaveMutation.mutate(community.id, {
-        onSuccess: () => {
-          communityQuery.refetch();
-          analytics.communityJoined(community.id, false);
-        },
+        onSuccess: () => analytics.communityJoined(community.id, false),
       });
     } else {
       joinMutation.mutate(community.id, {
-        onSuccess: () => {
-          communityQuery.refetch();
-          analytics.communityJoined(community.id, true);
-        },
+        onSuccess: () => analytics.communityJoined(community.id, true),
       });
     }
   };
+
+  const fabOptions: ActionOption[] = [
+    {
+      key: 'post',
+      label: 'Create post',
+      description: canModerate ? 'Discussion, question, opportunity or announcement' : 'Share with the community',
+      icon: 'create-outline',
+    },
+    {
+      key: 'poll',
+      label: 'Create poll',
+      description: 'Ask members a quick question',
+      icon: 'stats-chart-outline',
+    },
+    ...(canModerate
+      ? [
+          {
+            key: 'event',
+            label: 'Create event',
+            description: 'Schedule an online or offline meetup',
+            icon: 'calendar-outline' as const,
+          },
+        ]
+      : []),
+  ];
+
+  const posts = postsQuery.data?.pages.flatMap((page) => page.items) ?? [];
+  const events = eventsQuery.data?.pages.flatMap((page) => page.items) ?? [];
+  const scope = community.departmentName ?? community.universityName;
 
   return (
     <Screen>
       <BackHeader title="Community" />
 
-      {/* Hero — the community's brand mark, description and membership. */}
+      {/* Header — image, name, category, member count, join/leave. */}
       <Card
         tint="background"
         style={[
@@ -134,33 +152,44 @@ export default function CommunityDetailScreen() {
         ]}
       >
         <View style={styles.heroTop}>
-          <CommunityAvatar
-            slug={community.slug}
-            name={community.name}
-            size={56}
-            radius={16}
-          />
+          {community.coverImageUrl ? (
+            <Image
+              source={{ uri: community.coverImageUrl }}
+              style={styles.heroImage}
+              contentFit="cover"
+            />
+          ) : (
+            <View
+              style={[styles.heroInitials, { backgroundColor: `${colors.primary}14` }]}
+            >
+              <ThemedText themeColor="primary" style={styles.heroInitialsText}>
+                {community.name.slice(0, 2).toUpperCase()}
+              </ThemedText>
+            </View>
+          )}
           <View style={styles.heroTitleBlock}>
             <ThemedText themeColor="heading" style={styles.heroName} numberOfLines={2}>
               {community.name}
             </ThemedText>
-            {community.universityName ? (
-              <View style={styles.universityRow}>
-                <Ionicons
-                  name="business-outline"
-                  size={11}
-                  color={colors.textSecondary}
-                />
-                <ThemedText
-                  type="small"
-                  themeColor="textSecondary"
-                  numberOfLines={1}
-                  style={styles.university}
-                >
-                  {community.universityName}
+            <View style={styles.heroMeta}>
+              {community.categoryName ? (
+                <ThemedText type="small" themeColor="primary" style={styles.heroCategory}>
+                  {community.categoryName}
                 </ThemedText>
-              </View>
-            ) : null}
+              ) : null}
+              {scope ? (
+                <ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
+                  {scope}
+                </ThemedText>
+              ) : null}
+            </View>
+            <View style={styles.heroMeta}>
+              <Ionicons name="people-outline" size={11} color={colors.textSecondary} />
+              <ThemedText type="small" themeColor="textSecondary">
+                {formatMemberCount(community.memberCount)}{' '}
+                {community.memberCount === 1 ? 'member' : 'members'}
+              </ThemedText>
+            </View>
           </View>
         </View>
 
@@ -170,14 +199,7 @@ export default function CommunityDetailScreen() {
           </ThemedText>
         ) : null}
 
-        <View style={styles.heroMetaRow}>
-          <View style={styles.meta}>
-            <Ionicons name="people-outline" size={14} color={colors.textSecondary} />
-            <ThemedText type="small" themeColor="textSecondary">
-              {formatMemberCount(community.memberCount)}{' '}
-              {community.memberCount === 1 ? 'member' : 'members'}
-            </ThemedText>
-          </View>
+        <View style={styles.heroActions}>
           <PrimaryButton
             label={togglingMembership ? 'Saving…' : isMember ? 'Leave' : 'Join'}
             variant={isMember ? 'outline' : 'primary'}
@@ -185,9 +207,16 @@ export default function CommunityDetailScreen() {
             onPress={toggleMembership}
             disabled={togglingMembership}
           />
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => setReportOpen(true)}
+            style={({ pressed }) => [styles.reportButton, pressed && styles.pressed]}
+          >
+            <Ionicons name="flag-outline" size={16} color={colors.textSecondary} />
+          </Pressable>
         </View>
 
-        {isMember && community.role && ROLE_LABELS[community.role] ? (
+        {isMember && community.role && community.role !== 'member' && ROLE_LABELS[community.role] ? (
           <View style={styles.badgeRow}>
             <Badge label="Joined" tone="success" />
             <Badge label={ROLE_LABELS[community.role] as string} tone="neutral" />
@@ -197,53 +226,153 @@ export default function CommunityDetailScreen() {
         ) : null}
       </Card>
 
-      <SectionHeader title="Discussion" />
-      {postsQuery.isPending && (
-        <View style={styles.postsLoading}>
-          <ActivityIndicator size="small" color={colors.primary} />
-        </View>
-      )}
-      {postsQuery.isError && (
-        <Card tint="danger">
-          <ThemedText type="small">{(postsQuery.error as Error).message}</ThemedText>
+      {/* About — rules + moderators (collapsible). */}
+      {(community.rules.length > 0 || community.moderators.length > 0) && (
+        <Card tint="backgroundElement" style={styles.aboutCard}>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => setRulesOpen((v) => !v)}
+            style={({ pressed }) => [styles.aboutHeader, pressed && styles.pressed]}
+          >
+            <Ionicons name="shield-checkmark-outline" size={14} color={colors.primary} />
+            <ThemedText type="smallBold" style={styles.aboutTitle}>
+              Rules &amp; moderators
+            </ThemedText>
+            <Ionicons
+              name={rulesOpen ? 'chevron-up' : 'chevron-down'}
+              size={14}
+              color={colors.textMuted}
+            />
+          </Pressable>
+          {rulesOpen && (
+            <View style={styles.aboutBody}>
+              {community.rules.map((rule, index) => (
+                <View key={index} style={styles.ruleRow}>
+                  <ThemedText type="small" themeColor="primary">
+                    {index + 1}.
+                  </ThemedText>
+                  <ThemedText type="small" style={styles.ruleText}>
+                    {rule}
+                  </ThemedText>
+                </View>
+              ))}
+              {community.moderators.length > 0 && (
+                <View style={styles.moderatorRow}>
+                  <ThemedText type="small" themeColor="textSecondary">
+                    Moderated by{' '}
+                  </ThemedText>
+                  {community.moderators.map((mod, index) => (
+                    <ThemedText key={mod.userId} type="small" themeColor="textSecondary">
+                      {mod.fullName}
+                      {mod.role === 'owner' ? ' (owner)' : ''}
+                      {index < community.moderators.length - 1 ? ', ' : ''}
+                    </ThemedText>
+                  ))}
+                </View>
+              )}
+            </View>
+          )}
         </Card>
       )}
-      {postsQuery.isSuccess && posts.length === 0 && (
-        <EmptyState
-          icon="chatbubbles-outline"
-          title="No posts yet"
-          message="Be the first to start a conversation."
-        />
-      )}
 
-      {posts.length > 0 && (
-        <View style={styles.list}>
-          {posts.map((post) => (
-            <PostCard
-              key={post.id}
-              post={post}
-              canDelete={Boolean(viewerId && post.authorId === viewerId)}
-              onDelete={() => deletePostMutation.mutate(post.id)}
+      {/* Posts / Events tabs. */}
+      <SegmentedControl
+        options={[
+          { value: 'posts' as const, label: 'Posts' },
+          { value: 'events' as const, label: 'Events' },
+        ]}
+        value={tab}
+        onChange={setTab}
+      />
+
+      {tab === 'posts' ? (
+        <View style={styles.feedStack}>
+          <SectionHeader title={posts.some((p) => p.isPinned) ? 'Pinned & latest' : 'Discussion'} />
+          {postsQuery.isPending && (
+            <View style={styles.loading}>
+              <ActivityIndicator size="small" color={colors.primary} />
+            </View>
+          )}
+          {postsQuery.isError && (
+            <EmptyState
+              icon="cloud-offline-outline"
+              title="Could not load posts"
+              message={(postsQuery.error as Error).message}
+              actionLabel="Try again"
+              onAction={() => postsQuery.refetch()}
             />
+          )}
+          {postsQuery.isSuccess && posts.length === 0 && (
+            <EmptyState
+              icon="chatbubbles-outline"
+              title="No posts yet"
+              message={
+                isMember
+                  ? 'Be the first to start a conversation.'
+                  : 'Join this community to start the conversation.'
+              }
+            />
+          )}
+          {posts.length > 0 && (
+            <FlatList
+              data={posts}
+              keyExtractor={(item) => item.id}
+              renderItem={({ item }) => (
+                <PostCard post={item} viewerId={viewerId} viewerCanModerate={canModerate} />
+              )}
+              onEndReached={() => {
+                if (postsQuery.hasNextPage && !postsQuery.isFetchingNextPage) {
+                  postsQuery.fetchNextPage();
+                }
+              }}
+              onEndReachedThreshold={0.4}
+              ListFooterComponent={
+                postsQuery.isFetchingNextPage ? (
+                  <View style={styles.loading}>
+                    <ActivityIndicator size="small" color={colors.primary} />
+                  </View>
+                ) : null
+              }
+              scrollEnabled={false}
+              contentContainerStyle={styles.feedStack}
+            />
+          )}
+        </View>
+      ) : (
+        <View style={styles.feedStack}>
+          <SectionHeader title="Community events" />
+          {eventsQuery.isPending && (
+            <View style={styles.loading}>
+              <ActivityIndicator size="small" color={colors.primary} />
+            </View>
+          )}
+          {eventsQuery.isError && (
+            <EmptyState
+              icon="cloud-offline-outline"
+              title="Could not load events"
+              message={(eventsQuery.error as Error).message}
+              actionLabel="Try again"
+              onAction={() => eventsQuery.refetch()}
+            />
+          )}
+          {eventsQuery.isSuccess && events.length === 0 && (
+            <EmptyState
+              icon="calendar-outline"
+              title="No events scheduled"
+              message={
+                canModerate
+                  ? 'Create the first community event with the + button.'
+                  : 'Check back soon — moderators can schedule meetups here.'
+              }
+            />
+          )}
+          {events.map((event) => (
+            <EventCard key={event.id} event={event} />
           ))}
         </View>
       )}
 
-      {isMember ? (
-        <Card
-          tint="background"
-          style={[
-            styles.composerCard,
-            { borderColor: colors.border, boxShadow: `0px 1px 6px ${colors.shadow}` },
-          ]}
-        >
-          <PostComposer
-            communityId={community.id}
-            canAnnounce={canAnnounce}
-            onSent={() => postsQuery.refetch()}
-          />
-        </Card>
-      ) : (
+      {!isMember && (
         <Card tint="warning" style={styles.joinCta}>
           <View style={styles.joinCtaRow}>
             <View style={styles.joinCtaBadge}>
@@ -252,177 +381,52 @@ export default function CommunityDetailScreen() {
             <View style={styles.joinCtaText}>
               <ThemedText type="smallBold">Members only</ThemedText>
               <ThemedText type="small" themeColor="textSecondary">
-                Join this community to post messages and announcements.
+                Join this community to post, comment, vote in polls and RSVP to events.
               </ThemedText>
             </View>
           </View>
-          <PrimaryButton
-            label="Join community"
-            onPress={toggleMembership}
-            disabled={togglingMembership}
-          />
+          <PrimaryButton label="Join community" onPress={toggleMembership} disabled={togglingMembership} />
         </Card>
       )}
+
+      {isMember && (
+        <>
+          <CommunityFab onPress={() => setFabOpen(true)} />
+          <ActionSheet
+            visible={fabOpen}
+            title={`Create in ${community.name}`}
+            options={fabOptions}
+            onSelect={(key) => {
+              if (key === 'event') {
+                router.push({
+                  pathname: '/(tabs)/community/[id]/create-event',
+                  params: { id: community.id },
+                });
+              } else if (key === 'poll') {
+                router.push({
+                  pathname: '/(tabs)/community/[id]/create-poll',
+                  params: { id: community.id },
+                });
+              } else {
+                router.push({
+                  pathname: '/(tabs)/community/[id]/create-post',
+                  params: { id: community.id },
+                });
+              }
+            }}
+            onClose={() => setFabOpen(false)}
+          />
+        </>
+      )}
+
+      <ReportSheet
+        visible={reportOpen}
+        targetType="community"
+        targetId={community.id}
+        onClose={() => setReportOpen(false)}
+      />
     </Screen>
   );
-}
-
-function PostComposer({
-  communityId,
-  canAnnounce,
-  onSent,
-}: {
-  communityId: string;
-  canAnnounce: boolean;
-  onSent: () => void;
-}) {
-  const mutation = useCreateCommunityPost(communityId);
-  const [isAnnouncement, setIsAnnouncement] = useState(false);
-
-  const { control, handleSubmit, reset } = useForm<CommunityPostFormValues>({
-    resolver: zodResolver(communityPostFormSchema),
-    defaultValues: { content: '', is_announcement: false },
-  });
-
-  const onSubmit = handleSubmit((values) => {
-    mutation.mutate(
-      { content: values.content, is_announcement: isAnnouncement },
-      {
-        onSuccess: () => {
-          reset({ content: '', is_announcement: false });
-          setIsAnnouncement(false);
-          onSent();
-        },
-      },
-    );
-  });
-
-  return (
-    <View style={styles.composer}>
-      <ThemedText type="smallBold">Write a post</ThemedText>
-      <TextField
-        control={control}
-        name="content"
-        label="Message"
-        placeholder="Share something with the community…"
-        multiline
-        textAlignVertical="top"
-      />
-      <View style={styles.composerActions}>
-        {canAnnounce && (
-          <Chip
-            label="Announcement"
-            selected={isAnnouncement}
-            onPress={() => setIsAnnouncement((value) => !value)}
-          />
-        )}
-        <PrimaryButton
-          label={mutation.isPending ? 'Posting…' : 'Post'}
-          loading={mutation.isPending}
-          onPress={onSubmit}
-          style={styles.postButton}
-        />
-      </View>
-      {mutation.isError && (
-        <ThemedText type="small" themeColor="danger">
-          {(mutation.error as Error).message}
-        </ThemedText>
-      )}
-    </View>
-  );
-}
-
-function initialsOf(name: string | null | undefined): string {
-  if (!name) return '?';
-  const words = name.trim().split(/\s+/).filter(Boolean);
-  if (words.length === 0) return '?';
-  return words
-    .slice(0, 2)
-    .map((w) => w.charAt(0).toUpperCase())
-    .join('');
-}
-
-function PostCard({
-  post,
-  canDelete,
-  onDelete,
-}: {
-  post: CommunityPost;
-  canDelete: boolean;
-  onDelete: () => void;
-}) {
-  const colors = useTheme();
-  const tints = useTints();
-  const indigo = tints.indigo;
-
-  const handleDelete = async () => {
-    const ok = await confirmDialog({
-      title: 'Delete post',
-      message: 'This post will be removed for everyone in the community.',
-      confirmLabel: 'Delete',
-      destructive: true,
-    });
-    if (ok) onDelete();
-  };
-
-  return (
-    <View
-      style={[
-        styles.postCard,
-        {
-          backgroundColor: colors.background,
-          borderColor: colors.border,
-          boxShadow: `0px 1px 6px ${colors.shadow}`,
-        },
-      ]}
-    >
-      <View style={styles.postHeader}>
-        <View
-          style={[
-            styles.postAvatar,
-            { backgroundColor: indigo.bg, borderColor: indigo.border },
-          ]}
-        >
-          <ThemedText style={[styles.postAvatarLabel, { color: indigo.fg }]}>
-            {initialsOf(post.authorName)}
-          </ThemedText>
-        </View>
-        <View style={styles.postHeading}>
-          <ThemedText type="smallBold" numberOfLines={1}>
-            {post.authorName}
-          </ThemedText>
-          <ThemedText type="small" themeColor="textMuted">
-            {formatRelativeTime(post.createdAt) || formatDateFallback(post.createdAt)}
-          </ThemedText>
-        </View>
-        {canDelete && (
-          <Pressable
-            onPress={() => {
-              void handleDelete();
-            }}
-            accessibilityRole="button"
-            accessibilityLabel="Delete post"
-            hitSlop={6}
-            style={({ pressed }) => [
-              styles.deleteButton,
-              { backgroundColor: colors.backgroundElement },
-              pressed && styles.pressed,
-            ]}
-          >
-            <Ionicons name="trash-outline" size={15} color={colors.danger} />
-          </Pressable>
-        )}
-      </View>
-
-      {post.isAnnouncement && <Badge label="Announcement" tone="warning" />}
-      <ThemedText style={styles.postContent}>{post.content}</ThemedText>
-    </View>
-  );
-}
-
-/** Absolute-date fallback for posts older than the relative window. */
-function formatDateFallback(iso: string): string {
-  return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
 }
 
 const styles = StyleSheet.create({
@@ -443,6 +447,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.three - 2,
   },
+  heroImage: {
+    width: 56,
+    height: 56,
+    borderRadius: 16,
+  },
+  heroInitials: {
+    width: 56,
+    height: 56,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  heroInitialsText: {
+    fontFamily: FontFamilies.bold,
+    fontSize: 18,
+  },
   heroTitleBlock: {
     flex: 1,
     gap: 2,
@@ -453,94 +473,63 @@ const styles = StyleSheet.create({
     lineHeight: 21,
     letterSpacing: -0.3,
   },
-  universityRow: {
+  heroMeta: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
   },
-  university: {
-    flexShrink: 1,
+  heroCategory: {
+    fontFamily: FontFamilies.semiBold,
+    fontSize: 11,
   },
-  heroMetaRow: {
+  heroActions: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: Spacing.two,
   },
-  meta: {
-    flexDirection: 'row',
+  reportButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
     alignItems: 'center',
-    gap: Spacing.one + 2,
+    justifyContent: 'center',
   },
   badgeRow: {
     flexDirection: 'row',
     gap: Spacing.one + 2,
   },
-  postsLoading: {
-    alignItems: 'center',
-    paddingVertical: Spacing.four,
+  aboutCard: {
+    gap: Spacing.one + 2,
   },
-  list: {
-    gap: Spacing.two + 2,
-  },
-  postCard: {
-    borderRadius: 16,
-    borderWidth: 1,
-    padding: Spacing.three - 4,
-    gap: Spacing.two - 2,
-    elevation: 1,
-  },
-  postHeader: {
+  aboutHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.two + 2,
+    gap: Spacing.one + 2,
   },
-  postAvatar: {
-    width: 36,
-    height: 36,
-    borderRadius: 999,
-    borderWidth: StyleSheet.hairlineWidth,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  postAvatarLabel: {
-    fontFamily: FontFamilies.bold,
-    fontSize: 12,
-    lineHeight: 15,
-  },
-  postHeading: {
+  aboutTitle: {
     flex: 1,
-    gap: 1,
   },
-  deleteButton: {
-    width: 28,
-    height: 28,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
+  aboutBody: {
+    gap: Spacing.one + 2,
   },
-  pressed: {
-    opacity: 0.7,
-  },
-  postContent: {
-    fontSize: 12,
-    lineHeight: 17,
-  },
-  composerCard: {
-    borderWidth: 1,
-    elevation: 1,
-  },
-  composer: {
-    gap: Spacing.two,
-  },
-  composerActions: {
+  ruleRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: Spacing.two,
+    gap: Spacing.one + 2,
   },
-  postButton: {
-    flexShrink: 0,
+  ruleText: {
+    flex: 1,
+  },
+  moderatorRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  feedStack: {
+    gap: Spacing.two + 2,
+  },
+  loading: {
+    alignItems: 'center',
+    paddingVertical: Spacing.three,
   },
   joinCta: {
     gap: Spacing.three - 4,
@@ -561,5 +550,8 @@ const styles = StyleSheet.create({
   joinCtaText: {
     flex: 1,
     gap: 2,
+  },
+  pressed: {
+    opacity: 0.7,
   },
 });

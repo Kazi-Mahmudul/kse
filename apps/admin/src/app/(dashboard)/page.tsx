@@ -50,6 +50,23 @@ function buildKpis(kpis: DashboardKpis): KpiSpec[] {
     { label: 'Events', value: kpis.totalEvents },
     { label: 'Communities', value: kpis.totalCommunities },
     {
+      label: 'Active communities',
+      value: kpis.activeCommunities,
+      hint: `${kpis.activeCommunityMembers} memberships`,
+    },
+    {
+      label: 'Community requests',
+      value: kpis.pendingCommunityRequests,
+      tone: kpis.pendingCommunityRequests > 0 ? 'warning' : 'default',
+      hint: 'pending admin review',
+    },
+    {
+      label: 'Reported content',
+      value: kpis.openCommunityReports,
+      tone: kpis.openCommunityReports > 0 ? 'warning' : 'default',
+      hint: 'open community reports',
+    },
+    {
       label: 'Pending review',
       value: kpis.pendingReviewOpportunities,
       tone: kpis.pendingReviewOpportunities > 0 ? 'warning' : 'default',
@@ -236,6 +253,56 @@ export default async function DashboardPage() {
                 ))}
               </tbody>
             </table>
+          )}
+        </div>
+      </section>
+
+      <section className="mt-6">
+        <div className="rounded-2xl border border-zinc-200 bg-white">
+          <header className="flex items-center justify-between border-b border-zinc-200 px-5 py-4">
+            <div>
+              <h2 className="text-sm font-semibold text-zinc-900">Community activity</h2>
+              <p className="mt-0.5 text-xs text-zinc-500">
+                Latest posts and community requests across the platform.
+              </p>
+            </div>
+            <Link
+              href="/communities/moderation"
+              className="text-xs font-medium text-indigo-600 hover:underline"
+            >
+              Moderation →
+            </Link>
+          </header>
+          {summary.communityActivity.length === 0 ? (
+            <p className="px-5 py-6 text-sm text-zinc-500">No community activity yet.</p>
+          ) : (
+            <ul className="divide-y divide-zinc-100">
+              {summary.communityActivity.map((item) => (
+                <li key={item.id} className="flex items-center justify-between gap-3 px-5 py-3">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium text-zinc-900">
+                      <span
+                        className={`mr-2 rounded-full px-2 py-0.5 text-xs font-medium ${
+                          item.kind === 'request'
+                            ? 'bg-amber-50 text-amber-700'
+                            : 'bg-indigo-50 text-indigo-700'
+                        }`}
+                      >
+                        {item.kind}
+                      </span>
+                      {item.title}
+                    </p>
+                    <p className="truncate text-xs text-zinc-500">
+                      {item.actorName ?? 'User'}
+                      {item.communityName ? ` · ${item.communityName}` : ''}
+                    </p>
+                  </div>
+                  <span className="shrink-0 text-xs text-zinc-400">
+                    {formatDate(item.createdAt)}
+                  </span>
+                </li>
+              ))}
+            </ul>
           )}
         </div>
       </section>

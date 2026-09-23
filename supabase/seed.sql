@@ -362,16 +362,18 @@ where id = '22222222-2222-2222-2222-222222222221';
 
 -- ── Community demo data (roadmap step 16) ────────────────────────────────────
 
-insert into public.communities (id, name, slug, description, university_id, cover_image_url, status) values
+insert into public.communities (id, name, slug, description, university_id, cover_image_url, category_id, status) values
   ('33333333-3333-3333-3333-333333333301', 'Khulna Writers Circle', 'khulna-writers',
    'Short story, poetry and essay workshops for students from any university in Khulna.',
-   null, null, 'active'),
+   null, null, (select id from public.community_categories where slug = 'interest'), 'active'),
   ('33333333-3333-3333-3333-333333333302', 'KU Robotics Society', 'kuet-robotics',
    'Line follower, Sumo bot, drone + Arduino practice sessions every other Friday.',
-   '11111111-1111-1111-1111-111111111102', null, 'active'),
+   '11111111-1111-1111-1111-111111111102', null,
+   (select id from public.community_categories where slug = 'skills'), 'active'),
   ('33333333-3333-3333-3333-333333333303', 'North Western BCS Prep', 'nwu-bcs-prep',
    'BCS preliminary + written prep group running since 2022.',
-   '11111111-1111-1111-1111-111111111103', null, 'active')
+   '11111111-1111-1111-1111-111111111103', null,
+   (select id from public.community_categories where slug = 'career'), 'active')
 on conflict (id) do update
   set name = excluded.name, description = excluded.description, status = excluded.status;
 
@@ -383,30 +385,35 @@ insert into public.community_members (community_id, user_id, role) values
 on conflict (community_id, user_id) do update
   set role = excluded.role;
 
--- Posts: 2 announcements (announcement=true via the kiosk role 'owner') + 3 regular posts.
-insert into public.community_posts (id, community_id, author_id, content, is_announcement, status) values
+-- Posts: 2 announcements (by community owners) + 3 regular posts.
+insert into public.community_posts (id, community_id, author_id, post_type, content, status) values
   ('44444444-4444-4444-4444-444444444401',
    '33333333-3333-3333-3333-333333333301',
    '22222222-2222-2222-2222-222222222201',
-   'Welcome to Khulna Writers Circle! Drop a topic you want to workshop next week.', true, 'active'),
+   'announcement',
+   'Welcome to Khulna Writers Circle! Drop a topic you want to workshop next week.', 'active'),
   ('44444444-4444-4444-4444-444444444402',
    '33333333-3333-3333-3333-333333333302',
    '22222222-2222-2222-2222-222222222201',
-   'Robotics session moved to Sat 5pm in EE lab 2. Bring your hardware kits.', true, 'active'),
+   'announcement',
+   'Robotics session moved to Sat 5pm in EE lab 2. Bring your hardware kits.', 'active'),
   ('44444444-4444-4444-4444-444444444403',
    '33333333-3333-3333-3333-333333333301',
    '22222222-2222-2222-2222-222222222221',
-   'Anyone open to beta-reading a 1500-word short story this weekend?', false, 'active'),
+   'discussion',
+   'Anyone open to beta-reading a 1500-word short story this weekend?', 'active'),
   ('44444444-4444-4444-4444-444444444404',
    '33333333-3333-3333-3333-333333333302',
    '22222222-2222-2222-2222-222222222221',
-   'Got the IR sensor working today thanks to Nusrat''s wiring tip.', false, 'active'),
+   'discussion',
+   'Got the IR sensor working today thanks to Nusrat''s wiring tip.', 'active'),
   ('44444444-4444-4444-4444-444444444405',
    '33333333-3333-3333-3333-333333333303',
    '22222222-2222-2222-2222-222222222221',
-   'Sharing my BCS Bangla notes (math + GK) to the group email tonight.', false, 'active')
+   'discussion',
+   'Sharing my BCS Bangla notes (math + GK) to the group email tonight.', 'active')
 on conflict (id) do update
-  set content = excluded.content, is_announcement = excluded.is_announcement;
+  set content = excluded.content, post_type = excluded.post_type;
 
 -- ── Notification demo data (roadmap step 17) ────────────────────────────────
 
