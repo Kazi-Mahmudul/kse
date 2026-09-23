@@ -103,6 +103,48 @@ async function fetchProfileNames(ids: string[]): Promise<Map<string, string>> {
   return names;
 }
 
+/**
+ * Avatar URLs keyed by user id. The avatars bucket is public so we can read
+ * the URL without re-fetching a signed link per card. Posts/comments use this
+ * to render the actual profile picture when present (falls back to initials).
+ */
+async function fetchProfileAvatars(ids: string[]): Promise<Map<string, string>> {
+  const unique = [...new Set(ids)];
+  if (unique.length === 0) return new Map();
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('id, avatar_url')
+    .in('id', unique);
+  if (error) fail('Could not load avatars', error.message);
+  const avatars = new Map<string, string>();
+  for (const row of (data ?? []) as { id: string; avatar_url: string | null }[]) {
+    if (row.avatar_url) avatars.set(row.id, row.avatar_url);
+  }
+  return avatars;
+}
+
+/** Combined fetch — keeps a single round-trip per query for both name + avatar. */
+async function fetchProfileInfo(
+  ids: string[],
+): Promise<Map<string, { name: string; avatarUrl: string | null }>> {
+  const unique = [...new Set(ids)];
+  if (unique.length === 0) return new Map();
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('id, full_name, avatar_url')
+    .in('id', unique);
+  if (error) fail('Could not load profiles', error.message);
+  const info = new Map<string, { name: string; avatarUrl: string | null }>();
+  for (const row of (data ?? []) as {
+    id: string;
+    full_name: string | null;
+    avatar_url: string | null;
+  }[]) {
+    info.set(row.id, { name: row.full_name ?? 'Member', avatarUrl: row.avatar_url });
+  }
+  return info;
+}
+
 // ── Categories / discovery ───────────────────────────────────────────────────
 
 export async function listCategories(): Promise<CommunityCategory[]> {
@@ -237,25 +279,29 @@ export async function fetchTrendingPosts(limit = 5, days = 7): Promise<Community
     reaction_count: number;
     created_at: string;
   }[];
-  const names = await fetchProfileNames(rows.map((row) => row.author_id));
-  return rows.map((row) => ({
-    id: row.id,
-    communityId: row.community_id,
-    communityName: row.community_name,
-    authorId: row.author_id,
-    authorName: names.get(row.author_id) ?? 'Member',
-    postType: row.post_type,
-    content: row.content,
-    imageUrl: row.image_url,
-    linkUrl: row.link_url,
-    isPinned: false,
-    isLocked: false,
-    commentCount: row.comment_count,
-    reactionCount: row.reaction_count,
-    viewerReacted: false,
-    status: 'active' as ContentStatus,
-    createdAt: row.created_at,
-  }));
+  const info = await fetchProfileInfo(rows.map((row) => row.author_id));
+  return rows.map((row) => {
+    const profile = info.get(row.author_id);
+    return {
+      id: row.id,
+      communityId: row.community_id,
+      communityName: row.community_name,
+      authorId: row.author_id,
+      authorName: profile?.name ?? 'Member',
+      authorAvatarUrl: profile?.avatarUrl ?? null,
+      postType: row.post_type,
+      content: row.content,
+      imageUrl: row.image_url,
+      linkUrl: row.link_url,
+      isPinned: false,
+      isLocked: false,
+      commentCount: row.comment_count,
+      reactionCount: row.reaction_count,
+      viewerReacted: false,
+      status: 'active' as ContentStatus,
+      createdAt: row.created_at,
+    };
+  });
 }
 
 interface EventRow {
@@ -462,7 +508,7 @@ async function attachPolls(posts: CommunityPost[], viewerId: string | null): Pro
 }
 
 async function decoratePosts(rows: PostRow[], viewerId: string | null): Promise<CommunityPost[]> {
-  const names = await fetchProfileNames(rows.map((row) => row.author_id));
+  const profiles = await fetchProfileInfo(rows.map((row) => row.author_id));
 
   let reactedIds = new Set<string>();
   if (viewerId && rows.length > 0) {
@@ -480,7 +526,8 @@ async function decoratePosts(rows: PostRow[], viewerId: string | null): Promise<
     communityId: row.community_id,
     communityName: row.community?.name ?? undefined,
     authorId: row.author_id,
-    authorName: names.get(row.author_id) ?? 'Member',
+    authorName: profiles.get(row.author_id)?.name ?? 'Member',
+    authorAvatarUrl: profiles.get(row.author_id)?.avatarUrl ?? null,
     postType: row.post_type,
     content: row.content,
     imageUrl: row.image_url,
@@ -666,13 +713,14 @@ export async function listComments(postId: string): Promise<CommunityComment[]> 
   if (error) fail('Could not load comments', error.message);
 
   const rows = (data ?? []) as unknown as CommentRow[];
-  const names = await fetchProfileNames(rows.map((row) => row.author_id));
+  const profiles = await fetchProfileInfo(rows.map((row) => row.author_id));
   return rows.map((row) => ({
     id: row.id,
     postId: row.post_id,
     parentId: row.parent_id,
     authorId: row.author_id,
-    authorName: names.get(row.author_id) ?? 'Member',
+    authorName: profiles.get(row.author_id)?.name ?? 'Member',
+    authorAvatarUrl: profiles.get(row.author_id)?.avatarUrl ?? null,
     content: row.content,
     status: row.status,
     createdAt: row.created_at,
@@ -923,6 +971,20 @@ export async function listMyRequests(): Promise<CommunityRequest[]> {
 // ── Image uploads (community-media bucket, own-prefix policy) ────────────────
 
 /**
+ * Unique object-name suffix without a crypto dependency: Hermes ships no
+ * WebCrypto, so `crypto.randomUUID()` is undefined at runtime on devices
+ * and crashed the upload before it ever left the phone. See profile/avatars
+ * for the same fix.
+ */
+let uploadCounter = 0;
+function uniqueSuffix(): string {
+  uploadCounter += 1;
+  return `${Date.now().toString(36)}-${uploadCounter.toString(36)}-${Math.random()
+    .toString(36)
+    .slice(2, 10)}`;
+}
+
+/**
  * Upload a picked image to the public community-media bucket. Raw bytes, not
  * a Blob — same reason as profile avatars (RN Blob part-MIME overrides the
  * contentType option and trips the bucket whitelist).
@@ -934,7 +996,7 @@ export async function uploadCommunityImage(localUri: string, mimeType: string): 
     : mimeType.includes('webp')
       ? 'webp'
       : 'jpg';
-  const path = `${userId}/${crypto.randomUUID()}.${ext}`;
+  const path = `${userId}/${uniqueSuffix()}.${ext}`;
 
   const response = await fetch(localUri);
   const bytes = await response.arrayBuffer();

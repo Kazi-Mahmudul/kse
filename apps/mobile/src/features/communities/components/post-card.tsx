@@ -137,9 +137,20 @@ export function PostCard({
     >
       <View style={styles.header}>
         <View style={[styles.avatar, { backgroundColor: indigo.bg, borderColor: indigo.border }]}>
-          <ThemedText style={[styles.avatarLabel, { color: indigo.fg }]}>
-            {initialsOf(post.authorName)}
-          </ThemedText>
+          {post.authorAvatarUrl ? (
+            <Image
+              source={{ uri: post.authorAvatarUrl }}
+              style={styles.avatarImage}
+              contentFit="cover"
+              transition={120}
+              recyclingKey={post.authorId}
+              accessibilityIgnoresInvertColors
+            />
+          ) : (
+            <ThemedText style={[styles.avatarLabel, { color: indigo.fg }]}>
+              {initialsOf(post.authorName)}
+            </ThemedText>
+          )}
         </View>
         <View style={styles.heading}>
           <ThemedText type="smallBold" numberOfLines={1}>
@@ -307,6 +318,11 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  avatarImage: {
+    width: '100%',
+    height: '100%',
   },
   avatarLabel: {
     fontFamily: FontFamilies.bold,

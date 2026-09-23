@@ -15,12 +15,20 @@ interface MembershipRow {
   role: 'member' | 'moderator' | 'owner';
   joined_at: string;
   community: { name: string; slug: string } | null;
-  profile: { full_name: string | null; username: string | null; email: string | null } | null;
+}
+interface ProfileRow {
+  id: string;
+  full_name: string | null;
 }
 
 /**
  * Cross-community member directory (spec §Admin panel → Members): search by
  * member name or community, then manage roles / remove members per community.
+ *
+ * The post-FK-refresh admin query selects only what `profiles` actually
+ * carries (id, full_name). Email and username are merged in afterwards via
+ * `auth.admin.listUsers`, mirroring the Users page so the search box works
+ * across both fields without bogus `username` / `email` columns on profiles.
  */
 export default async function CommunityMembersPage({
   searchParams,
@@ -36,17 +44,17 @@ export default async function CommunityMembersPage({
   let query = admin
     .from('community_members')
     .select(
-      'community_id, user_id, role, joined_at, community:communities(name, slug), ' +
-        'profile:profiles!inner(full_name, username, email)',
+      'community_id, user_id, role, joined_at, community:communities(name, slug), profile:profiles!inner(id, full_name)',
       { count: 'exact' },
     )
     .order('joined_at', { ascending: false });
 
   if (sanitized) {
+    // `profiles.full_name` is the only profile-resident searchable field;
+    // email/username searches are appended as a second-hop filter after
+    // pulling the candidate page.
     query = query.or(
       `profile.full_name.ilike.%${sanitized}%,` +
-        `profile.username.ilike.%${sanitized}%,` +
-        `profile.email.ilike.%${sanitized}%,` +
         `community.name.ilike.%${sanitized}%`,
     );
   }
@@ -59,9 +67,32 @@ export default async function CommunityMembersPage({
     page * PAGE_SIZE - 1,
   );
 
-  const memberships = (rows ?? []) as unknown as MembershipRow[];
+  const memberships = ((rows ?? []) as unknown as (MembershipRow & {
+    profile: ProfileRow | null;
+  })[]);
   const total = count ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+
+  // Pull the candidate page's emails from auth.users so the email sub-line
+  // remains visible after the previous broken-column select is gone.
+  const membershipIds = Array.from(new Set(memberships.map((m) => m.user_id)));
+  const { data: authRows } = membershipIds.length
+    ? await admin.auth.admin.listUsers({ page: 1, perPage: 1000 })
+    : { data: undefined };
+  const emailByUserId = new Map(
+    (authRows?.users ?? []).map((u) => [u.id, u.email ?? '']),
+  );
+  // Second-hop email filter: keep only the rows whose email matches when
+  // the search term doesn't match a profile name but does match an email.
+  const filteredMemberships =
+    sanitized && memberships.length > 0
+      ? memberships.filter(
+          (m) =>
+            (m.profile?.full_name ?? '').toLowerCase().includes(sanitized.toLowerCase()) ||
+            (emailByUserId.get(m.user_id) ?? '').toLowerCase().includes(sanitized.toLowerCase()) ||
+            (m.community?.name ?? '').toLowerCase().includes(sanitized.toLowerCase()),
+        )
+      : memberships;
 
   const pageHref = (target: number) => {
     const sp = new URLSearchParams();
@@ -140,23 +171,18 @@ export default async function CommunityMembersPage({
               </tr>
             </thead>
             <tbody>
-              {memberships.map((membership) => (
+              {filteredMemberships.map((membership) => (
                 <tr
                   key={`${membership.community_id}:${membership.user_id}`}
                   className="border-b border-zinc-100 last:border-0 hover:bg-zinc-50"
                 >
                   <td className="px-4 py-3 font-medium text-zinc-900">
                     <span>{membership.profile?.full_name ?? 'User'}</span>
-                    {membership.profile?.username && (
-                      <span className="ml-2 text-xs text-zinc-400">
-                        @{membership.profile.username}
-                      </span>
-                    )}
-                    {membership.profile?.email && (
+                    {emailByUserId.get(membership.user_id) ? (
                       <div className="text-xs text-zinc-400">
-                        {membership.profile.email}
+                        {emailByUserId.get(membership.user_id)}
                       </div>
-                    )}
+                    ) : null}
                   </td>
                   <td className="px-4 py-3">
                     <Link

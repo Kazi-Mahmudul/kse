@@ -271,6 +271,7 @@ export async function resolveReportAction(
 ): Promise<CommunityActionState> {
   const reportId = String(formData.get('reportId') ?? '');
   const outcome = String(formData.get('outcome') ?? '');
+  const note = String(formData.get('note') ?? '').trim();
   if (!UUID_RE.test(reportId)) return { error: 'Invalid report id.' };
   if (!['resolved', 'dismissed'].includes(outcome)) return { error: 'Invalid outcome.' };
 
@@ -285,6 +286,7 @@ export async function resolveReportAction(
     await callCommunityAction(session.token, 'admin:resolve_report', {
       report_id: reportId,
       resolution: outcome,
+      ...(note ? { resolution_note: note.slice(0, 1000) } : {}),
     });
   } catch (e) {
     return { error: e instanceof Error ? e.message : 'Resolve failed.' };

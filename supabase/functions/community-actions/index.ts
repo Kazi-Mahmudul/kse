@@ -636,6 +636,11 @@ Deno.serve(async (req) => {
         if (!['resolved', 'dismissed'].includes(resolution)) {
           throw new Bad('Invalid resolution');
         }
+        const noteRaw = payload.resolution_note;
+        const note =
+          typeof noteRaw === 'string' && noteRaw.trim().length > 0
+            ? noteRaw.trim().slice(0, 1000)
+            : null;
         const adminClient = createClient(
           Deno.env.get('SUPABASE_URL') ?? '',
           Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
@@ -646,6 +651,7 @@ Deno.serve(async (req) => {
             status: resolution,
             resolved_by: user.id,
             resolved_at: new Date().toISOString(),
+            resolution_note: note,
           })
           .eq('id', report_id);
         if (error) throw new Bad(error.message, 400);

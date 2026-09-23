@@ -131,6 +131,9 @@ export interface CommunityPost {
   communityName?: string;
   authorId: string;
   authorName: string;
+  /** Public URL of the author's profile avatar, if uploaded. Renders initials
+   *  as a fallback when null. */
+  authorAvatarUrl?: string | null;
   postType: CommunityPostType;
   content: string;
   imageUrl: string | null;
@@ -163,6 +166,9 @@ export interface CommunityComment {
   parentId: string | null;
   authorId: string;
   authorName: string;
+  /** Public URL of the comment author's profile avatar. Null falls back to
+   *  the initials chip. */
+  authorAvatarUrl?: string | null;
   content: string;
   status: ContentStatus;
   createdAt: string;

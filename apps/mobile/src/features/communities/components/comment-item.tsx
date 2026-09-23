@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
 import { useState } from 'react';
 import { Pressable, StyleSheet, TextInput, View } from 'react-native';
 
@@ -71,9 +72,20 @@ export function CommentItem({
     <View style={styles.block}>
       <View style={styles.row}>
         <View style={[styles.avatar, { backgroundColor: slate.bg, borderColor: slate.border }]}>
-          <ThemedText style={[styles.avatarLabel, { color: slate.fg }]}>
-            {initialsOf(comment.authorName)}
-          </ThemedText>
+          {comment.authorAvatarUrl ? (
+            <Image
+              source={{ uri: comment.authorAvatarUrl }}
+              style={styles.avatarImage}
+              contentFit="cover"
+              transition={120}
+              recyclingKey={comment.authorId}
+              accessibilityIgnoresInvertColors
+            />
+          ) : (
+            <ThemedText style={[styles.avatarLabel, { color: slate.fg }]}>
+              {initialsOf(comment.authorName)}
+            </ThemedText>
+          )}
         </View>
         <View style={styles.bubble}>
           <View style={styles.bubbleHeader}>
@@ -242,6 +254,11 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  avatarImage: {
+    width: '100%',
+    height: '100%',
   },
   avatarLabel: {
     fontFamily: FontFamilies.bold,
