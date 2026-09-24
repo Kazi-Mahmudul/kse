@@ -92,17 +92,21 @@ export function InstitutionPickerSheet({
 
   return (
     <Modal visible={visible && !requestOpen} transparent animationType="slide" onRequestClose={onClose}>
-      {/* Backdrop is a sibling Pressable outside the sheet so its
-       *  onPress fires only when the user taps the dimmed area, not when
-       *  the soft-keyboard 'Search' submit lands inside the sheet (which
-       *  used to bubble up and close the modal). */}
-      <Pressable
-        style={[styles.backdrop, { backgroundColor: colors.scrim }]}
-        onPress={() => {
-          Keyboard.dismiss();
-          onClose();
-        }}
-      >
+      {/* The dimmed backdrop is a plain View so it never captures touches
+       *  by itself. We overlay a sibling Pressable absolutely-positioned
+       *  BEHIND the sheet (zIndex: 0) — it only catches taps on the area
+       *  not covered by the sheet. The sheet itself lives at zIndex: 1 and
+       *  intercepts everything inside its bounds, so taps on the SearchBar,
+       *  FlatList rows and keyboard area no longer bubble up to a backdrop
+       *  Pressable and close the modal. */}
+      <View style={[styles.backdrop, { backgroundColor: colors.scrim }]}>
+        <Pressable
+          style={styles.backdropTap}
+          onPress={() => {
+            Keyboard.dismiss();
+            onClose();
+          }}
+        />
         <ThemedView
           style={[
             styles.sheet,
@@ -254,7 +258,7 @@ export function InstitutionPickerSheet({
             </Text>
           </Pressable>
         </ThemedView>
-      </Pressable>
+      </View>
 
       <InstitutionRequestSheet
         visible={requestOpen}
@@ -304,9 +308,15 @@ function InstitutionRow({
 }
 
 const styles = StyleSheet.create({
+  // Plain View (not Pressable) so taps don't bubble through to the sheet.
+  // The actual dimmed-area tap target is the sibling `backdropTap` Pressable
+  // positioned behind the sheet.
   backdrop: {
     flex: 1,
     justifyContent: 'flex-end',
+  },
+  backdropTap: {
+    ...StyleSheet.absoluteFill,
   },
   sheet: {
     borderTopLeftRadius: Spacing.four,
@@ -315,6 +325,10 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.three,
     maxHeight: '85%',
     gap: Spacing.two,
+    // Lift above the absolute-positioned backdropTap Pressable so taps
+    // inside the sheet hit the sheet first (not the backdrop).
+    zIndex: 1,
+    elevation: 4,
   },
   header: {
     flexDirection: 'row',
