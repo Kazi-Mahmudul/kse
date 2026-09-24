@@ -3,6 +3,8 @@ import type {
   CertificateType,
   DegreeLevel,
   EducationBoard,
+  EducationInstitutionOwnership,
+  EducationInstitutionType,
   EducationLevel,
   EducationResultScale,
   EducationResultType,
@@ -23,6 +25,8 @@ import {
   CERTIFICATE_TYPES,
   DEGREE_LEVELS,
   EDUCATION_BOARDS,
+  EDUCATION_INSTITUTION_OWNERSHIPS,
+  EDUCATION_INSTITUTION_TYPES,
   EDUCATION_LEVELS,
   EDUCATION_RESULT_SCALES,
   EDUCATION_RESULT_TYPES,
@@ -352,3 +356,37 @@ export const NOTIFICATION_TYPE_OPTIONS: { value: NotificationType; label: string
     value: value as NotificationType,
     label,
   }));
+
+// ── Education institutions (public.education_institutions) ──────────────────
+
+export const EDUCATION_INSTITUTION_TYPE_LABELS: Record<EducationInstitutionType, string> = {
+  university: 'University',
+  medical_college: 'Medical College',
+  college: 'College',
+  school: 'School',
+  madrasa: 'Madrasa',
+  igv_school: 'IGV School',
+  technical_school: 'Technical School',
+  english_medium: 'English Medium School',
+  arts_college: 'Arts College',
+  polytechnic: 'Polytechnic Institute',
+  military_school: 'Military School',
+};
+
+export const EDUCATION_INSTITUTION_OWNERSHIP_LABELS: Record<
+  EducationInstitutionOwnership,
+  string
+> = {
+  public: 'Public',
+  private: 'Private',
+  other: 'Other',
+};
+
+export const EDUCATION_INSTITUTION_TYPE_OPTIONS = EDUCATION_INSTITUTION_TYPES.map((value) => ({
+  value,
+  label: EDUCATION_INSTITUTION_TYPE_LABELS[value],
+}));
+
+export const EDUCATION_INSTITUTION_OWNERSHIP_OPTIONS = EDUCATION_INSTITUTION_OWNERSHIPS.map(
+  (value) => ({ value, label: EDUCATION_INSTITUTION_OWNERSHIP_LABELS[value] }),
+);

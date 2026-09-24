@@ -159,12 +159,14 @@ export async function deletePortfolioDocument(
 // ── Education ────────────────────────────────────────────────────────────────
 
 const EDUCATION_COLUMNS =
-  'id, level, institution, board, country, study_group, roll_number, registration_number, degree_type, program_name, major, campus, research_area, thesis_title, supervisor, start_year, passing_year, is_ongoing, result_type, result, result_scale, document_url, created_at, updated_at';
+  'id, level, institution, institution_id, district, board, country, study_group, roll_number, registration_number, degree_type, program_name, major, campus, research_area, thesis_title, supervisor, start_year, passing_year, is_ongoing, result_type, result, result_scale, document_url, created_at, updated_at';
 
 interface EducationRow {
   id: string;
   level: PortfolioEducationItem['level'];
   institution: string;
+  institution_id: string | null;
+  district: string | null;
   board: string | null;
   country: string;
   study_group: string | null;
@@ -193,6 +195,8 @@ function rowToEducation(row: EducationRow): PortfolioEducationItem {
     id: row.id,
     level: row.level,
     institution: row.institution,
+    institutionId: row.institution_id,
+    district: row.district,
     board: row.board,
     country: row.country,
     studyGroup: row.study_group,
@@ -233,6 +237,8 @@ export async function listMyEducation(): Promise<PortfolioEducationItem[]> {
 export interface EducationUpsert {
   level: PortfolioEducationItem['level'];
   institution: string;
+  institution_id: string | null;
+  district: string | null;
   board: string | null;
   study_group: string | null;
   degree_type: string | null;

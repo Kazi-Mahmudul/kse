@@ -29,6 +29,7 @@ const NAV_ITEMS: readonly NavItem[] = [
   { href: '/users', label: 'Users' },
   { href: '/notifications', label: 'Notifications' },
   { href: '/master-data', label: 'Master Data' },
+  { href: '/education-institutions', label: 'Education Institutions' },
   { href: '/settings', label: 'Platform Settings' },
 ] as const;
 

@@ -168,11 +168,18 @@ export interface PortfolioProjectItem {
  * degrees use researchArea/thesisTitle. `passingYear` holds the expected
  * graduation year while `isOngoing` is true. Roll/registration numbers are
  * owner-only (RLS) and must never be shown on a public profile view.
+ *
+ * `institutionId` references the dynamic education_institutions table; rows
+ * saved before that table existed (or before the user picked one) leave it
+ * null while the display name is still snapshotted into `institution` so
+ * history renders correctly even if the institution is later deactivated.
  */
 export interface PortfolioEducationItem {
   id: string;
   level: EducationLevel;
   institution: string;
+  institutionId: string | null;
+  district: string | null;
   board: string | null;
   country: string;
   studyGroup: string | null;

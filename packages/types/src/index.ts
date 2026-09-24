@@ -5,3 +5,4 @@ export * from './tuition';
 export * from './community';
 export * from './notification';
 export * from './portfolio';
+export * from './education';

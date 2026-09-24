@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Controller, useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { Ionicons } from '@expo/vector-icons';
 import {
   CERTIFICATE_TYPE_OPTIONS,
   EDUCATION_LEVEL_OPTIONS,
@@ -13,6 +14,7 @@ import {
   EDUCATION_BOARDS,
   EDUCATION_RESULT_SCALES,
   EDUCATION_RESULT_TYPES,
+  KHULNA_DIVISION_DISTRICTS,
   POSTGRAD_DEGREE_TYPES,
   PROJECT_TYPES,
   STUDY_GROUPS,
@@ -57,6 +59,7 @@ import {
   GROUP_OPTIONS,
 } from '@/features/portfolio/education-levels';
 import { FileField } from '@/features/portfolio/file-field';
+import { InstitutionPickerSheet, type InstitutionPickerResult } from '@/features/portfolio/institution-picker-sheet';
 import {
   RHFInput,
   RHFSelect,
@@ -157,7 +160,9 @@ function ModeShell({
 
 const EDUCATION_FORM_DEFAULTS: EducationFormValues = {
   level: '',
+  district: '',
   institution: '',
+  institution_id: '',
   board: '',
   study_group: '',
   degree_type: '',
@@ -178,6 +183,8 @@ const EDUCATION_FORM_DEFAULTS: EducationFormValues = {
   document_url: '',
 };
 
+const DISTRICT_OPTIONS = KHULNA_DIVISION_DISTRICTS.map((value) => ({ value, label: value }));
+
 /**
  * Item columns are free text (Zod gates them on write); coerce a stored value
  * back into a select's union, falling back to '' when it doesn't match —
@@ -197,7 +204,9 @@ function educationToFormValues(item: PortfolioEducationItem | null): EducationFo
   if (!item) return { ...EDUCATION_FORM_DEFAULTS };
   return {
     level: item.level,
+    district: item.district ?? '',
     institution: item.institution,
+    institution_id: item.institutionId ?? '',
     board: toSelectValue(item.board, EDUCATION_BOARDS),
     study_group: toSelectValue(item.studyGroup, STUDY_GROUPS),
     degree_type: toSelectValue(item.degreeType, DEGREE_TYPES),
@@ -252,6 +261,7 @@ export function EducationSection({
 }: EducationSectionProps) {
   const [mode, setMode] = useState<'idle' | 'add'>('idle');
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [pickerOpen, setPickerOpen] = useState(false);
   const editing = items.find((it) => it.id === editingId) ?? null;
 
   const form = useForm<EducationFormValues>({
@@ -260,6 +270,8 @@ export function EducationSection({
   });
 
   const level = (useWatch({ control: form.control, name: 'level' }) ?? '') as EducationLevel | '';
+  const district = useWatch({ control: form.control, name: 'district' }) ?? '';
+  const institutionName = useWatch({ control: form.control, name: 'institution' }) ?? '';
   const resultType = useWatch({ control: form.control, name: 'result_type' }) ?? '';
   const isOngoing = useWatch({ control: form.control, name: 'is_ongoing' }) ?? false;
   const spec = level ? EDUCATION_LEVEL_SPECS[level] : null;
@@ -281,7 +293,9 @@ export function EducationSection({
   };
 
   /** Switching levels re-applies the level's result defaults so a 5.00-scale
-   *  GPA doesn't leak into a 4.00-scale CGPA (and vice versa). */
+   *  GPA doesn't leak into a 4.00-scale CGPA (and vice versa). Switching
+   *  the district clears any previously-picked institution because Khulna
+   *  institutions aren't valid for Bagerhat and vice-versa. */
   const selectLevel = (next: string | null) => {
     const value = (next ?? '') as EducationLevel | '';
     form.setValue('level', value, { shouldDirty: true, shouldValidate: true });
@@ -290,6 +304,20 @@ export function EducationSection({
     form.setValue('result_type', nextSpec.defaultResultType ?? '', { shouldDirty: true });
     form.setValue('result_scale', nextSpec.defaultResultScale ?? '', { shouldDirty: true });
     form.setValue('is_ongoing', false, { shouldDirty: true });
+  };
+
+  const selectDistrict = (next: string | null) => {
+    form.setValue('district', next ?? '', { shouldDirty: true, shouldValidate: true });
+    // District change clears the institution pick — Khulna picks don't apply
+    // to Bagerhat etc.
+    form.setValue('institution', '', { shouldDirty: true });
+    form.setValue('institution_id', '', { shouldDirty: true });
+  };
+
+  const selectInstitution = (next: InstitutionPickerResult) => {
+    form.setValue('institution_id', next.id, { shouldDirty: true, shouldValidate: true });
+    form.setValue('institution', next.name, { shouldDirty: true, shouldValidate: true });
+    form.clearErrors('institution');
   };
 
   const submit = form.handleSubmit(async (values) => {
@@ -346,12 +374,29 @@ export function EducationSection({
             clearable={false}
             onSelect={selectLevel}
           />
+          <RHFSelect
+            control={form.control}
+            name="district"
+            label="District"
+            options={DISTRICT_OPTIONS}
+            placeholder="Select district"
+            clearable={false}
+            onSelect={selectDistrict}
+          />
           {spec ? (
             <>
-              <RHFInput
+              <Controller
                 control={form.control}
                 name="institution"
-                label={spec.institutionLabel}
+                render={({ fieldState }) => (
+                  <InstitutionPickerField
+                    label={spec.institutionLabel}
+                    value={institutionName}
+                    disabled={!level}
+                    onPress={() => setPickerOpen(true)}
+                    error={fieldState.error?.message ?? null}
+                  />
+                )}
               />
               {spec.degreeOptions ? (
                 <RHFSelect
@@ -546,7 +591,76 @@ export function EducationSection({
           ))}
         </View>
       )}
+
+      <InstitutionPickerSheet
+        visible={pickerOpen}
+        level={level}
+        district={district.trim() === '' ? null : district.trim()}
+        onClose={() => setPickerOpen(false)}
+        onSelect={selectInstitution}
+      />
     </ModeShell>
+  );
+}
+
+// ── Institution picker trigger row ──────────────────────────────────────────
+
+interface InstitutionPickerFieldProps {
+  label: string;
+  value: string;
+  disabled?: boolean;
+  onPress(): void;
+  error?: string | null;
+}
+
+/**
+ * The "Choose institution" row inside the Add-Education form. Tapping opens
+ * the searchable picker; the chosen institution name is rendered in place.
+ * Until an education level is picked the row stays disabled — the picker
+ * filters by level type, so opening it without one would be confusing.
+ */
+function InstitutionPickerField({
+  label,
+  value,
+  disabled,
+  onPress,
+  error,
+}: InstitutionPickerFieldProps) {
+  const colors = useTheme();
+  const empty = value.trim() === '';
+  return (
+    <View style={styles.field}>
+      <Text style={[styles.label, { color: colors.text }]}>{label}</Text>
+      <Pressable
+        onPress={onPress}
+        disabled={disabled}
+        accessibilityRole="button"
+        accessibilityLabel={value ? `Change institution: ${value}` : 'Choose institution'}
+        style={({ pressed }) => [
+          pickerStyles.row,
+          { backgroundColor: colors.backgroundElement },
+          empty && pickerStyles.rowEmpty,
+          disabled && pickerStyles.rowDisabled,
+          pressed && pickerStyles.pressed,
+        ]}
+      >
+        <Text
+          style={[
+            pickerStyles.value,
+            { color: empty ? colors.textSecondary : colors.text },
+          ]}
+          numberOfLines={1}
+        >
+          {empty ? 'Choose institution…' : value}
+        </Text>
+        <Ionicons
+          name={disabled ? 'lock-closed-outline' : 'chevron-down'}
+          size={16}
+          color={disabled ? colors.textMuted : colors.textSecondary}
+        />
+      </Pressable>
+      {error ? <Text style={[styles.error, { color: colors.danger }]}>{error}</Text> : null}
+    </View>
   );
 }
 
@@ -1427,5 +1541,40 @@ const styles = StyleSheet.create({
   },
   col: {
     flex: 1,
+  },
+  field: {
+    gap: 6,
+    marginBottom: Spacing.three,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  error: {
+    fontSize: 13,
+  },
+});
+
+const pickerStyles = StyleSheet.create({
+  row: {
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    height: 50,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  rowEmpty: {
+    opacity: 0.8,
+  },
+  rowDisabled: {
+    opacity: 0.55,
+  },
+  value: {
+    fontSize: 16,
+    flex: 1,
+  },
+  pressed: {
+    opacity: 0.7,
   },
 });

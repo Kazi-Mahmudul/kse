@@ -1,5 +1,9 @@
 import { z } from 'zod';
-import { OPPORTUNITY_TYPES } from '@kse/types';
+import {
+  EDUCATION_INSTITUTION_OWNERSHIPS,
+  EDUCATION_INSTITUTION_TYPES,
+  OPPORTUNITY_TYPES,
+} from '@kse/types';
 
 import { uuidField } from './common';
 
@@ -75,4 +79,34 @@ export const tagFormSchema = z.object({
 /** Row id for delete actions. */
 export const idSchema = z.object({
   id: uuidField('Invalid id'),
+});
+
+// ── Education institutions (admin) ──────────────────────────────────────────
+
+/**
+ * Admin create/edit form for public.education_institutions. The unique
+ * partial index (lower(name), coalesce(city,''), type) WHERE is_active
+ * handles dedup on the DB side, but we still guard the inputs so admins
+ * get useful error messages before round-tripping.
+ */
+export const educationInstitutionFormSchema = z.object({
+  name: nameField(160),
+  name_bn: optionalText(200),
+  type: z.enum(EDUCATION_INSTITUTION_TYPES, { message: 'Choose a type' }),
+  ownership_type: z.preprocess(
+    emptyToNull,
+    z
+      .enum(EDUCATION_INSTITUTION_OWNERSHIPS, { message: 'Invalid ownership' })
+      .nullable(),
+  ),
+  city: optionalText(80),
+  area: optionalText(120),
+  is_active: z.preprocess(
+    (value) => (typeof value === 'string' ? value === 'on' || value === 'true' : Boolean(value)),
+    z.boolean(),
+  ),
+});
+
+export const educationInstitutionUpdateSchema = educationInstitutionFormSchema.extend({
+  id: uuidField('Invalid institution id'),
 });

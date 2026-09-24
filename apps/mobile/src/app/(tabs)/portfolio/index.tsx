@@ -153,6 +153,8 @@ function toEducationPayload(v: EducationFormValues) {
   return {
     level: v.level as EducationLevel,
     institution: v.institution.trim(),
+    institution_id: v.institution_id === '' || v.institution_id == null ? null : v.institution_id,
+    district: str(v.district),
     board: spec.boardLabel ? str(v.board) : null,
     study_group: spec.showGroup ? str(v.study_group) : null,
     degree_type: spec.degreeOptions ? str(v.degree_type) : null,

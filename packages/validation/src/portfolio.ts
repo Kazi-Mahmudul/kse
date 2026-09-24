@@ -3,6 +3,8 @@ import { z } from 'zod';
 import {
   CERTIFICATE_TYPES,
   EDUCATION_BOARDS,
+  EDUCATION_INSTITUTION_OWNERSHIPS,
+  EDUCATION_INSTITUTION_TYPES,
   EDUCATION_LEVELS,
   EDUCATION_RESULT_SCALES,
   EDUCATION_RESULT_TYPES,
@@ -58,6 +60,13 @@ const optionalYear = z
   .string()
   .trim()
   .regex(/^\d{4}$/u, 'Enter a 4-digit year (e.g. 2024)')
+  .or(z.literal(''));
+
+/** Optional district label — matches the divisions the mobile picker shows. */
+const optionalDistrict = z
+  .string()
+  .trim()
+  .max(40, 'District name is too long')
   .or(z.literal(''));
 
 const MIN_EDUCATION_YEAR = 1980;
@@ -172,7 +181,13 @@ export type CertificateFormValues = CertificateInput;
 export const educationFormSchema = z
   .object({
     level: optionalEnum(EDUCATION_LEVELS),
-    institution: z.string().trim().min(2, 'Institution name is required').max(160),
+    institution: z.string().trim().max(160),
+    /** FK into education_institutions.id; null when the user typed free text
+     *  or no institution exists yet (e.g. a request has to be raised). */
+    institution_id: uuidField('Invalid institution').or(z.literal('')).optional(),
+    /** Free-text district label (Khulna, Bagerhat, …). Optional so older
+     *  rows and "Other country" entries remain valid without a district. */
+    district: optionalDistrict,
     board: optionalEnum(EDUCATION_BOARDS),
     study_group: optionalEnum(STUDY_GROUPS),
     degree_type: z.string().trim().max(20).or(z.literal('')),
@@ -199,6 +214,12 @@ export const educationFormSchema = z
     if (v.level === '') {
       add(['level'], 'Select your education level');
       return;
+    }
+
+    // Institution is required, but the source can be the picker (institution_id)
+    // or a free-text fallback for institutions that aren't in the directory yet.
+    if (v.institution === '' && v.institution_id === '') {
+      add(['institution'], 'Choose your institution or type its name');
     }
 
     // Years must be plausible and ordered.
@@ -347,3 +368,26 @@ export function blankToNull<T extends Record<string, unknown>>(
   }
   return out as T;
 }
+
+// ── Institution request (student → admin review) ────────────────────────────
+
+/**
+ * Submitted by a student when their institution isn't in the picker.
+ * `name`, `type` and `city` are required; ownership and Bangla name are
+ * optional — admin can fill in the rest during review.
+ */
+export const educationInstitutionRequestSchema = z.object({
+  name: z.string().trim().min(2, 'Institution name is required').max(160),
+  name_bn: z.string().trim().max(200).or(z.literal('')),
+  type: z.enum(EDUCATION_INSTITUTION_TYPES, { message: 'Choose an institution type' }),
+  ownership_type: z
+    .enum(EDUCATION_INSTITUTION_OWNERSHIPS)
+    .optional()
+    .or(z.literal('')),
+  city: z.string().trim().max(80).or(z.literal('')),
+  area: z.string().trim().max(120).or(z.literal('')),
+});
+
+export type EducationInstitutionRequestInput = z.infer<
+  typeof educationInstitutionRequestSchema
+>;
