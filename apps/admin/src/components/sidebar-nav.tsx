@@ -12,7 +12,14 @@ interface NavItem {
 
 const NAV_ITEMS: readonly NavItem[] = [
   { href: '/', label: 'Dashboard' },
-  { href: '/opportunities', label: 'Opportunities' },
+  {
+    href: '/opportunities',
+    label: 'Opportunities',
+    children: [
+      { href: '/opportunities', label: 'All' },
+      { href: '/opportunities?type=scholarship', label: 'Scholarships' },
+    ],
+  },
   { href: '/tuition', label: 'Tuition & Tutors' },
   {
     href: '/communities',

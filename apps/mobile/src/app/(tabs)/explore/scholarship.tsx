@@ -22,6 +22,7 @@ import { Spacing } from '@/constants/theme';
 import { ScholarshipCard } from '@/features/opportunities/components/scholarship-card';
 import { useOpportunityFeed } from '@/features/opportunities/queries';
 import type { OpportunityFilters } from '@/features/opportunities/service';
+import { RecommendedRail } from '@/features/scholarships/recommended-rail';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { useTheme } from '@/hooks/use-theme';
 import { blurActiveElement } from '@/lib/focus';
@@ -156,6 +157,13 @@ export default function ScholarshipHubScreen() {
           data={items}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => <ScholarshipCard opportunity={item} />}
+          ListHeaderComponent={
+            items.length > 0 ? (
+              <View style={styles.recommendedHost}>
+                <RecommendedRail items={items} />
+              </View>
+            ) : null
+          }
           ItemSeparatorComponent={() => <View style={styles.separator} />}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
@@ -273,6 +281,9 @@ const styles = StyleSheet.create({
   footerLoader: {
     paddingVertical: Spacing.four,
     alignItems: 'center',
+  },
+  recommendedHost: {
+    paddingBottom: Spacing.three,
   },
   backdrop: {
     position: 'absolute',

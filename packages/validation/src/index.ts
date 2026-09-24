@@ -8,3 +8,4 @@ export * from './portfolio';
 export * from './userAdmin';
 export * from './masterData';
 export * from './settings';
+export * from './scholarship';

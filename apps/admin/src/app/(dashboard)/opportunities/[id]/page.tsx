@@ -9,10 +9,15 @@ import type {
   CategoryOption,
   OpportunityFormData,
 } from '@/features/opportunities/types';
+import {
+  deleteOpportunityEligibilityAction,
+  saveOpportunityEligibilityAction,
+} from '@/features/scholarships/actions';
+import { EligibilityFormPanel } from '@/features/scholarships/eligibility-form';
 import { formatDateTime, toDateTimeLocal } from '@/lib/format';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { OPPORTUNITY_TYPE_LABELS } from '@kse/shared';
-import type { Opportunity } from '@kse/types';
+import type { Opportunity, OpportunityEligibility } from '@kse/types';
 
 const QUICK_ACTIONS = [
   { status: 'published', label: 'Publish now', className: 'bg-emerald-600 text-white hover:bg-emerald-500' },
@@ -27,7 +32,7 @@ export default async function EditOpportunityPage({
   const { id } = await params;
   const admin = createAdminClient();
 
-  const [{ data, error }, { data: categories }, { data: tagData }] =
+  const [{ data, error }, { data: categories }, { data: tagData }, { data: eligibilityData }] =
     await Promise.all([
       admin.from('opportunities').select('*').eq('id', id).single(),
       admin
@@ -39,10 +44,16 @@ export default async function EditOpportunityPage({
         .from('opportunity_tags')
         .select('tags(name)')
         .eq('opportunity_id', id),
+      admin
+        .from('opportunity_eligibility')
+        .select('*')
+        .eq('opportunity_id', id)
+        .maybeSingle(),
     ]);
 
   const opportunity = data as Opportunity | null;
   const tagRows = (tagData ?? []) as unknown as { tags: { name: string } | null }[];
+  const eligibility = (eligibilityData ?? null) as OpportunityEligibility | null;
 
   if (error || !opportunity) {
     notFound();
@@ -118,6 +129,15 @@ export default async function EditOpportunityPage({
         categories={(categories ?? []) as CategoryOption[]}
         opportunity={formData}
       />
+
+      {opportunity.type === 'scholarship' ? (
+        <EligibilityFormPanel
+          opportunityId={opportunity.id}
+          eligibility={eligibility}
+          saveAction={saveOpportunityEligibilityAction}
+          deleteAction={deleteOpportunityEligibilityAction}
+        />
+      ) : null}
 
       <div className="mt-10 rounded-xl border border-red-200 bg-red-50 p-5">
         <h2 className="text-sm font-semibold text-red-800">Danger zone</h2>

@@ -6,3 +6,4 @@ export * from './community';
 export * from './notification';
 export * from './portfolio';
 export * from './education';
+export * from './scholarship';

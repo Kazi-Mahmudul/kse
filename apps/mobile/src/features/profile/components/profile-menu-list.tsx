@@ -6,6 +6,7 @@ import { ThemedText } from '@/components/themed-text';
 import { FontFamilies } from '@/constants/theme';
 import { useMyResumes } from '@/features/portfolio/queries';
 import { useMySkillIds } from '@/features/profile/queries';
+import { useMyApplications } from '@/features/scholarships/queries';
 import { useSavedOpportunityIds } from '@/features/saved/queries';
 import { useMyTutorApplication } from '@/features/tuition/queries';
 import { useTheme } from '@/hooks/use-theme';
@@ -23,7 +24,8 @@ interface RowSpec {
     | '/(tabs)/profile/edit'
     | '/(tabs)/saved'
     | '/(tabs)/portfolio'
-    | '/(tabs)/profile/become-tutor';
+    | '/(tabs)/profile/become-tutor'
+    | '/(tabs)/profile/scholarships';
 }
 
 /**
@@ -46,6 +48,13 @@ function resumeSubtitle(
 function savedSubtitle(count: number | undefined): string {
   if (!count) return 'Bookmark opportunities to track them';
   return count === 1 ? '1 opportunity saved' : `${count} opportunities saved`;
+}
+
+/** Subtitle for the scholarship-tracker row — show how many the student
+ *  is actively tracking so the row never renders a bare "0". */
+function applicationsSubtitle(count: number | undefined): string {
+  if (!count) return 'Add scholarships to track your applications';
+  return count === 1 ? '1 application tracked' : `${count} applications tracked`;
 }
 
 /**
@@ -78,6 +87,7 @@ export function ProfileMenuList() {
   const resumesQuery = useMyResumes();
   const savedQuery = useSavedOpportunityIds();
   const tutorApplicationQuery = useMyTutorApplication();
+  const applicationsQuery = useMyApplications();
 
   const skillCount = skillIdsQuery.data?.length ?? 0;
   const skillSubtitle = `${skillCount} ${skillCount === 1 ? 'Skill' : 'Skills'} Added`;
@@ -98,6 +108,14 @@ export function ProfileMenuList() {
       title: 'Resume',
       subtitle: resumeSubtitle(resumesQuery.data),
       href: '/(tabs)/portfolio',
+    },
+    {
+      key: 'scholarships',
+      icon: 'school-outline',
+      tint: 'emerald',
+      title: 'Scholarship applications',
+      subtitle: applicationsSubtitle(applicationsQuery.data?.length),
+      href: '/(tabs)/profile/scholarships',
     },
     {
       key: 'saved',

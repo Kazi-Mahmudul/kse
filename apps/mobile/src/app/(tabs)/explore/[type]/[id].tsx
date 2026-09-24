@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as WebBrowser from 'expo-web-browser';
 import { Image } from 'expo-image';
 import { useLocalSearchParams } from 'expo-router';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
 import { BackHeader } from '@/components/back-header';
@@ -19,6 +19,10 @@ import { SectionHeader } from '@/components/ui/section-header';
 import { Spacing, ThemeColor } from '@/constants/theme';
 import { findCategory } from '@/features/explore/categories';
 import { useOpportunity } from '@/features/opportunities/queries';
+import { AddToTrackerSheet } from '@/features/scholarships/add-to-tracker-sheet';
+import { MatchPanel } from '@/features/scholarships/match-panel';
+import { useMyApplications } from '@/features/scholarships/queries';
+import { useScholarshipMatcher } from '@/features/scholarships/matching-orchestrator';
 import { daysUntil, deadlineLabel, deadlineTone, formatDate, formatDateTime } from '@/lib/dates';
 import { analytics } from '@/lib/analytics';
 import { useTheme } from '@/hooks/use-theme';
@@ -36,6 +40,16 @@ export default function OpportunityDetailScreen() {
   const { id, type } = useLocalSearchParams<{ id: string; type: string }>();
   const query = useOpportunity(id);
   const category = type ? findCategory(type) : undefined;
+  const isScholarship = query.data?.type === 'scholarship';
+  const { matches, isLoading: matchLoading } = useScholarshipMatcher({
+    opportunityIds: query.data && isScholarship ? [query.data.id] : [],
+  });
+  const match = isScholarship ? matches[0] ?? null : null;
+  const applicationsQuery = useMyApplications();
+  const existingApplication = isScholarship
+    ? applicationsQuery.data?.find((row) => row.opportunity_id === id) ?? null
+    : null;
+  const [trackerOpen, setTrackerOpen] = useState(false);
 
   // Track view (step 19 analytics). Fire once per successful fetch.
   const trackedId = query.data?.id;
@@ -224,6 +238,13 @@ export default function OpportunityDetailScreen() {
         </>
       )}
 
+      {isScholarship ? (
+        <>
+          <SectionHeader title="Your match" />
+          <MatchPanel match={match} loading={matchLoading} />
+        </>
+      ) : null}
+
       {opportunity.description && (
         <>
           <SectionHeader title="About this opportunity" />
@@ -252,6 +273,14 @@ export default function OpportunityDetailScreen() {
 
       {isEvent && <RegisterButton opportunityId={opportunity.id} />}
 
+      {isScholarship ? (
+        <PrimaryButton
+          label={existingApplication ? 'Update tracker' : 'Add to application tracker'}
+          variant="outline"
+          onPress={() => setTrackerOpen(true)}
+        />
+      ) : null}
+
       {isEvent ? null : opportunity.application_url ? (
         <PrimaryButton
           label={expired ? 'Deadline passed' : 'Apply now'}
@@ -270,6 +299,17 @@ export default function OpportunityDetailScreen() {
           </ThemedText>
         </Card>
       )}
+
+      {isScholarship ? (
+        <AddToTrackerSheet
+          visible={trackerOpen}
+          onClose={() => setTrackerOpen(false)}
+          opportunityId={opportunity.id}
+          opportunityTitle={opportunity.title}
+          initialStatus={existingApplication?.status ?? 'interested'}
+          initialNotes={existingApplication?.notes ?? undefined}
+        />
+      ) : null}
     </Screen>
   );
 }

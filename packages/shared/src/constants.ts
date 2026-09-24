@@ -16,8 +16,11 @@ import type {
   OpportunityType,
   PostgradDegreeType,
   ProjectType,
+  ScholarshipApplicationStatus,
   StudyGroup,
+  TestScoreType,
   UndergradDegreeType,
+  UserActivityType,
   UserRole,
 } from '@kse/types';
 import {
@@ -38,8 +41,12 @@ import {
   OPPORTUNITY_TYPES,
   POSTGRAD_DEGREE_TYPES,
   PROJECT_TYPES,
+  SCHOLARSHIP_APPLICATION_STATUSES,
+  SCHOLARSHIP_APPLICATION_STATUS_LABELS,
   STUDY_GROUPS,
+  TEST_SCORE_TYPES,
   UNDERGRAD_DEGREE_TYPES,
+  USER_ACTIVITY_TYPES,
 } from '@kse/types';
 
 export const APP_NAME = 'KSE';
@@ -389,4 +396,29 @@ export const EDUCATION_INSTITUTION_TYPE_OPTIONS = EDUCATION_INSTITUTION_TYPES.ma
 
 export const EDUCATION_INSTITUTION_OWNERSHIP_OPTIONS = EDUCATION_INSTITUTION_OWNERSHIPS.map(
   (value) => ({ value, label: EDUCATION_INSTITUTION_OWNERSHIP_LABELS[value] }),
+);
+
+// ── Scholarship system ──────────────────────────────────────────────────────
+//
+// Scholarships reuse the unified `opportunities` table with
+// `type = 'scholarship'`; the labels below cover the side tables for
+// test scores, activities and the application tracker.
+
+import { TEST_SCORE_LABELS, USER_ACTIVITY_LABELS } from '@kse/types';
+
+export const TEST_SCORE_OPTIONS = TEST_SCORE_TYPES.map((value) => ({
+  value,
+  label: TEST_SCORE_LABELS[value],
+}));
+
+export const USER_ACTIVITY_OPTIONS = USER_ACTIVITY_TYPES.map((value) => ({
+  value,
+  label: USER_ACTIVITY_LABELS[value],
+}));
+
+export const SCHOLARSHIP_APPLICATION_STATUS_OPTIONS = SCHOLARSHIP_APPLICATION_STATUSES.map(
+  (value: ScholarshipApplicationStatus) => ({
+    value,
+    label: SCHOLARSHIP_APPLICATION_STATUS_LABELS[value],
+  }),
 );

@@ -7,11 +7,25 @@ import { Spacing, type TintKey } from '@/constants/theme';
 import { hashString, initialsFor } from '@/lib/format';
 import { useTheme } from '@/hooks/use-theme';
 import { useTints } from '@/hooks/use-tints';
-import { DEGREE_LEVEL_LABELS, FUNDING_TYPE_LABELS } from '@kse/shared';
-import type { OpportunitySummary } from '@kse/types';
+import {
+  DEGREE_LEVEL_LABELS,
+  FUNDING_TYPE_LABELS,
+  SCHOLARSHIP_MATCH_LEVEL_LABELS,
+} from '@kse/shared';
+import type {
+  OpportunitySummary,
+  ScholarshipMatchLevel,
+} from '@kse/types';
 
 interface ScholarshipCardProps {
   opportunity: OpportunitySummary;
+  /**
+   * Optional match verdict from the rule-based engine — when present,
+   * a coloured chip surfaces the verdict (Highly Matched / Eligible /
+   * Potential / Not Eligible). Omitted while the matching engine is
+   * still loading.
+   */
+  matchLevel?: ScholarshipMatchLevel | null;
 }
 
 /**
@@ -27,7 +41,7 @@ interface ScholarshipCardProps {
  * The outer View carries the card chrome (radius / border / shadow); the
  * inner Pressable wraps only the body so the bookmark sits next to it.
  */
-export function ScholarshipCard({ opportunity }: ScholarshipCardProps) {
+export function ScholarshipCard({ opportunity, matchLevel }: ScholarshipCardProps) {
   const colors = useTheme();
   const tints = useTints();
   const tintKeys = Object.keys(tints) as TintKey[];
@@ -108,8 +122,25 @@ export function ScholarshipCard({ opportunity }: ScholarshipCardProps) {
             >
               {opportunity.organization_name}
             </Text>
-            {(degreeLabel || fundingLabel) && (
+            {(degreeLabel || fundingLabel || matchLevel) && (
               <View style={styles.chipRow}>
+                {matchLevel ? (
+                  <View
+                    style={[
+                      styles.chip,
+                      { backgroundColor: matchTone(matchLevel, tints).bg },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.chipText,
+                        { color: matchTone(matchLevel, tints).fg },
+                      ]}
+                    >
+                      {SCHOLARSHIP_MATCH_LEVEL_LABELS[matchLevel]}
+                    </Text>
+                  </View>
+                ) : null}
                 {degreeLabel ? (
                   <View
                     style={[
@@ -177,6 +208,21 @@ function formatDeadline(deadline: string | null): string | null {
     month: 'short',
     year: 'numeric',
   }).format(new Date(deadline));
+}
+
+/** Coloured pair per match level — keeps the badge consistent across the
+ *  Hub and the detail page without re-importing a generic Badge helper. */
+function matchTone(level: ScholarshipMatchLevel, tints: Record<TintKey, { bg: string; fg: string }>) {
+  switch (level) {
+    case 'highly_matched':
+      return tints.emerald;
+    case 'eligible':
+      return tints.indigo;
+    case 'potential':
+      return tints.amber;
+    case 'not_eligible':
+      return tints.slate;
+  }
 }
 
 const styles = StyleSheet.create({
