@@ -49,14 +49,20 @@ export type PortfolioBucket = typeof DOCUMENT_BUCKET | typeof RESUME_BUCKET;
 
 /**
  * Split a stored storage reference into bucket + object path. Uploads now
- * store bucket-qualified refs (`resumes/<uid>/x.pdf`); rows written before
- * that hold bare `<uid>/x.ext` paths, which belong to the certificates
- * bucket. (A uid can never collide with a bucket name.)
+ * store bucket-qualified refs (`resumes/<uid>/x.pdf` /
+ * `certificates/<uid>/x.jpg`); rows written before that hold bare
+ * `<uid>/x.ext` paths, which belong to the certificates bucket. (A uid
+ * can never collide with a bucket name.)
  */
 function splitStorageRef(fileUrl: string): { bucket: PortfolioBucket; path: string } {
   const [first, ...rest] = fileUrl.split('/');
-  if (rest.length > 0 && first === RESUME_BUCKET) {
-    return { bucket: RESUME_BUCKET, path: rest.join('/') };
+  if (rest.length > 0 && (first === RESUME_BUCKET || first === DOCUMENT_BUCKET)) {
+    // If the first segment matches a known bucket, treat the rest as the
+    // object path (Supabase signed URLs need bucket + object-path only —
+    // re-sending the bucket name produces a 400). Otherwise assume the row
+    // was written by an older upload helper and the whole ref lives in the
+    // certificates bucket.
+    return { bucket: first as PortfolioBucket, path: rest.join('/') };
   }
   return { bucket: DOCUMENT_BUCKET, path: fileUrl };
 }

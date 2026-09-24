@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import { useCallback, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { BackHeader } from '@/components/back-header';
@@ -7,6 +8,7 @@ import { ThemedText } from '@/components/themed-text';
 import { Card } from '@/components/ui/card';
 import { Screen } from '@/components/ui/screen';
 import { Spacing } from '@/constants/theme';
+import { PortfolioDetailSheet, type PortfolioDetailItem } from '@/features/portfolio/detail-sheet';
 import { PortfolioOverview } from '@/features/portfolio/overview';
 import {
   useCreateAchievement,
@@ -70,17 +72,65 @@ export default function PortfolioScreen() {
   const colors = useTheme();
   const tints = useTints();
 
+  // Single source of truth for the detail-sheet payload — each section
+  // forwards its open callback up here, the sheet renders at the page
+  // level so it sits above all the cards.
+  const [detailItem, setDetailItem] = useState<PortfolioDetailItem | null>(null);
+
+  const openEducation = useCallback(
+    (item: Parameters<NonNullable<React.ComponentProps<typeof EducationSection>['onOpen']>>[0]) =>
+      setDetailItem({ kind: 'education', item }),
+    [],
+  );
+  const openProject = useCallback(
+    (item: Parameters<NonNullable<React.ComponentProps<typeof ProjectsSection>['onOpen']>>[0]) =>
+      setDetailItem({ kind: 'project', item }),
+    [],
+  );
+  const openCertificate = useCallback(
+    (item: Parameters<NonNullable<React.ComponentProps<typeof CertificatesSection>['onOpen']>>[0]) =>
+      setDetailItem({ kind: 'certificate', item }),
+    [],
+  );
+  const openAchievement = useCallback(
+    (item: Parameters<NonNullable<React.ComponentProps<typeof AchievementsSection>['onOpen']>>[0]) =>
+      setDetailItem({ kind: 'achievement', item }),
+    [],
+  );
+  const openResearch = useCallback(
+    (item: Parameters<NonNullable<React.ComponentProps<typeof ResearchSection>['onOpen']>>[0]) =>
+      setDetailItem({ kind: 'research', item }),
+    [],
+  );
+  const openResume = useCallback(
+    (item: Parameters<NonNullable<React.ComponentProps<typeof ResumesSection>['onOpen']>>[0]) =>
+      setDetailItem({ kind: 'resume', item }),
+    [],
+  );
+  const openLink = useCallback(
+    (item: Parameters<NonNullable<React.ComponentProps<typeof PortfolioLinksSection>['onOpen']>>[0]) =>
+      setDetailItem({ kind: 'link', item }),
+    [],
+  );
+
+  // Edit from inside the sheet just clears it; the section's existing edit
+  // flow (which already opens the form) is what the user actually wants.
+  // We close the sheet here so it doesn't fight with the section's UI.
+  const handleEditFromSheet = useCallback(() => {
+    setDetailItem(null);
+  }, []);
+
   return (
     <Screen>
       <BackHeader title="My portfolio" />
       <PortfolioOverview />
-      <EducationSectionBound />
-      <ProjectsSectionBound />
-      <CertificatesSectionBound />
-      <AchievementsSectionBound />
-      <ResearchSectionBound />
-      <ResumesSectionBound />
-      <PortfolioLinksSectionBound />
+      <EducationSectionBound onOpen={openEducation} />
+      <ProjectsSectionBound onOpen={openProject} />
+      <CertificatesSectionBound onOpen={openCertificate} />
+      <AchievementsSectionBound onOpen={openAchievement} />
+      <ResearchSectionBound onOpen={openResearch} />
+      <ResumesSectionBound onOpen={openResume} />
+      <PortfolioLinksSectionBound onOpen={openLink} />
 
       <View style={styles.spacer} />
       <Card
@@ -104,6 +154,12 @@ export default function PortfolioScreen() {
           <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
         </View>
       </Card>
+
+      <PortfolioDetailSheet
+        value={detailItem}
+        onClose={() => setDetailItem(null)}
+        onEdit={handleEditFromSheet}
+      />
     </Screen>
   );
 }
@@ -116,7 +172,11 @@ function useErrorMessage(error: Error | null, mutationError: Error | null): stri
   return null;
 }
 
-function EducationSectionBound() {
+function EducationSectionBound({
+  onOpen,
+}: {
+  onOpen(item: Parameters<NonNullable<React.ComponentProps<typeof EducationSection>['onOpen']>>[0]): void;
+}) {
   const q = useMyEducation();
   const create = useCreateEducation();
   const update = useUpdateEducation();
@@ -136,6 +196,7 @@ function EducationSectionBound() {
         await remove.mutateAsync(id);
       }}
       errorMessage={errorMessage}
+      onOpen={onOpen}
     />
   );
 }
@@ -176,7 +237,11 @@ function toEducationPayload(v: EducationFormValues) {
   };
 }
 
-function ProjectsSectionBound() {
+function ProjectsSectionBound({
+  onOpen,
+}: {
+  onOpen(item: Parameters<NonNullable<React.ComponentProps<typeof ProjectsSection>['onOpen']>>[0]): void;
+}) {
   const q = useMyProjects();
   const create = useCreateProject();
   const update = useUpdateProject();
@@ -196,6 +261,7 @@ function ProjectsSectionBound() {
         await remove.mutateAsync(id);
       }}
       errorMessage={errorMessage}
+      onOpen={onOpen}
     />
   );
 }
@@ -224,7 +290,11 @@ function toProjectPayload(v: ProjectFormValues) {
   };
 }
 
-function CertificatesSectionBound() {
+function CertificatesSectionBound({
+  onOpen,
+}: {
+  onOpen(item: Parameters<NonNullable<React.ComponentProps<typeof CertificatesSection>['onOpen']>>[0]): void;
+}) {
   const q = useMyCertificates();
   const create = useCreateCertificate();
   const update = useUpdateCertificate();
@@ -244,6 +314,7 @@ function CertificatesSectionBound() {
         await remove.mutateAsync(id);
       }}
       errorMessage={errorMessage}
+      onOpen={onOpen}
     />
   );
 }
@@ -265,7 +336,11 @@ function toCertificatePayload(v: CertificateFormValues) {
   };
 }
 
-function AchievementsSectionBound() {
+function AchievementsSectionBound({
+  onOpen,
+}: {
+  onOpen(item: Parameters<NonNullable<React.ComponentProps<typeof AchievementsSection>['onOpen']>>[0]): void;
+}) {
   const q = useMyAchievements();
   const create = useCreateAchievement();
   const update = useUpdateAchievement();
@@ -285,6 +360,7 @@ function AchievementsSectionBound() {
         await remove.mutateAsync(id);
       }}
       errorMessage={errorMessage}
+      onOpen={onOpen}
     />
   );
 }
@@ -297,7 +373,11 @@ function toAchievementPayload(v: AchievementFormValues) {
   };
 }
 
-function ResearchSectionBound() {
+function ResearchSectionBound({
+  onOpen,
+}: {
+  onOpen(item: Parameters<NonNullable<React.ComponentProps<typeof ResearchSection>['onOpen']>>[0]): void;
+}) {
   const q = useMyResearch();
   const create = useCreateResearch();
   const update = useUpdateResearch();
@@ -317,6 +397,7 @@ function ResearchSectionBound() {
         await remove.mutateAsync(id);
       }}
       errorMessage={errorMessage}
+      onOpen={onOpen}
     />
   );
 }
@@ -332,7 +413,11 @@ function toResearchPayload(v: ResearchFormValues) {
   };
 }
 
-function ResumesSectionBound() {
+function ResumesSectionBound({
+  onOpen,
+}: {
+  onOpen(item: Parameters<NonNullable<React.ComponentProps<typeof ResumesSection>['onOpen']>>[0]): void;
+}) {
   const q = useMyResumes();
   const create = useCreateResume();
   const update = useUpdateResume();
@@ -352,6 +437,7 @@ function ResumesSectionBound() {
         await remove.mutateAsync(id);
       }}
       errorMessage={errorMessage}
+      onOpen={onOpen}
     />
   );
 }
@@ -364,7 +450,11 @@ function toResumePayload(v: ResumeFormValues) {
   };
 }
 
-function PortfolioLinksSectionBound() {
+function PortfolioLinksSectionBound({
+  onOpen,
+}: {
+  onOpen(item: Parameters<NonNullable<React.ComponentProps<typeof PortfolioLinksSection>['onOpen']>>[0]): void;
+}) {
   const q = useMyPortfolioLinks();
   const create = useCreatePortfolioLink();
   const update = useUpdatePortfolioLink();
@@ -384,6 +474,7 @@ function PortfolioLinksSectionBound() {
         await remove.mutateAsync(id);
       }}
       errorMessage={errorMessage}
+      onOpen={onOpen}
     />
   );
 }

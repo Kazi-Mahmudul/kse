@@ -67,6 +67,7 @@ import {
   RHFChipList,
   ErrorBanner,
 } from '@/features/portfolio/forms';
+import type { PortfolioDetailItem } from '@/features/portfolio/detail-sheet';
 import {
   AchievementCard,
   CertificateCard,
@@ -243,6 +244,8 @@ interface EducationSectionProps {
   update(id: string, values: EducationFormValues): Promise<void>;
   remove(id: string): Promise<void>;
   errorMessage: string | null;
+  /** Opens the detail sheet for the given education row. */
+  onOpen?(item: PortfolioEducationItem): void;
 }
 
 /**
@@ -258,6 +261,7 @@ export function EducationSection({
   update,
   remove,
   errorMessage,
+  onOpen,
 }: EducationSectionProps) {
   const [mode, setMode] = useState<'idle' | 'add'>('idle');
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -587,6 +591,7 @@ export function EducationSection({
               onDelete={() => {
                 void remove(item.id);
               }}
+              onOpen={onOpen ? () => onOpen(item) : undefined}
             />
           ))}
         </View>
@@ -693,6 +698,8 @@ interface ProjectsSectionProps {
   update(id: string, values: ProjectFormValues): Promise<void>;
   remove(id: string): Promise<void>;
   errorMessage: string | null;
+  /** Opens the detail sheet for the given project row. */
+  onOpen?(item: PortfolioProjectItem): void;
 }
 
 /**
@@ -707,6 +714,7 @@ export function ProjectsSection({
   update,
   remove,
   errorMessage,
+  onOpen,
 }: ProjectsSectionProps) {
   const [mode, setMode] = useState<'idle' | 'add'>('idle');
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -892,6 +900,7 @@ export function ProjectsSection({
               onDelete={() => {
                 void remove(project.id);
               }}
+              onOpen={onOpen ? () => onOpen(project) : undefined}
             />
           ))}
         </View>
@@ -963,6 +972,8 @@ interface CertificatesSectionProps {
   update(id: string, values: CertificateFormValues): Promise<void>;
   remove(id: string): Promise<void>;
   errorMessage: string | null;
+  /** Opens the detail sheet for the given certificate row. */
+  onOpen?(item: PortfolioCertificateItem): void;
 }
 
 /**
@@ -978,6 +989,7 @@ export function CertificatesSection({
   update,
   remove,
   errorMessage,
+  onOpen,
 }: CertificatesSectionProps) {
   const [mode, setMode] = useState<'idle' | 'add'>('idle');
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -1109,6 +1121,7 @@ export function CertificatesSection({
               onDelete={() => {
                 void remove(cert.id);
               }}
+              onOpen={onOpen ? () => onOpen(cert) : undefined}
             />
           ))}
         </View>
@@ -1126,6 +1139,8 @@ interface AchievementsSectionProps {
   update(id: string, values: AchievementFormValues): Promise<void>;
   remove(id: string): Promise<void>;
   errorMessage: string | null;
+  /** Opens the detail sheet for the given achievement row. */
+  onOpen?(item: PortfolioAchievementItem): void;
 }
 
 export function AchievementsSection({
@@ -1135,6 +1150,7 @@ export function AchievementsSection({
   update,
   remove,
   errorMessage,
+  onOpen,
 }: AchievementsSectionProps) {
   const [mode, setMode] = useState<'idle' | 'add'>('idle');
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -1198,6 +1214,7 @@ export function AchievementsSection({
               onDelete={() => {
                 void remove(a.id);
               }}
+              onOpen={onOpen ? () => onOpen(a) : undefined}
             />
           ))}
         </View>
@@ -1223,6 +1240,8 @@ interface ResearchSectionProps {
   update(id: string, values: ResearchFormValues): Promise<void>;
   remove(id: string): Promise<void>;
   errorMessage: string | null;
+  /** Opens the detail sheet for the given research row. */
+  onOpen?(item: PortfolioResearchItem): void;
 }
 
 export function ResearchSection({
@@ -1232,6 +1251,7 @@ export function ResearchSection({
   update,
   remove,
   errorMessage,
+  onOpen,
 }: ResearchSectionProps) {
   const [mode, setMode] = useState<'idle' | 'add'>('idle');
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -1304,6 +1324,7 @@ export function ResearchSection({
               onDelete={() => {
                 void remove(r.id);
               }}
+              onOpen={onOpen ? () => onOpen(r) : undefined}
             />
           ))}
         </View>
@@ -1332,6 +1353,8 @@ interface ResumesSectionProps {
   update(id: string, values: ResumeFormValues): Promise<void>;
   remove(id: string): Promise<void>;
   errorMessage: string | null;
+  /** Opens the detail sheet for the given resume row. */
+  onOpen?(item: PortfolioResumeItem): void;
 }
 
 export function ResumesSection({
@@ -1341,6 +1364,7 @@ export function ResumesSection({
   update,
   remove,
   errorMessage,
+  onOpen,
 }: ResumesSectionProps) {
   const [mode, setMode] = useState<'idle' | 'add'>('idle');
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -1424,6 +1448,7 @@ export function ResumesSection({
               onDelete={() => {
                 void remove(r.id);
               }}
+              onOpen={onOpen ? () => onOpen(r) : undefined}
             />
           ))}
         </View>
@@ -1441,6 +1466,8 @@ interface PortfolioLinksSectionProps {
   update(id: string, values: PortfolioLinkFormValues): Promise<void>;
   remove(id: string): Promise<void>;
   errorMessage: string | null;
+  /** Opens the detail sheet for the given link row. */
+  onOpen?(item: PortfolioLinkItem): void;
 }
 
 export function PortfolioLinksSection({
@@ -1450,6 +1477,7 @@ export function PortfolioLinksSection({
   update,
   remove,
   errorMessage,
+  onOpen,
 }: PortfolioLinksSectionProps) {
   const [mode, setMode] = useState<'idle' | 'add'>('idle');
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -1512,6 +1540,7 @@ export function PortfolioLinksSection({
               onDelete={() => {
                 void remove(link.id);
               }}
+              onOpen={onOpen ? () => onOpen(link) : undefined}
             />
           ))}
         </View>

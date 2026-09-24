@@ -26,7 +26,7 @@ import type {
 } from '@kse/types';
 
 import { ThemedText } from '@/components/themed-text';
-import { Spacing, type TintKey } from '@/constants/theme';
+import { FontFamilies, Spacing, type TintKey } from '@/constants/theme';
 import { openPortfolioFile } from '@/features/portfolio/queries';
 import { isStoragePath } from '@/features/portfolio/service';
 import { useTheme } from '@/hooks/use-theme';
@@ -35,25 +35,31 @@ import { formatDate } from '@/lib/dates';
 import type { IconName } from '@/types/icon';
 
 /**
- * Portfolio item cards, in the app-wide card language (tinted icon badge,
- * bordered surface, soft shadow — same chrome as the opportunity/tutor
- * cards). The card is a plain View and the two icon actions are the only
- * Pressables, so RNW renders no nested buttons (see internship-card.tsx).
+ * Portfolio item cards — the app-wide card language (tinted hero strip
+ * with a large kind icon, soft body surface, footer actions). The title
+ * is its own Pressable that opens the detail sheet; Edit / Delete /
+ * optional View live as siblings in the footer so RNW never sees nested
+ * buttons (see internship-card.tsx).
+ *
+ * The hero strip and tag chips use the kind's pastel tint pair so each
+ * section reads at a glance even when the list is long.
  */
 
 interface CardSpec {
   icon: IconName;
   tint: TintKey;
+  /** Friendly noun shown in the hero kicker line. */
+  noun: string;
 }
 
 const SPECS: Record<PortfolioKind, CardSpec> = {
-  education: { icon: 'school-outline', tint: 'teal' },
-  project: { icon: 'folder-open-outline', tint: 'indigo' },
-  certificate: { icon: 'shield-checkmark-outline', tint: 'cyan' },
-  achievement: { icon: 'trophy-outline', tint: 'amber' },
-  research: { icon: 'flask-outline', tint: 'emerald' },
-  resume: { icon: 'document-text-outline', tint: 'purple' },
-  link: { icon: 'link-outline', tint: 'sky' },
+  education: { icon: 'school-outline', tint: 'teal', noun: 'Education' },
+  project: { icon: 'folder-open-outline', tint: 'indigo', noun: 'Project' },
+  certificate: { icon: 'shield-checkmark-outline', tint: 'cyan', noun: 'Certificate' },
+  achievement: { icon: 'trophy-outline', tint: 'amber', noun: 'Achievement' },
+  research: { icon: 'flask-outline', tint: 'emerald', noun: 'Research' },
+  resume: { icon: 'document-text-outline', tint: 'purple', noun: 'Resume' },
+  link: { icon: 'link-outline', tint: 'sky', noun: 'Link' },
 };
 
 type PortfolioKind =
@@ -72,6 +78,7 @@ function CardShell({
   onEdit,
   onDelete,
   onView,
+  onOpen,
   children,
 }: {
   kind: PortfolioKind;
@@ -81,11 +88,13 @@ function CardShell({
   onDelete(): void;
   /** Present when the item has an attached file/link worth opening. */
   onView?(): void;
+  /** Opens the full-detail bottom sheet for this card. */
+  onOpen?(): void;
   children?: React.ReactNode;
 }) {
   const colors = useTheme();
   const tints = useTints();
-  const { icon, tint } = SPECS[kind];
+  const { icon, tint, noun } = SPECS[kind];
   const palette = tints[tint];
 
   return (
@@ -95,84 +104,126 @@ function CardShell({
         {
           backgroundColor: colors.background,
           borderColor: colors.border,
-          boxShadow: `0px 1px 6px ${colors.shadow}`,
+          // RNW requires boxShadow string format — synthesise a soft
+          // shadow tinted with the theme's shadow color.
+          boxShadow: `0px 4px 16px ${colors.shadow}`,
         },
       ]}
     >
-      <View style={styles.headerRow}>
-        <View style={[styles.badge, { backgroundColor: palette.bg }]}>
-          <Ionicons name={icon} size={18} color={palette.fg} />
+      {/* Hero strip: tinted background, large kind icon, kicker + title.
+       * The whole strip is a single Pressable so any tap on it (icon,
+       * kicker, or title) opens the detail sheet. */}
+      <Pressable
+        onPress={onOpen}
+        disabled={!onOpen}
+        accessibilityRole={onOpen ? 'button' : undefined}
+        accessibilityLabel={onOpen ? `Open ${title} details` : undefined}
+        style={({ pressed }) => [
+          styles.hero,
+          { backgroundColor: palette.bg, borderBottomColor: palette.border },
+          pressed && onOpen && styles.pressed,
+        ]}
+      >
+        <View style={[styles.heroIconWrap, { backgroundColor: palette.bg }]}>
+          <Ionicons name={icon} size={28} color={palette.fg} />
         </View>
-
-        <View style={styles.titleBlock}>
-          <ThemedText themeColor="heading" style={styles.title} numberOfLines={2}>
+        <View style={styles.heroText}>
+          <Text
+            style={[styles.heroKicker, { color: palette.fg }]}
+            numberOfLines={1}
+          >
+            {noun.toUpperCase()}
+          </Text>
+          <Text
+            style={[styles.heroTitle, { color: colors.heading }]}
+            numberOfLines={2}
+          >
             {title}
-          </ThemedText>
+          </Text>
           {meta ? (
-            <ThemedText themeColor="textSecondary" style={styles.meta} numberOfLines={1}>
+            <Text
+              style={[styles.heroMeta, { color: colors.textSecondary }]}
+              numberOfLines={1}
+            >
               {meta}
-            </ThemedText>
+            </Text>
           ) : null}
         </View>
+        {onOpen ? (
+          <View style={styles.heroChevron}>
+            <Ionicons name="chevron-forward" size={18} color={palette.fg} />
+          </View>
+        ) : null}
+      </Pressable>
 
-        <CardActions onEdit={onEdit} onDelete={onDelete} onView={onView} />
+      {/* Body: optional children (description, tags, links) */}
+      {children ? <View style={styles.body}>{children}</View> : null}
+
+      {/* Footer action row */}
+      <View style={[styles.footer, { borderTopColor: colors.border }]}>
+        {onView ? (
+          <Pressable
+            onPress={onView}
+            accessibilityRole="button"
+            accessibilityLabel="View attached file"
+            style={({ pressed }) => [
+              styles.footerAction,
+              { backgroundColor: colors.backgroundElement },
+              pressed && styles.pressed,
+            ]}
+          >
+            <Ionicons name="eye-outline" size={14} color={colors.text} />
+            <Text style={[styles.footerActionLabel, { color: colors.text }]}>View</Text>
+          </Pressable>
+        ) : (
+          <View style={styles.footerActionSpacer} />
+        )}
+        <Pressable
+          onPress={onEdit}
+          accessibilityRole="button"
+          accessibilityLabel="Edit item"
+          style={({ pressed }) => [
+            styles.footerAction,
+            { backgroundColor: colors.backgroundElement },
+            pressed && styles.pressed,
+          ]}
+        >
+          <Ionicons name="create-outline" size={14} color={colors.text} />
+          <Text style={[styles.footerActionLabel, { color: colors.text }]}>Edit</Text>
+        </Pressable>
+        <Pressable
+          onPress={onDelete}
+          accessibilityRole="button"
+          accessibilityLabel="Remove item"
+          style={({ pressed }) => [
+            styles.footerAction,
+            { backgroundColor: '#FEE2E2' },
+            pressed && styles.pressed,
+          ]}
+        >
+          <Ionicons name="trash-outline" size={14} color={colors.danger} />
+          <Text style={[styles.footerActionLabel, { color: colors.danger }]}>Remove</Text>
+        </Pressable>
       </View>
-      {children}
     </View>
   );
 }
 
-function CardActions({
-  onEdit,
-  onDelete,
-  onView,
+/** Compact tag chip (tech stack / collaborators) — pastel pair from the
+ *  card's tint family so the chips blend with the hero strip. */
+function TagChip({
+  label,
+  tint = 'slate',
 }: {
-  onEdit(): void;
-  onDelete(): void;
-  onView?(): void;
+  label: string;
+  tint?: TintKey;
 }) {
   const colors = useTheme();
+  const tints = useTints();
+  const palette = tints[tint];
   return (
-    <View style={styles.actions}>
-      {onView ? (
-        <Pressable
-          onPress={onView}
-          accessibilityRole="button"
-          accessibilityLabel="View attached file"
-          hitSlop={6}
-          style={({ pressed }) => [styles.actionButton, { backgroundColor: colors.backgroundElement }, pressed && styles.pressed]}
-        >
-          <Ionicons name="eye-outline" size={15} color={colors.textSecondary} />
-        </Pressable>
-      ) : null}
-      <Pressable
-        onPress={onEdit}
-        accessibilityRole="button"
-        accessibilityLabel="Edit item"
-        hitSlop={6}
-        style={({ pressed }) => [styles.actionButton, { backgroundColor: colors.backgroundElement }, pressed && styles.pressed]}
-      >
-        <Ionicons name="create-outline" size={15} color={colors.textSecondary} />
-      </Pressable>
-      <Pressable
-        onPress={onDelete}
-        accessibilityRole="button"
-        accessibilityLabel="Remove item"
-        hitSlop={6}
-        style={({ pressed }) => [styles.actionButton, { backgroundColor: colors.backgroundElement }, pressed && styles.pressed]}
-      >
-        <Ionicons name="trash-outline" size={15} color={colors.danger} />
-      </Pressable>
-    </View>
-  );
-}
-
-/** Compact tag chip (tech stack / collaborators) — scholarship-card chip scale. */
-function TagChip({ label }: { label: string }) {
-  const colors = useTheme();
-  return (
-    <View style={[styles.tag, { backgroundColor: colors.backgroundElement }]}>
-      <Text style={[styles.tagText, { color: colors.textSecondary }]} numberOfLines={1}>
+    <View style={[styles.tag, { backgroundColor: palette.bg, borderColor: palette.border }]}>
+      <Text style={[styles.tagText, { color: palette.fg }]} numberOfLines={1}>
         {label}
       </Text>
     </View>
@@ -183,7 +234,7 @@ function UrlRow({ url, label }: { url: string; label?: string }) {
   const colors = useTheme();
   return (
     <View style={styles.urlRow}>
-      <Ionicons name="link-outline" size={11} color={colors.primary} />
+      <Ionicons name="link-outline" size={12} color={colors.primary} />
       <Text style={[styles.url, { color: colors.primary }]} numberOfLines={1}>
         {label ? `${label} · ${url}` : url}
       </Text>
@@ -195,10 +246,12 @@ export function ProjectCard({
   item,
   onEdit,
   onDelete,
+  onOpen,
 }: {
   item: PortfolioProjectItem;
   onEdit(): void;
   onDelete(): void;
+  onOpen?(): void;
 }) {
   const range = [formatDate(item.startedOn), formatDate(item.completedOn)]
     .filter(Boolean)
@@ -220,23 +273,25 @@ export function ProjectCard({
       onEdit={onEdit}
       onDelete={onDelete}
       onView={attachment ? () => void openPortfolioFile(attachment) : undefined}
+      onOpen={onOpen}
     >
       {item.description ? (
-        <ThemedText themeColor="textSecondary" style={styles.body} numberOfLines={2}>
+        <Text style={styles.bodyText} numberOfLines={3}>
           {item.description}
-        </ThemedText>
+        </Text>
       ) : null}
       {(item.role || range) && (
-        <ThemedText themeColor="bodyStrong" style={styles.resultRow} numberOfLines={1}>
+        <Text style={styles.bodyMeta} numberOfLines={1}>
           {[item.role ? `Role: ${item.role}` : null, range || null]
             .filter(Boolean)
             .join('  ·  ')}
-        </ThemedText>
+        </Text>
       )}
       {(item.isTeam || item.courseName || item.techStack.length > 0) && (
         <View style={styles.tagRow}>
           {item.isTeam ? (
             <TagChip
+              tint="indigo"
               label={
                 item.teamMembers.length > 0
                   ? `Team · ${item.teamMembers.length}`
@@ -244,18 +299,22 @@ export function ProjectCard({
               }
             />
           ) : null}
-          {item.courseName ? <TagChip label={item.courseName} /> : null}
+          {item.courseName ? <TagChip tint="slate" label={item.courseName} /> : null}
           {item.techStack.map((tech, idx) => (
-            <TagChip key={`${tech}-${idx}`} label={tech} />
+            <TagChip key={`${tech}-${idx}`} tint="indigo" label={tech} />
           ))}
           {item.teamMembers.map((member, idx) => (
-            <TagChip key={`member-${member}-${idx}`} label={member} />
+            <TagChip key={`member-${member}-${idx}`} tint="slate" label={member} />
           ))}
         </View>
       )}
-      {item.url && <UrlRow url={item.url} label="Website" />}
-      {item.repoUrl && <UrlRow url={item.repoUrl} label="GitHub" />}
-      {item.demoUrl && <UrlRow url={item.demoUrl} label="Demo / Video" />}
+      {(item.url || item.repoUrl || item.demoUrl) ? (
+        <View style={styles.linkStack}>
+          {item.url ? <UrlRow url={item.url} label="Website" /> : null}
+          {item.repoUrl ? <UrlRow url={item.repoUrl} label="GitHub" /> : null}
+          {item.demoUrl ? <UrlRow url={item.demoUrl} label="Demo" /> : null}
+        </View>
+      ) : null}
     </CardShell>
   );
 }
@@ -263,7 +322,7 @@ export function ProjectCard({
 // ── Education ────────────────────────────────────────────────────────────────
 
 /** Degree-type label across both pools ("BSc", "MSc"…); null when unset/other. */
-function degreeTypeLabel(item: PortfolioEducationItem): string | null {
+export function degreeTypeLabel(item: PortfolioEducationItem): string | null {
   if (!item.degreeType) return null;
   const label =
     UNDERGRAD_DEGREE_LABELS[item.degreeType as UndergradDegreeType] ??
@@ -273,7 +332,7 @@ function degreeTypeLabel(item: PortfolioEducationItem): string | null {
 
 /** Human title for a qualification, e.g. "BSc in Computer Science & Engineering",
  *  "HSC (Science)", "MPhil — Machine Learning". */
-function educationTitle(item: PortfolioEducationItem): string {
+export function educationTitle(item: PortfolioEducationItem): string {
   const levelLabel = EDUCATION_LEVEL_LABELS[item.level];
   switch (item.level) {
     case 'ssc':
@@ -301,7 +360,7 @@ function educationTitle(item: PortfolioEducationItem): string {
 }
 
 /** "2025 – Present", "2025 – 2029 (expected)", "2024"… */
-function educationYears(item: PortfolioEducationItem): string | null {
+export function educationYears(item: PortfolioEducationItem): string | null {
   const { startYear, passingYear, isOngoing } = item;
   if (startYear != null && passingYear != null) {
     return `${startYear} – ${passingYear}${isOngoing ? ' (expected)' : ''}`;
@@ -311,7 +370,7 @@ function educationYears(item: PortfolioEducationItem): string | null {
 }
 
 /** "GPA 5.00", "CGPA 3.76", "85%", "First Class", or a research status. */
-function educationResult(item: PortfolioEducationItem): string | null {
+export function educationResult(item: PortfolioEducationItem): string | null {
   if (!item.result) return null;
   switch (item.resultType) {
     case 'gpa':
@@ -329,42 +388,46 @@ export function EducationCard({
   item,
   onEdit,
   onDelete,
+  onOpen,
 }: {
   item: PortfolioEducationItem;
   onEdit(): void;
   onDelete(): void;
+  onOpen?(): void;
 }) {
   const board = item.board
     ? EDUCATION_BOARD_LABELS[item.board as EducationBoard] ?? item.board
     : null;
   const years = educationYears(item);
   const result = educationResult(item);
+  const meta = [item.institution, item.campus, board].filter(Boolean).join(' · ') || null;
 
   return (
     <CardShell
       kind="education"
       title={educationTitle(item)}
-      meta={[item.institution, item.campus, board].filter(Boolean).join(' · ') || null}
+      meta={meta}
       onEdit={onEdit}
       onDelete={onDelete}
       onView={item.documentUrl ? () => void openPortfolioFile(item.documentUrl) : undefined}
+      onOpen={onOpen}
     >
       {(years || result) && (
-        <ThemedText themeColor="bodyStrong" style={styles.resultRow} numberOfLines={1}>
+        <Text style={styles.bodyMeta} numberOfLines={1}>
           {[years, result].filter(Boolean).join('  ·  ')}
-        </ThemedText>
+        </Text>
       )}
       {(item.level === 'mphil' || item.level === 'phd') && item.thesisTitle ? (
-        <ThemedText themeColor="textSecondary" style={styles.body} numberOfLines={2}>
+        <Text style={styles.bodyText} numberOfLines={3}>
           Thesis: {item.thesisTitle}
           {item.supervisor ? ` · Supervisor: ${item.supervisor}` : ''}
-        </ThemedText>
+        </Text>
       ) : null}
       {(item.rollNumber || item.registrationNumber) && (
         <View style={styles.tagRow}>
-          {item.rollNumber ? <TagChip label={`Roll ${item.rollNumber}`} /> : null}
+          {item.rollNumber ? <TagChip tint="teal" label={`Roll ${item.rollNumber}`} /> : null}
           {item.registrationNumber ? (
-            <TagChip label={`Reg ${item.registrationNumber}`} />
+            <TagChip tint="teal" label={`Reg ${item.registrationNumber}`} />
           ) : null}
         </View>
       )}
@@ -378,43 +441,54 @@ export function CertificateCard({
   item,
   onEdit,
   onDelete,
+  onOpen,
 }: {
   item: PortfolioCertificateItem;
   onEdit(): void;
   onDelete(): void;
+  onOpen?(): void;
 }) {
   const typeLabel = item.certificateType
     ? CERTIFICATE_TYPE_LABELS[item.certificateType as CertificateType] ?? null
     : null;
+  const meta = [
+    item.issuer,
+    item.issuedOn ? formatDate(item.issuedOn) : null,
+    item.expiresOn ? `Expires ${formatDate(item.expiresOn)}` : null,
+  ]
+    .filter(Boolean)
+    .join(' · ') || null;
+
   return (
     <CardShell
       kind="certificate"
       title={item.title}
-      meta={[
-        item.issuer,
-        item.issuedOn ? formatDate(item.issuedOn) : null,
-        item.expiresOn ? `Expires ${formatDate(item.expiresOn)}` : null,
-      ]
-        .filter(Boolean)
-        .join(' · ') || null}
+      meta={meta}
       onEdit={onEdit}
       onDelete={onDelete}
       onView={item.fileUrl ? () => void openPortfolioFile(item.fileUrl) : undefined}
+      onOpen={onOpen}
     >
       {(typeLabel || item.programName || item.credentialId) && (
         <View style={styles.tagRow}>
-          {typeLabel ? <TagChip label={typeLabel} /> : null}
-          {item.programName ? <TagChip label={item.programName} /> : null}
-          {item.credentialId ? <TagChip label={`ID ${item.credentialId}`} /> : null}
+          {typeLabel ? <TagChip tint="cyan" label={typeLabel} /> : null}
+          {item.programName ? <TagChip tint="cyan" label={item.programName} /> : null}
+          {item.credentialId ? (
+            <TagChip tint="cyan" label={`ID ${item.credentialId}`} />
+          ) : null}
         </View>
       )}
       {item.description ? (
-        <ThemedText themeColor="textSecondary" style={styles.body} numberOfLines={2}>
+        <Text style={styles.bodyText} numberOfLines={3}>
           {item.description}
-        </ThemedText>
+        </Text>
       ) : null}
-      {item.credentialUrl && <UrlRow url={item.credentialUrl} />}
-      {item.verificationUrl && <UrlRow url={item.verificationUrl} />}
+      {(item.credentialUrl || item.verificationUrl) ? (
+        <View style={styles.linkStack}>
+          {item.credentialUrl ? <UrlRow url={item.credentialUrl} label="Credential" /> : null}
+          {item.verificationUrl ? <UrlRow url={item.verificationUrl} label="Verify" /> : null}
+        </View>
+      ) : null}
     </CardShell>
   );
 }
@@ -423,10 +497,12 @@ export function AchievementCard({
   item,
   onEdit,
   onDelete,
+  onOpen,
 }: {
   item: PortfolioAchievementItem;
   onEdit(): void;
   onDelete(): void;
+  onOpen?(): void;
 }) {
   return (
     <CardShell
@@ -435,11 +511,12 @@ export function AchievementCard({
       meta={item.achievedOn ? formatDate(item.achievedOn) : null}
       onEdit={onEdit}
       onDelete={onDelete}
+      onOpen={onOpen}
     >
       {item.description ? (
-        <ThemedText themeColor="textSecondary" style={styles.body} numberOfLines={2}>
+        <Text style={styles.bodyText} numberOfLines={3}>
           {item.description}
-        </ThemedText>
+        </Text>
       ) : null}
     </CardShell>
   );
@@ -449,33 +526,42 @@ export function ResearchCard({
   item,
   onEdit,
   onDelete,
+  onOpen,
 }: {
   item: PortfolioResearchItem;
   onEdit(): void;
   onDelete(): void;
+  onOpen?(): void;
 }) {
   const published = formatDate(item.publishedOn);
   return (
     <CardShell
       kind="research"
       title={item.title}
-      meta={[published ? `Published ${published}` : null, item.role].filter(Boolean).join(' · ') || null}
+      meta={[published ? `Published ${published}` : null, item.role]
+        .filter(Boolean)
+        .join(' · ') || null}
       onEdit={onEdit}
       onDelete={onDelete}
+      onOpen={onOpen}
     >
       {item.abstract ? (
-        <ThemedText themeColor="textSecondary" style={styles.body} numberOfLines={3}>
+        <Text style={styles.bodyText} numberOfLines={4}>
           {item.abstract}
-        </ThemedText>
+        </Text>
       ) : null}
       {item.collaborators.length > 0 && (
         <View style={styles.tagRow}>
           {item.collaborators.map((c, idx) => (
-            <TagChip key={`${c}-${idx}`} label={c} />
+            <TagChip key={`${c}-${idx}`} tint="emerald" label={c} />
           ))}
         </View>
       )}
-      {item.url && <UrlRow url={item.url} />}
+      {item.url ? (
+        <View style={styles.linkStack}>
+          <UrlRow url={item.url} label="Paper" />
+        </View>
+      ) : null}
     </CardShell>
   );
 }
@@ -484,32 +570,38 @@ export function ResumeCard({
   item,
   onEdit,
   onDelete,
+  onOpen,
 }: {
   item: PortfolioResumeItem;
   onEdit(): void;
   onDelete(): void;
+  onOpen?(): void;
 }) {
   const uploaded = isStoragePath(item.fileUrl);
+  const meta = [
+    item.isPrimary ? 'Primary' : 'Secondary',
+    `Updated ${formatDate(item.updatedAt)}`,
+  ]
+    .filter(Boolean)
+    .join(' · ');
   return (
     <CardShell
       kind="resume"
       title={item.fileName ?? (uploaded ? 'Resume' : 'Resume link')}
-      meta={[
-        item.isPrimary ? 'Primary · shared with applications' : null,
-        `Updated ${formatDate(item.updatedAt)}`,
-      ]
-        .filter(Boolean)
-        .join(' · ') || null}
+      meta={meta}
       onEdit={onEdit}
       onDelete={onDelete}
       onView={() => void openPortfolioFile(item.fileUrl)}
+      onOpen={onOpen}
     >
       {uploaded ? (
-        <ThemedText themeColor="textSecondary" style={styles.body} numberOfLines={1}>
+        <Text style={styles.bodyText} numberOfLines={2}>
           PDF · stored privately in your portfolio
-        </ThemedText>
+        </Text>
       ) : (
-        <UrlRow url={item.fileUrl} />
+        <View style={styles.linkStack}>
+          <UrlRow url={item.fileUrl} />
+        </View>
       )}
     </CardShell>
   );
@@ -519,105 +611,163 @@ export function PortfolioLinkCard({
   item,
   onEdit,
   onDelete,
+  onOpen,
 }: {
   item: PortfolioLinkItem;
   onEdit(): void;
   onDelete(): void;
+  onOpen?(): void;
 }) {
   return (
     <CardShell
       kind="link"
       title={item.label}
+      meta={item.url.replace(/^https?:\/\//, '').split('/')[0] ?? null}
       onEdit={onEdit}
       onDelete={onDelete}
+      onView={() => void openPortfolioFile(item.url)}
+      onOpen={onOpen}
     >
-      <UrlRow url={item.url} />
+      <View style={styles.linkStack}>
+        <UrlRow url={item.url} />
+      </View>
     </CardShell>
   );
 }
 
 const styles = StyleSheet.create({
+  // Card chrome — soft shadow, generous radius, no harsh borders.
   card: {
-    borderRadius: 16,
+    borderRadius: 18,
     borderWidth: 1,
-    padding: Spacing.three - 4,
-    gap: Spacing.two - 2,
-    elevation: 1,
+    overflow: 'hidden',
+    marginBottom: 0,
   },
-  headerRow: {
+  pressed: {
+    opacity: 0.85,
+  },
+
+  // Hero strip — tinted background, big icon, kicker + title + chevron.
+  hero: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: Spacing.two + 2,
+    alignItems: 'center',
+    gap: Spacing.three,
+    paddingVertical: Spacing.three + 2,
+    paddingHorizontal: Spacing.three + 2,
+    borderBottomWidth: 1,
   },
-  badge: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
+  heroIconWrap: {
+    width: 52,
+    height: 52,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  titleBlock: {
+  heroText: {
     flex: 1,
     gap: 2,
   },
-  title: {
-    fontSize: 13,
-    fontWeight: '700',
-    lineHeight: 18,
+  heroKicker: {
+    fontFamily: FontFamilies.bold,
+    fontSize: 10,
+    letterSpacing: 1.4,
   },
-  meta: {
-    fontSize: 11,
-    fontWeight: '500',
-    lineHeight: 14,
+  heroTitle: {
+    fontFamily: FontFamilies.bold,
+    fontSize: 16,
+    lineHeight: 21,
   },
-  actions: {
-    flexDirection: 'row',
-    gap: Spacing.one + 2,
+  heroMeta: {
+    fontSize: 12,
+    lineHeight: 16,
+    marginTop: 2,
   },
-  actionButton: {
+  heroChevron: {
     width: 28,
     height: 28,
-    borderRadius: 8,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  pressed: {
-    opacity: 0.7,
-  },
+
+  // Body region — descriptions, tags, links.
   body: {
-    fontSize: 11,
-    lineHeight: 15,
+    paddingHorizontal: Spacing.three + 2,
+    paddingTop: Spacing.three,
+    paddingBottom: Spacing.two,
+    gap: Spacing.two,
   },
-  resultRow: {
+  bodyText: {
+    fontSize: 13,
+    lineHeight: 18,
+    color: '#475569',
+  },
+  bodyMeta: {
     fontSize: 12,
     lineHeight: 16,
+    color: '#0F172A',
     fontWeight: '600',
   },
+
+  // Footer action row — pill buttons, even spacing.
+  footer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.one + 2,
+    paddingHorizontal: Spacing.three + 2,
+    paddingVertical: Spacing.two,
+    borderTopWidth: 1,
+  },
+  footerAction: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingHorizontal: Spacing.two,
+    paddingVertical: Spacing.two - 2,
+    borderRadius: 10,
+  },
+  footerActionSpacer: {
+    flex: 1,
+  },
+  footerActionLabel: {
+    fontSize: 12,
+    fontFamily: FontFamilies.semiBold,
+  },
+
+  // Tag chips — pastel pair with thin border for definition.
   tagRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: Spacing.one + 2,
+    gap: 6,
   },
   tag: {
-    borderRadius: 6,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    maxWidth: 120,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderWidth: 1,
+    maxWidth: 160,
   },
   tagText: {
-    fontSize: 10,
-    fontWeight: '500',
-    lineHeight: 13,
+    fontSize: 11,
+    fontFamily: FontFamilies.semiBold,
+    lineHeight: 14,
+  },
+
+  // Link stack — separate from body to add visual breathing room.
+  linkStack: {
+    gap: 6,
   },
   urlRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 6,
   },
   url: {
-    fontSize: 11,
-    fontWeight: '500',
-    lineHeight: 14,
+    fontSize: 12,
+    fontFamily: FontFamilies.medium,
+    lineHeight: 16,
     flexShrink: 1,
   },
 });
