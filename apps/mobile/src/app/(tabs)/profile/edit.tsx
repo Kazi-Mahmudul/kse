@@ -19,7 +19,6 @@ import { useForm, useWatch } from 'react-hook-form';
 import { ThemedText } from '@/components/themed-text';
 import { Chip } from '@/components/ui/chip';
 import { PrimaryButton } from '@/components/ui/primary-button';
-import { SelectField } from '@/components/ui/select-field';
 import { TextField } from '@/components/ui/text-field';
 import { FontFamilies, Spacing } from '@/constants/theme';
 import { AvatarPicker } from '@/features/profile/components/avatar-picker';
@@ -30,12 +29,10 @@ import {
   useRemoveAvatar,
   useSaveProfile,
   useSkills,
-  useUniversities,
-  useDepartments,
   useUploadAvatar,
 } from '@/features/profile/queries';
 import { useTheme } from '@/hooks/use-theme';
-import { ACADEMIC_LEVEL_OPTIONS } from '@kse/shared';
+import { useTints } from '@/hooks/use-tints';
 import {
   formToUpdatePayload,
   profileFormSchema,
@@ -43,26 +40,20 @@ import {
 } from '@kse/validation';
 
 /**
- * Coerces empty / undefined to null for RHF's `defaultValues`. The pickers
- * use `null` as the "unset" sentinel, but the API can return either.
- */
-function emptyToNull(value: string | null | undefined): string | null {
-  if (value == null) return null;
-  return value.trim() === '' ? null : value;
-}
-
-/**
  * Edit profile: centred hero with avatar picker, then sectioned cards
- * (Personal / University / Skills / Interests) and a sticky Save CTA at
- * the bottom of the safe area (outside the ScrollView so it never scrolls
- * out of reach). Mirrors the visual language of the Profile tab.
+ * (Personal / Skills / Interests) and a sticky Save CTA at the bottom of
+ * the safe area (outside the ScrollView so it never scrolls out of
+ * reach). Mirrors the visual language of the Profile tab.
+ *
+ * University / department / academic level used to live here but moved
+ * to Portfolio → Education, so they're no longer in this form. A
+ * prominent Portfolio callout card below the avatar points the user to
+ * the right place to add those (plus projects, certificates, etc.).
  */
 export default function ProfileEditScreen() {
   const colors = useTheme();
   const profileQuery = useMyProfile();
   const skillIdsQuery = useMySkillIds();
-  const universitiesQuery = useUniversities();
-  const departmentsQuery = useDepartments();
   const skillsQuery = useSkills();
   const saveMutation = useSaveProfile();
   const uploadMutation = useUploadAvatar();
@@ -93,8 +84,6 @@ export default function ProfileEditScreen() {
     <ProfileEditForm
       profile={profileQuery.data}
       initialSkillIds={skillIdsQuery.data ?? []}
-      universities={universitiesQuery.data ?? []}
-      departments={departmentsQuery.data ?? []}
       skills={skillsQuery.data ?? []}
       skillsLoading={skillsQuery.isPending}
       saveMutation={saveMutation}
@@ -107,8 +96,6 @@ export default function ProfileEditScreen() {
 interface ProfileEditFormProps {
   profile: MyProfile;
   initialSkillIds: string[];
-  universities: { id: string; name: string; short_name: string | null }[];
-  departments: { id: string; university_id: string; name: string }[];
   skills: { id: string; name: string }[];
   skillsLoading: boolean;
   saveMutation: ReturnType<typeof useSaveProfile>;
@@ -129,8 +116,6 @@ interface ProfileEditFormProps {
 function ProfileEditForm({
   profile,
   initialSkillIds,
-  universities,
-  departments,
   skills,
   skillsLoading,
   saveMutation,
@@ -138,6 +123,7 @@ function ProfileEditForm({
   removeAvatarMutation,
 }: ProfileEditFormProps) {
   const colors = useTheme();
+  const tints = useTints();
   const [selectedSkills, setSelectedSkills] = useState<string[]>(initialSkillIds);
   const [interestDraft, setInterestDraft] = useState('');
   const [saved, setSaved] = useState(false);
@@ -149,35 +135,12 @@ function ProfileEditForm({
         full_name: profile.full_name ?? '',
         bio: profile.bio ?? '',
         phone: profile.phone ?? '',
-        // Defensive coercion: RHF defaults must be `null`, never `undefined`
-        // or `''`, so the resolver sees a value of type `string | null`.
-        // Anything else gets a clear "Invalid selection" error instead of
-        // an opaque `invalid input syntax for type uuid` from Postgres.
-        university_id: emptyToNull(profile.university_id),
-        department_id: emptyToNull(profile.department_id),
-        academic_level: profile.academic_level ?? null,
         interests: profile.interests ?? [],
       },
     });
 
-  const universityId = useWatch({ control, name: 'university_id' });
-  const departmentValue = useWatch({ control, name: 'department_id' });
-  const academicLevel = useWatch({ control, name: 'academic_level' });
   const interests = useWatch({ control, name: 'interests' }) ?? [];
   const fullName = useWatch({ control, name: 'full_name' });
-
-  // Departments are scoped to the selected university.
-  const scopedDepartments = departments.filter(
-    (d) => !universityId || d.university_id === universityId,
-  );
-
-  const selectUniversity = (value: string | null) => {
-    setValue('university_id', value, { shouldDirty: true });
-    const stillValid =
-      departmentValue &&
-      departments.some((d) => d.id === departmentValue && (!value || d.university_id === value));
-    if (!stillValid) setValue('department_id', null, { shouldDirty: true });
-  };
 
   const toggleSkill = (id: string) => {
     setSelectedSkills((prev) =>
@@ -311,6 +274,14 @@ function ProfileEditForm({
             }}
           />
 
+          {/* Portfolio shortcut — the highlight of this page. Replaces the
+           * old in-page University section; university details are now
+           * added inside Portfolio → Education (richer surface). */}
+          <PortfolioCallout
+            palette={tints.indigo}
+            onPress={() => router.push('/(tabs)/portfolio')}
+          />
+
           {/* Personal information */}
           <ThemedText type="smallBold" style={styles.section}>
             Personal information
@@ -338,35 +309,6 @@ function ProfileEditForm({
               autoCorrect={false}
               keyboardType="phone-pad"
               textContentType="telephoneNumber"
-            />
-          </Card>
-
-          {/* University */}
-          <ThemedText type="smallBold" style={styles.section}>
-            University
-          </ThemedText>
-          <Card>
-            <SelectField
-              label="University"
-              value={universityId}
-              options={universities.map((u) => ({ value: u.id, label: u.short_name ?? u.name }))}
-              onSelect={selectUniversity}
-            />
-            <SelectField
-              label="Department"
-              value={departmentValue}
-              options={scopedDepartments.map((d) => ({ value: d.id, label: d.name }))}
-              onSelect={(value) => setValue('department_id', value, { shouldDirty: true })}
-            />
-            <SelectField
-              label="Academic level"
-              value={academicLevel}
-              options={ACADEMIC_LEVEL_OPTIONS}
-              onSelect={(value) =>
-                setValue('academic_level', value as ProfileFormValues['academic_level'], {
-                  shouldDirty: true,
-                })
-              }
             />
           </Card>
 
@@ -495,6 +437,67 @@ function ProfileEditForm({
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
+  );
+}
+
+/**
+ * The highlight of this page — a tinted card that points users to the
+ * Portfolio, where they manage university, projects, certificates,
+ * achievements, research, resumes, and links. Sits right under the
+ * avatar so the connection between "what's on this page" and "what's in
+ * the portfolio" is obvious.
+ */
+function PortfolioCallout({
+  palette,
+  onPress,
+}: {
+  palette: ReturnType<typeof useTints>['indigo'];
+  onPress(): void;
+}) {
+  const colors = useTheme();
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel="Open My Portfolio"
+      style={({ pressed }) => [
+        styles.callout,
+        {
+          backgroundColor: palette.bg,
+          borderColor: palette.border,
+          boxShadow: `0px 4px 18px ${colors.shadow}`,
+        },
+        pressed && styles.pressed,
+      ]}
+    >
+      <View style={[styles.calloutBadge, { backgroundColor: palette.bg }]}>
+        <Ionicons name="briefcase" size={26} color={palette.fg} />
+      </View>
+      <View style={styles.calloutText}>
+        <ThemedText style={[styles.calloutKicker, { color: palette.fg }]}>
+          NEW · YOUR PORTFOLIO
+        </ThemedText>
+        <ThemedText
+          themeColor="heading"
+          style={styles.calloutTitle}
+        >
+          Manage education, projects, certificates &amp; more
+        </ThemedText>
+        <ThemedText
+          themeColor="textSecondary"
+          style={styles.calloutBody}
+        >
+          Add your university, projects, achievements, research, resumes,
+          and external links — all in one place, right here in the app.
+        </ThemedText>
+        <View style={styles.calloutCta}>
+          <ThemedText style={[styles.calloutCtaText, { color: palette.fg }]}>
+            Open My Portfolio
+          </ThemedText>
+          <Ionicons name="arrow-forward" size={16} color={palette.fg} />
+        </View>
+      </View>
+    </Pressable>
   );
 }
 
@@ -652,5 +655,55 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.two,
     paddingBottom: Spacing.three,
     borderTopWidth: StyleSheet.hairlineWidth,
+  },
+
+  // Portfolio callout card — gradient-tinted, big icon, kicker, title,
+  // body copy, and a chevron CTA. Designed to be the most prominent
+  // element on the page so users understand where to add education etc.
+  callout: {
+    flexDirection: 'row',
+    gap: Spacing.three,
+    padding: Spacing.three + 2,
+    borderRadius: 18,
+    borderWidth: 1,
+    marginTop: Spacing.three,
+    marginBottom: Spacing.two,
+    overflow: 'hidden',
+  },
+  calloutBadge: {
+    width: 56,
+    height: 56,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  calloutText: {
+    flex: 1,
+    gap: 4,
+  },
+  calloutKicker: {
+    fontFamily: FontFamilies.bold,
+    fontSize: 10,
+    letterSpacing: 1.4,
+  },
+  calloutTitle: {
+    fontFamily: FontFamilies.bold,
+    fontSize: 16,
+    lineHeight: 21,
+  },
+  calloutBody: {
+    fontSize: 12,
+    lineHeight: 17,
+    marginTop: 2,
+  },
+  calloutCta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 8,
+  },
+  calloutCtaText: {
+    fontFamily: FontFamilies.semiBold,
+    fontSize: 13,
   },
 });
