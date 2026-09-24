@@ -324,21 +324,11 @@ function ProfileEditForm({
                 {selectedSkillsRendered.length > 0 ? (
                   <View style={styles.chips}>
                     {selectedSkillsRendered.map((skill) => (
-                      <Pressable
+                      <SelectedSkillChip
                         key={skill.id}
-                        onPress={() => toggleSkill(skill.id)}
-                        accessibilityRole="button"
-                        accessibilityLabel={`Remove ${skill.name}`}
-                        style={styles.chipRow}
-                      >
-                        <Chip label={skill.name} selected />
-                        <Ionicons
-                          name="close"
-                          size={14}
-                          color={colors.onPrimary}
-                          style={styles.chipClose}
-                        />
-                      </Pressable>
+                        label={skill.name}
+                        onRemove={() => toggleSkill(skill.id)}
+                      />
                     ))}
                   </View>
                 ) : (
@@ -392,14 +382,11 @@ function ProfileEditForm({
             {interests.length > 0 ? (
               <View style={styles.chips}>
                 {interests.map((interest) => (
-                  <Pressable
+                  <SelectedSkillChip
                     key={interest}
-                    onPress={() => removeInterest(interest)}
-                    accessibilityRole="button"
-                    accessibilityLabel={`Remove ${interest}`}
-                  >
-                    <Chip label={`${interest}  ✕`} selected />
-                  </Pressable>
+                    label={interest}
+                    onRemove={() => removeInterest(interest)}
+                  />
                 ))}
               </View>
             ) : null}
@@ -437,6 +424,44 @@ function ProfileEditForm({
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
+  );
+}
+
+/**
+ * Pill-shaped removable chip used for selected skills and interests.
+ *
+ * A real Pressable that owns its own pill background, label, and close
+ * icon — no nested Chip + negative-margin hack. The previous layout
+ * glued a separate close icon onto a `<Chip selected>` with
+ * `marginLeft: -Spacing.two`, which clipped the icon and put it half on
+ * top of the pill. Now the close button sits inside its own circular
+ * hit-target on the right, with a visible divider gap from the label.
+ */
+function SelectedSkillChip({ label, onRemove }: { label: string; onRemove: () => void }) {
+  const colors = useTheme();
+  return (
+    <View
+      style={[
+        styles.selectedChip,
+        { backgroundColor: colors.primary },
+      ]}
+    >
+      <ThemedText style={[styles.selectedChipLabel, { color: colors.onPrimary }]} numberOfLines={1}>
+        {label}
+      </ThemedText>
+      <Pressable
+        onPress={onRemove}
+        hitSlop={8}
+        accessibilityRole="button"
+        accessibilityLabel={`Remove ${label}`}
+        style={({ pressed }) => [
+          styles.selectedChipClose,
+          { backgroundColor: pressed ? 'rgba(255,255,255,0.18)' : 'rgba(255,255,255,0.12)' },
+        ]}
+      >
+        <Ionicons name="close" size={14} color={colors.onPrimary} />
+      </Pressable>
+    </View>
   );
 }
 
@@ -613,15 +638,29 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: Spacing.two,
   },
-  chipRow: {
+  // Removable pill: primary fill, label sits in a real padded region
+  // with a circular close button to the right. The close hit-target is
+  // 22×22 so it's reliably tappable without crowding the label.
+  selectedChip: {
     flexDirection: 'row',
     alignItems: 'center',
+    height: 34,
     borderRadius: 999,
-    overflow: 'hidden',
+    paddingLeft: Spacing.three,
+    paddingRight: 4,
   },
-  chipClose: {
-    marginLeft: -Spacing.two,
+  selectedChipLabel: {
+    fontSize: 13,
+    fontWeight: '500',
+    lineHeight: 16,
     marginRight: Spacing.two,
+  },
+  selectedChipClose: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   subLabel: {
     fontFamily: FontFamilies.medium,
