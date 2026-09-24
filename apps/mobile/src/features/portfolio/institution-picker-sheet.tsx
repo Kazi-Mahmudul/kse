@@ -2,6 +2,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useMemo, useState } from 'react';
 import {
   ActivityIndicator,
+  FlatList,
+  Keyboard,
   Modal,
   Pressable,
   StyleSheet,
@@ -90,9 +92,16 @@ export function InstitutionPickerSheet({
 
   return (
     <Modal visible={visible && !requestOpen} transparent animationType="slide" onRequestClose={onClose}>
+      {/* Backdrop is a sibling Pressable outside the sheet so its
+       *  onPress fires only when the user taps the dimmed area, not when
+       *  the soft-keyboard 'Search' submit lands inside the sheet (which
+       *  used to bubble up and close the modal). */}
       <Pressable
         style={[styles.backdrop, { backgroundColor: colors.scrim }]}
-        onPress={onClose}
+        onPress={() => {
+          Keyboard.dismiss();
+          onClose();
+        }}
       >
         <ThemedView
           style={[
@@ -115,6 +124,12 @@ export function InstitutionPickerSheet({
           <SearchBar
             value={search}
             onChangeText={setSearch}
+            // The keyboard's 'Search' button would otherwise dismiss the
+            // keyboard and propagate to the backdrop, closing the modal.
+            // Explicitly dismiss + flush so the search fires immediately.
+            onSubmitEditing={() => {
+              Keyboard.dismiss();
+            }}
             placeholder="Search by name (e.g. খুলনা / Khulna)…"
             variant="card"
           />
@@ -175,47 +190,55 @@ export function InstitutionPickerSheet({
           ) : null}
 
           {rows.length > 0 ? (
-            <View style={{ maxHeight: 360 }}>
-              <FlatListLike>
-                {rows.map((row) => (
-                  <InstitutionRow
-                    key={row.id}
-                    row={row}
-                    onPress={() => {
-                      onSelect({
-                        id: row.id,
-                        name: row.name,
-                        city: row.city,
-                        area: row.area,
-                      });
-                      onClose();
-                    }}
-                  />
-                ))}
-              </FlatListLike>
-              {query.hasNextPage ? (
-                <Pressable
+            // Real FlatList so the list scrolls and the soft keyboard
+            // dismisses cleanly without losing your scroll position.
+            <FlatList
+              data={rows}
+              keyExtractor={(item) => item.id}
+              keyboardShouldPersistTaps="handled"
+              keyboardDismissMode="on-drag"
+              showsVerticalScrollIndicator
+              style={styles.list}
+              contentContainerStyle={styles.listContent}
+              renderItem={({ item }) => (
+                <InstitutionRow
+                  row={item}
                   onPress={() => {
-                    query.fetchNextPage().catch(() => {
-                      void alertDialog({
-                        title: 'Could not load more',
-                        message: 'Please check your connection and try again.',
-                      });
+                    onSelect({
+                      id: item.id,
+                      name: item.name,
+                      city: item.city,
+                      area: item.area,
                     });
+                    onClose();
                   }}
-                  disabled={query.isFetchingNextPage}
-                  style={({ pressed }) => [
-                    styles.loadMore,
-                    { borderColor: colors.border },
-                    pressed && styles.pressed,
-                  ]}
-                >
-                  <Text style={[styles.loadMoreText, { color: colors.primary }]}>
-                    {query.isFetchingNextPage ? 'Loading…' : 'Load more'}
-                  </Text>
-                </Pressable>
-              ) : null}
-            </View>
+                />
+              )}
+              ListFooterComponent={
+                query.hasNextPage ? (
+                  <Pressable
+                    onPress={() => {
+                      query.fetchNextPage().catch(() => {
+                        void alertDialog({
+                          title: 'Could not load more',
+                          message: 'Please check your connection and try again.',
+                        });
+                      });
+                    }}
+                    disabled={query.isFetchingNextPage}
+                    style={({ pressed }) => [
+                      styles.loadMore,
+                      { borderColor: colors.border },
+                      pressed && styles.pressed,
+                    ]}
+                  >
+                    <Text style={[styles.loadMoreText, { color: colors.primary }]}>
+                      {query.isFetchingNextPage ? 'Loading…' : 'Load more'}
+                    </Text>
+                  </Pressable>
+                ) : null
+              }
+            />
           ) : null}
 
           <Pressable
@@ -280,12 +303,6 @@ function InstitutionRow({
   );
 }
 
-/** Lightweight scroll wrapper — avoids pulling in FlatList for a fixed
- *  list size since the outer Modal handles scroll containment. */
-function FlatListLike({ children }: { children: React.ReactNode }) {
-  return <View style={styles.list}>{children}</View>;
-}
-
 const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
@@ -312,7 +329,14 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   list: {
+    // No fixed maxHeight — let the FlatList grow naturally and the
+    // outer sheet's `maxHeight: 85%` cap the whole picker. Adding a
+    // pixel cap here caused the "list can't be scrolled" bug.
+    flexShrink: 1,
+  },
+  listContent: {
     gap: 2,
+    paddingBottom: Spacing.one,
   },
   row: {
     flexDirection: 'row',
