@@ -38,19 +38,13 @@ function fieldErrorsFromZod(error: ZodError): Record<string, string> {
 }
 
 /**
- * State-shaped create action (paired with useActionState in
- * EducationInstitutionCreateForm). Field errors render under each input
- * via the returned `fieldErrors` map.
+ * State shape lives in `./state` — Next 16 forbids non-async exports from a
+ * `use server` module, so the interface and the initial-state constant are
+ * imported by the form rather than re-exported here. The action below
+ * references the same shape via a type-only import, which is stripped at
+ * build time and so does not appear as a runtime export.
  */
-export interface EducationInstitutionActionState {
-  error: string | null;
-  fieldErrors: Record<string, string>;
-}
-
-export const initialEducationInstitutionActionState: EducationInstitutionActionState = {
-  error: null,
-  fieldErrors: {},
-};
+import type { EducationInstitutionActionState } from './state';
 
 export async function createEducationInstitutionAction(
   _prev: EducationInstitutionActionState,

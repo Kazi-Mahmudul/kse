@@ -10,7 +10,7 @@ import {
 import {
   initialEducationInstitutionActionState,
   type EducationInstitutionActionState,
-} from './actions';
+} from './state';
 
 const inputClass =
   'h-9 w-full rounded-lg border border-zinc-300 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/20';
