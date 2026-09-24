@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
-import { useCallback, useRef, useState } from 'react';
+import { router, useLocalSearchParams } from 'expo-router';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -73,6 +73,21 @@ type TileKey =
   | 'resumes'
   | 'links';
 
+const TILE_KEYS: readonly TileKey[] = [
+  'education',
+  'projects',
+  'certificates',
+  'achievements',
+  'research',
+  'resumes',
+  'links',
+];
+
+/** Type-narrowing guard for `?scrollTo=` query params. */
+function isTileKey(value: unknown): value is TileKey {
+  return typeof value === 'string' && (TILE_KEYS as readonly string[]).includes(value);
+}
+
 /**
  * Portfolio hub (spec §6 Profile, step 18). Overview tile grid, then one
  * section per entity type — each fully self-contained (RHF + Zod +
@@ -82,6 +97,7 @@ export default function PortfolioScreen() {
   const colors = useTheme();
   const tints = useTints();
   const insets = useSafeAreaInsets();
+  const params = useLocalSearchParams<{ scrollTo?: string }>();
 
   // Single source of truth for the detail-sheet payload — each section
   // forwards its open callback up here, the sheet renders at the page
@@ -110,6 +126,24 @@ export default function PortfolioScreen() {
     },
     [],
   );
+
+  // Honor ?scrollTo=<kind> from the Profile tab. Wait one frame + a small
+  // buffer so the section `onLayout` callbacks have time to register their
+  // y offsets (each section renders async once its query resolves, so the
+  // last section's y may not exist on the first paint). Clear the param
+  // after scrolling so a back-and-return doesn't re-scroll.
+  useEffect(() => {
+    const target = params.scrollTo;
+    if (!target) return;
+    if (!isTileKey(target)) return;
+    const handle = setTimeout(() => {
+      scrollToSection(target);
+      // Strip the param from the URL — keeps history clean and avoids a
+      // second scroll if the user re-enters the screen via a deep-link.
+      router.setParams({ scrollTo: undefined });
+    }, 250);
+    return () => clearTimeout(handle);
+  }, [params.scrollTo, scrollToSection]);
 
   const openEducation = useCallback(
     (item: Parameters<NonNullable<React.ComponentProps<typeof EducationSection>['onOpen']>>[0]) =>

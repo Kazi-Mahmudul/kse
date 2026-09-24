@@ -3,7 +3,7 @@ import { router } from 'expo-router';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
-import { FontFamilies } from '@/constants/theme';
+import { FontFamilies, Spacing } from '@/constants/theme';
 import { useMyResumes } from '@/features/portfolio/queries';
 import { useMySkillIds } from '@/features/profile/queries';
 import { useMyApplications } from '@/features/scholarships/queries';
@@ -13,6 +13,8 @@ import { useTheme } from '@/hooks/use-theme';
 import { useTints } from '@/hooks/use-tints';
 import type { IconName } from '@/types/icon';
 import { formatDate } from '@/lib/dates';
+
+type RowGroup = 'quick' | 'stuff' | 'tutor';
 
 interface RowSpec {
   key: string;
@@ -26,7 +28,14 @@ interface RowSpec {
     | '/(tabs)/portfolio'
     | '/(tabs)/profile/become-tutor'
     | '/(tabs)/profile/scholarships';
+  group: RowGroup;
 }
+
+const GROUP_LABELS: Record<RowGroup, string> = {
+  quick: 'Quick actions',
+  stuff: 'My stuff',
+  tutor: 'Become a tutor',
+};
 
 /**
  * Derive the resume row subtitle from the student's resume list. Empty list
@@ -78,7 +87,9 @@ function tutorSubtitle(
 /**
  * Profile menu list (design 05._profile_kse): stacked rows for "Skills"
  * (routes to edit screen), "Resume" (routes to the portfolio hub) and
- * "Become a Tutor" (application workflow).
+ * "Become a Tutor" (application workflow). Grouped under three small
+ * uppercase kickers ("Quick actions" / "My stuff" / "Become a tutor")
+ * so the eye can land on a cluster instead of scanning one long wall.
  */
 export function ProfileMenuList() {
   const colors = useTheme();
@@ -100,6 +111,7 @@ export function ProfileMenuList() {
       title: 'Skills',
       subtitle: skillSubtitle,
       href: '/(tabs)/profile/edit',
+      group: 'quick',
     },
     {
       key: 'resume',
@@ -108,6 +120,7 @@ export function ProfileMenuList() {
       title: 'Resume',
       subtitle: resumeSubtitle(resumesQuery.data),
       href: '/(tabs)/portfolio',
+      group: 'quick',
     },
     {
       key: 'scholarships',
@@ -116,6 +129,7 @@ export function ProfileMenuList() {
       title: 'Scholarship applications',
       subtitle: applicationsSubtitle(applicationsQuery.data?.length),
       href: '/(tabs)/profile/scholarships',
+      group: 'stuff',
     },
     {
       key: 'saved',
@@ -124,6 +138,7 @@ export function ProfileMenuList() {
       title: 'Saved Opportunities',
       subtitle: savedSubtitle(savedQuery.data?.size),
       href: '/(tabs)/saved',
+      group: 'stuff',
     },
     {
       key: 'tutor',
@@ -132,38 +147,63 @@ export function ProfileMenuList() {
       title: 'Become a Tutor',
       subtitle: tutorSubtitle(tutorApplicationQuery.data),
       href: '/(tabs)/profile/become-tutor',
+      group: 'tutor',
     },
   ];
 
+  // Group rows into clusters for rendering with one kicker per group.
+  const groups: RowGroup[] = ['quick', 'stuff', 'tutor'];
+  const groupedRows: Record<RowGroup, RowSpec[]> = {
+    quick: rows.filter((r) => r.group === 'quick'),
+    stuff: rows.filter((r) => r.group === 'stuff'),
+    tutor: rows.filter((r) => r.group === 'tutor'),
+  };
+
   return (
     <View style={styles.wrap}>
-      {rows.map((row) => {
-        const tint = tints[row.tint];
+      {groups.map((group, groupIdx) => {
+        const cluster = groupedRows[group];
+        if (cluster.length === 0) return null;
         return (
-          <Pressable
-            key={row.key}
-            onPress={() => router.push(row.href)}
-            accessibilityRole="button"
-            accessibilityLabel={`${row.title}, ${row.subtitle}`}
-            style={({ pressed }) => [
-              styles.row,
-              { backgroundColor: colors.surfaceMuted, borderColor: colors.border },
-              pressed && styles.pressed,
-            ]}
+          <View
+            key={group}
+            style={[styles.group, groupIdx > 0 && styles.groupGap]}
           >
-            <View style={[styles.iconPill, { backgroundColor: tint.bg }]}>
-              <Ionicons name={row.icon} size={18} color={tint.fg} />
+            <ThemedText themeColor="textMuted" style={styles.kicker}>
+              {GROUP_LABELS[group].toUpperCase()}
+            </ThemedText>
+            <View style={styles.cluster}>
+              {cluster.map((row) => {
+                const tint = tints[row.tint];
+                return (
+                  <Pressable
+                    key={row.key}
+                    onPress={() => router.push(row.href)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${row.title}, ${row.subtitle}`}
+                    style={({ pressed }) => [
+                      styles.row,
+                      { backgroundColor: colors.surfaceMuted, borderColor: colors.border },
+                      pressed && styles.pressed,
+                    ]}
+                  >
+                    <View style={[styles.iconPill, { backgroundColor: tint.bg }]}>
+                      <Ionicons name={row.icon} size={18} color={tint.fg} />
+                    </View>
+                    <View style={styles.text}>
+                      <ThemedText themeColor="heading" style={styles.title}>
+                        {row.title}
+                      </ThemedText>
+                      <ThemedText themeColor="textMuted" style={styles.subtitle}>
+                        {row.subtitle}
+                      </ThemedText>
+                    </View>
+                    <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
+                  </Pressable>
+                );
+              })}
             </View>
-            <View style={styles.text}>
-              <ThemedText themeColor="heading" style={styles.title}>
-                {row.title}
-              </ThemedText>
-              <ThemedText themeColor="textMuted" style={styles.subtitle}>
-                {row.subtitle}
-              </ThemedText>
-            </View>
-            <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
-          </Pressable>
+          </View>
         );
       })}
     </View>
@@ -172,20 +212,36 @@ export function ProfileMenuList() {
 
 const styles = StyleSheet.create({
   wrap: {
-    gap: 10,
+    gap: 0,
+  },
+  group: {
+    gap: Spacing.two,
+  },
+  groupGap: {
+    marginTop: Spacing.four - 4, // 20px breathing room between groups
+  },
+  kicker: {
+    fontFamily: FontFamilies.bold,
+    fontSize: 10,
+    lineHeight: 14,
+    letterSpacing: 1.2,
+  },
+  cluster: {
+    gap: Spacing.two,
   },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    padding: 12,
-    borderRadius: 12,
+    gap: Spacing.three,
+    paddingHorizontal: Spacing.three,
+    paddingVertical: Spacing.three,
+    borderRadius: 14,
     borderWidth: 1,
   },
   iconPill: {
     width: 36,
     height: 36,
-    borderRadius: 8,
+    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -195,13 +251,13 @@ const styles = StyleSheet.create({
   },
   title: {
     fontFamily: FontFamilies.semiBold,
-    fontSize: 12,
-    lineHeight: 16,
+    fontSize: 13,
+    lineHeight: 17,
   },
   subtitle: {
     fontFamily: FontFamilies.regular,
     fontSize: 11,
-    lineHeight: 14,
+    lineHeight: 15,
   },
   pressed: {
     opacity: 0.85,
