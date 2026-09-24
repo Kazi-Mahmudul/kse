@@ -96,13 +96,20 @@ function CardShell({
   const tints = useTints();
   const { icon, tint, noun } = SPECS[kind];
   const palette = tints[tint];
+  // Soft danger tint for the Remove button — reuses the fuchsia pair so
+  // it's already calibrated for light AND dark surfaces.
+  const dangerSoft = tints.fuchsia;
 
   return (
     <View
       style={[
         styles.card,
         {
-          backgroundColor: colors.background,
+          // surfaceMuted (#F8FAFC light, #1A1B1E dark) keeps the card
+          // visually distinct from the screen — on dark mode the screen
+          // bg is pure black, so the card needs a slightly lifted surface
+          // to remain readable.
+          backgroundColor: colors.surfaceMuted,
           borderColor: colors.border,
           // RNW requires boxShadow string format — synthesise a soft
           // shadow tinted with the theme's shadow color.
@@ -197,7 +204,7 @@ function CardShell({
           accessibilityLabel="Remove item"
           style={({ pressed }) => [
             styles.footerAction,
-            { backgroundColor: '#FEE2E2' },
+            { backgroundColor: dangerSoft.bg, borderWidth: 1, borderColor: dangerSoft.border },
             pressed && styles.pressed,
           ]}
         >
@@ -242,6 +249,51 @@ function UrlRow({ url, label }: { url: string; label?: string }) {
   );
 }
 
+/** Theme-aware body copy — uses textSecondary so it reads on light AND
+ *  dark surfaces (replaces the old hardcoded slate-600 which vanished on
+ *  the black background). */
+function BodyText({
+  children,
+  style,
+  numberOfLines,
+}: {
+  children: React.ReactNode;
+  style?: any;
+  numberOfLines?: number;
+}) {
+  const colors = useTheme();
+  return (
+    <Text
+      style={[styles.bodyText, { color: colors.textSecondary }, style]}
+      numberOfLines={numberOfLines}
+    >
+      {children}
+    </Text>
+  );
+}
+
+/** Theme-aware body meta — stronger contrast than BodyText (bodyStrong)
+ *  but still flips correctly between light and dark schemes. */
+function BodyMeta({
+  children,
+  style,
+  numberOfLines,
+}: {
+  children: React.ReactNode;
+  style?: any;
+  numberOfLines?: number;
+}) {
+  const colors = useTheme();
+  return (
+    <Text
+      style={[styles.bodyMeta, { color: colors.bodyStrong }, style]}
+      numberOfLines={numberOfLines}
+    >
+      {children}
+    </Text>
+  );
+}
+
 export function ProjectCard({
   item,
   onEdit,
@@ -276,16 +328,14 @@ export function ProjectCard({
       onOpen={onOpen}
     >
       {item.description ? (
-        <Text style={styles.bodyText} numberOfLines={3}>
-          {item.description}
-        </Text>
+        <BodyText numberOfLines={3}>{item.description}</BodyText>
       ) : null}
       {(item.role || range) && (
-        <Text style={styles.bodyMeta} numberOfLines={1}>
+        <BodyMeta numberOfLines={1}>
           {[item.role ? `Role: ${item.role}` : null, range || null]
             .filter(Boolean)
             .join('  ·  ')}
-        </Text>
+        </BodyMeta>
       )}
       {(item.isTeam || item.courseName || item.techStack.length > 0) && (
         <View style={styles.tagRow}>
@@ -413,15 +463,15 @@ export function EducationCard({
       onOpen={onOpen}
     >
       {(years || result) && (
-        <Text style={styles.bodyMeta} numberOfLines={1}>
+        <BodyMeta numberOfLines={1}>
           {[years, result].filter(Boolean).join('  ·  ')}
-        </Text>
+        </BodyMeta>
       )}
       {(item.level === 'mphil' || item.level === 'phd') && item.thesisTitle ? (
-        <Text style={styles.bodyText} numberOfLines={3}>
+        <BodyText numberOfLines={3}>
           Thesis: {item.thesisTitle}
           {item.supervisor ? ` · Supervisor: ${item.supervisor}` : ''}
-        </Text>
+        </BodyText>
       ) : null}
       {(item.rollNumber || item.registrationNumber) && (
         <View style={styles.tagRow}>
@@ -479,9 +529,7 @@ export function CertificateCard({
         </View>
       )}
       {item.description ? (
-        <Text style={styles.bodyText} numberOfLines={3}>
-          {item.description}
-        </Text>
+        <BodyText numberOfLines={3}>{item.description}</BodyText>
       ) : null}
       {(item.credentialUrl || item.verificationUrl) ? (
         <View style={styles.linkStack}>
@@ -514,9 +562,7 @@ export function AchievementCard({
       onOpen={onOpen}
     >
       {item.description ? (
-        <Text style={styles.bodyText} numberOfLines={3}>
-          {item.description}
-        </Text>
+        <BodyText numberOfLines={3}>{item.description}</BodyText>
       ) : null}
     </CardShell>
   );
@@ -546,9 +592,7 @@ export function ResearchCard({
       onOpen={onOpen}
     >
       {item.abstract ? (
-        <Text style={styles.bodyText} numberOfLines={4}>
-          {item.abstract}
-        </Text>
+        <BodyText numberOfLines={4}>{item.abstract}</BodyText>
       ) : null}
       {item.collaborators.length > 0 && (
         <View style={styles.tagRow}>
@@ -595,9 +639,9 @@ export function ResumeCard({
       onOpen={onOpen}
     >
       {uploaded ? (
-        <Text style={styles.bodyText} numberOfLines={2}>
+        <BodyText numberOfLines={2}>
           PDF · stored privately in your portfolio
-        </Text>
+        </BodyText>
       ) : (
         <View style={styles.linkStack}>
           <UrlRow url={item.fileUrl} />
@@ -700,12 +744,10 @@ const styles = StyleSheet.create({
   bodyText: {
     fontSize: 13,
     lineHeight: 18,
-    color: '#475569',
   },
   bodyMeta: {
     fontSize: 12,
     lineHeight: 16,
-    color: '#0F172A',
     fontWeight: '600',
   },
 
