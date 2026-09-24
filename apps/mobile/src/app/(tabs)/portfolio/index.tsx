@@ -1,13 +1,13 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { useCallback, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { useCallback, useRef, useState } from 'react';
+import { ScrollView, StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BackHeader } from '@/components/back-header';
 import { ThemedText } from '@/components/themed-text';
 import { Card } from '@/components/ui/card';
-import { Screen } from '@/components/ui/screen';
-import { Spacing } from '@/constants/theme';
+import { BottomTabInset, Spacing } from '@/constants/theme';
 import { PortfolioDetailSheet, type PortfolioDetailItem } from '@/features/portfolio/detail-sheet';
 import { PortfolioOverview } from '@/features/portfolio/overview';
 import {
@@ -63,6 +63,16 @@ import type {
 import { useTheme } from '@/hooks/use-theme';
 import { useTints } from '@/hooks/use-tints';
 
+/** Tile keys the overview exposes — matches PortfolioOverview's tile keys. */
+type TileKey =
+  | 'education'
+  | 'projects'
+  | 'certificates'
+  | 'achievements'
+  | 'research'
+  | 'resumes'
+  | 'links';
+
 /**
  * Portfolio hub (spec §6 Profile, step 18). Overview tile grid, then one
  * section per entity type — each fully self-contained (RHF + Zod +
@@ -71,11 +81,35 @@ import { useTints } from '@/hooks/use-tints';
 export default function PortfolioScreen() {
   const colors = useTheme();
   const tints = useTints();
+  const insets = useSafeAreaInsets();
 
   // Single source of truth for the detail-sheet payload — each section
   // forwards its open callback up here, the sheet renders at the page
   // level so it sits above all the cards.
   const [detailItem, setDetailItem] = useState<PortfolioDetailItem | null>(null);
+
+  // Scroll plumbing — overview tiles jump-scroll to the matching section.
+  // We can't use `Screen` here (its inner ScrollView isn't exposed), so we
+  // render our own. Each section's onLayout records its y offset relative
+  // to the ScrollView; tapping a tile looks up that y and scrolls to it.
+  // No rerender needed: the ref is mutated synchronously on every layout
+  // pass and read lazily on tap.
+  const scrollRef = useRef<ScrollView>(null);
+  const sectionOffsets = useRef<Partial<Record<TileKey, number>>>({});
+
+  const registerSectionY = useCallback((key: TileKey, y: number) => {
+    sectionOffsets.current[key] = y;
+  }, []);
+
+  const scrollToSection = useCallback(
+    (key: TileKey) => {
+      const y = sectionOffsets.current[key];
+      if (typeof y !== 'number') return;
+      // Small padding so the section header isn't glued to the top edge.
+      scrollRef.current?.scrollTo({ y: Math.max(0, y - 8), animated: true });
+    },
+    [],
+  );
 
   const openEducation = useCallback(
     (item: Parameters<NonNullable<React.ComponentProps<typeof EducationSection>['onOpen']>>[0]) =>
@@ -121,46 +155,77 @@ export default function PortfolioScreen() {
   }, []);
 
   return (
-    <Screen>
+    <View style={[styles.root, { backgroundColor: colors.background }]}>
       <BackHeader title="My portfolio" />
-      <PortfolioOverview />
-      <EducationSectionBound onOpen={openEducation} />
-      <ProjectsSectionBound onOpen={openProject} />
-      <CertificatesSectionBound onOpen={openCertificate} />
-      <AchievementsSectionBound onOpen={openAchievement} />
-      <ResearchSectionBound onOpen={openResearch} />
-      <ResumesSectionBound onOpen={openResume} />
-      <PortfolioLinksSectionBound onOpen={openLink} />
-
-      <View style={styles.spacer} />
-      <Card
-        tint="background"
-        onPress={() => router.push('/(tabs)/profile/edit')}
-        style={[
-          styles.editCard,
-          { borderColor: colors.border, boxShadow: `0px 1px 6px ${colors.shadow}` },
+      <ScrollView
+        ref={scrollRef}
+        style={styles.scroll}
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingBottom: Math.max(insets.bottom, BottomTabInset) + Spacing.four },
         ]}
+        keyboardShouldPersistTaps="handled"
       >
-        <View style={styles.row}>
-          <View style={[styles.editBadge, { backgroundColor: tints.indigo.bg }]}>
-            <Ionicons name="create-outline" size={16} color={tints.indigo.fg} />
+        <PortfolioOverview onTilePress={scrollToSection} />
+        <EducationSectionBound
+          onOpen={openEducation}
+          onLayoutY={(y) => registerSectionY('education', y)}
+        />
+        <ProjectsSectionBound
+          onOpen={openProject}
+          onLayoutY={(y) => registerSectionY('projects', y)}
+        />
+        <CertificatesSectionBound
+          onOpen={openCertificate}
+          onLayoutY={(y) => registerSectionY('certificates', y)}
+        />
+        <AchievementsSectionBound
+          onOpen={openAchievement}
+          onLayoutY={(y) => registerSectionY('achievements', y)}
+        />
+        <ResearchSectionBound
+          onOpen={openResearch}
+          onLayoutY={(y) => registerSectionY('research', y)}
+        />
+        <ResumesSectionBound
+          onOpen={openResume}
+          onLayoutY={(y) => registerSectionY('resumes', y)}
+        />
+        <PortfolioLinksSectionBound
+          onOpen={openLink}
+          onLayoutY={(y) => registerSectionY('links', y)}
+        />
+
+        <View style={styles.spacer} />
+        <Card
+          tint="background"
+          onPress={() => router.push('/(tabs)/profile/edit')}
+          style={[
+            styles.editCard,
+            { borderColor: colors.border, boxShadow: `0px 1px 6px ${colors.shadow}` },
+          ]}
+        >
+          <View style={styles.row}>
+            <View style={[styles.editBadge, { backgroundColor: tints.indigo.bg }]}>
+              <Ionicons name="create-outline" size={16} color={tints.indigo.fg} />
+            </View>
+            <View style={styles.rowText}>
+              <ThemedText type="smallBold">Edit profile basics</ThemedText>
+              <ThemedText type="small" themeColor="textSecondary">
+                Name, university, bio and skills.
+              </ThemedText>
+            </View>
+            <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
           </View>
-          <View style={styles.rowText}>
-            <ThemedText type="smallBold">Edit profile basics</ThemedText>
-            <ThemedText type="small" themeColor="textSecondary">
-              Name, university, bio and skills.
-            </ThemedText>
-          </View>
-          <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
-        </View>
-      </Card>
+        </Card>
+      </ScrollView>
 
       <PortfolioDetailSheet
         value={detailItem}
         onClose={() => setDetailItem(null)}
         onEdit={handleEditFromSheet}
       />
-    </Screen>
+    </View>
   );
 }
 
@@ -174,8 +239,10 @@ function useErrorMessage(error: Error | null, mutationError: Error | null): stri
 
 function EducationSectionBound({
   onOpen,
+  onLayoutY,
 }: {
   onOpen(item: Parameters<NonNullable<React.ComponentProps<typeof EducationSection>['onOpen']>>[0]): void;
+  onLayoutY(y: number): void;
 }) {
   const q = useMyEducation();
   const create = useCreateEducation();
@@ -183,21 +250,26 @@ function EducationSectionBound({
   const remove = useDeleteEducation();
   const errorMessage = useErrorMessage(q.error, create.error ?? update.error ?? remove.error ?? null);
   return (
-    <EducationSection
-      items={q.data ?? []}
-      isSaving={create.isPending || update.isPending || remove.isPending}
-      create={async (v) => {
-        await create.mutateAsync(toEducationPayload(v));
-      }}
-      update={async (id, v) => {
-        await update.mutateAsync({ id, input: toEducationPayload(v) });
-      }}
-      remove={async (id) => {
-        await remove.mutateAsync(id);
-      }}
-      errorMessage={errorMessage}
-      onOpen={onOpen}
-    />
+    <View
+      style={styles.sectionAnchor}
+      onLayout={(e) => onLayoutY(e.nativeEvent.layout.y)}
+    >
+      <EducationSection
+        items={q.data ?? []}
+        isSaving={create.isPending || update.isPending || remove.isPending}
+        create={async (v) => {
+          await create.mutateAsync(toEducationPayload(v));
+        }}
+        update={async (id, v) => {
+          await update.mutateAsync({ id, input: toEducationPayload(v) });
+        }}
+        remove={async (id) => {
+          await remove.mutateAsync(id);
+        }}
+        errorMessage={errorMessage}
+        onOpen={onOpen}
+      />
+    </View>
   );
 }
 
@@ -239,8 +311,10 @@ function toEducationPayload(v: EducationFormValues) {
 
 function ProjectsSectionBound({
   onOpen,
+  onLayoutY,
 }: {
   onOpen(item: Parameters<NonNullable<React.ComponentProps<typeof ProjectsSection>['onOpen']>>[0]): void;
+  onLayoutY(y: number): void;
 }) {
   const q = useMyProjects();
   const create = useCreateProject();
@@ -248,21 +322,26 @@ function ProjectsSectionBound({
   const remove = useDeleteProject();
   const errorMessage = useErrorMessage(q.error, create.error ?? update.error ?? remove.error ?? null);
   return (
-    <ProjectsSection
-      items={q.data ?? []}
-      isSaving={create.isPending || update.isPending || remove.isPending}
-      create={async (v) => {
-        await create.mutateAsync(toProjectPayload(v));
-      }}
-      update={async (id, v) => {
-        await update.mutateAsync({ id, input: toProjectPayload(v) });
-      }}
-      remove={async (id) => {
-        await remove.mutateAsync(id);
-      }}
-      errorMessage={errorMessage}
-      onOpen={onOpen}
-    />
+    <View
+      style={styles.sectionAnchor}
+      onLayout={(e) => onLayoutY(e.nativeEvent.layout.y)}
+    >
+      <ProjectsSection
+        items={q.data ?? []}
+        isSaving={create.isPending || update.isPending || remove.isPending}
+        create={async (v) => {
+          await create.mutateAsync(toProjectPayload(v));
+        }}
+        update={async (id, v) => {
+          await update.mutateAsync({ id, input: toProjectPayload(v) });
+        }}
+        remove={async (id) => {
+          await remove.mutateAsync(id);
+        }}
+        errorMessage={errorMessage}
+        onOpen={onOpen}
+      />
+    </View>
   );
 }
 
@@ -292,8 +371,10 @@ function toProjectPayload(v: ProjectFormValues) {
 
 function CertificatesSectionBound({
   onOpen,
+  onLayoutY,
 }: {
   onOpen(item: Parameters<NonNullable<React.ComponentProps<typeof CertificatesSection>['onOpen']>>[0]): void;
+  onLayoutY(y: number): void;
 }) {
   const q = useMyCertificates();
   const create = useCreateCertificate();
@@ -301,21 +382,26 @@ function CertificatesSectionBound({
   const remove = useDeleteCertificate();
   const errorMessage = useErrorMessage(q.error, create.error ?? update.error ?? remove.error ?? null);
   return (
-    <CertificatesSection
-      items={q.data ?? []}
-      isSaving={create.isPending || update.isPending || remove.isPending}
-      create={async (v) => {
-        await create.mutateAsync(toCertificatePayload(v));
-      }}
-      update={async (id, v) => {
-        await update.mutateAsync({ id, input: toCertificatePayload(v) });
-      }}
-      remove={async (id) => {
-        await remove.mutateAsync(id);
-      }}
-      errorMessage={errorMessage}
-      onOpen={onOpen}
-    />
+    <View
+      style={styles.sectionAnchor}
+      onLayout={(e) => onLayoutY(e.nativeEvent.layout.y)}
+    >
+      <CertificatesSection
+        items={q.data ?? []}
+        isSaving={create.isPending || update.isPending || remove.isPending}
+        create={async (v) => {
+          await create.mutateAsync(toCertificatePayload(v));
+        }}
+        update={async (id, v) => {
+          await update.mutateAsync({ id, input: toCertificatePayload(v) });
+        }}
+        remove={async (id) => {
+          await remove.mutateAsync(id);
+        }}
+        errorMessage={errorMessage}
+        onOpen={onOpen}
+      />
+    </View>
   );
 }
 
@@ -338,8 +424,10 @@ function toCertificatePayload(v: CertificateFormValues) {
 
 function AchievementsSectionBound({
   onOpen,
+  onLayoutY,
 }: {
   onOpen(item: Parameters<NonNullable<React.ComponentProps<typeof AchievementsSection>['onOpen']>>[0]): void;
+  onLayoutY(y: number): void;
 }) {
   const q = useMyAchievements();
   const create = useCreateAchievement();
@@ -347,21 +435,26 @@ function AchievementsSectionBound({
   const remove = useDeleteAchievement();
   const errorMessage = useErrorMessage(q.error, create.error ?? update.error ?? remove.error ?? null);
   return (
-    <AchievementsSection
-      items={q.data ?? []}
-      isSaving={create.isPending || update.isPending || remove.isPending}
-      create={async (v) => {
-        await create.mutateAsync(toAchievementPayload(v));
-      }}
-      update={async (id, v) => {
-        await update.mutateAsync({ id, input: toAchievementPayload(v) });
-      }}
-      remove={async (id) => {
-        await remove.mutateAsync(id);
-      }}
-      errorMessage={errorMessage}
-      onOpen={onOpen}
-    />
+    <View
+      style={styles.sectionAnchor}
+      onLayout={(e) => onLayoutY(e.nativeEvent.layout.y)}
+    >
+      <AchievementsSection
+        items={q.data ?? []}
+        isSaving={create.isPending || update.isPending || remove.isPending}
+        create={async (v) => {
+          await create.mutateAsync(toAchievementPayload(v));
+        }}
+        update={async (id, v) => {
+          await update.mutateAsync({ id, input: toAchievementPayload(v) });
+        }}
+        remove={async (id) => {
+          await remove.mutateAsync(id);
+        }}
+        errorMessage={errorMessage}
+        onOpen={onOpen}
+      />
+    </View>
   );
 }
 
@@ -375,8 +468,10 @@ function toAchievementPayload(v: AchievementFormValues) {
 
 function ResearchSectionBound({
   onOpen,
+  onLayoutY,
 }: {
   onOpen(item: Parameters<NonNullable<React.ComponentProps<typeof ResearchSection>['onOpen']>>[0]): void;
+  onLayoutY(y: number): void;
 }) {
   const q = useMyResearch();
   const create = useCreateResearch();
@@ -384,21 +479,26 @@ function ResearchSectionBound({
   const remove = useDeleteResearch();
   const errorMessage = useErrorMessage(q.error, create.error ?? update.error ?? remove.error ?? null);
   return (
-    <ResearchSection
-      items={q.data ?? []}
-      isSaving={create.isPending || update.isPending || remove.isPending}
-      create={async (v) => {
-        await create.mutateAsync(toResearchPayload(v));
-      }}
-      update={async (id, v) => {
-        await update.mutateAsync({ id, input: toResearchPayload(v) });
-      }}
-      remove={async (id) => {
-        await remove.mutateAsync(id);
-      }}
-      errorMessage={errorMessage}
-      onOpen={onOpen}
-    />
+    <View
+      style={styles.sectionAnchor}
+      onLayout={(e) => onLayoutY(e.nativeEvent.layout.y)}
+    >
+      <ResearchSection
+        items={q.data ?? []}
+        isSaving={create.isPending || update.isPending || remove.isPending}
+        create={async (v) => {
+          await create.mutateAsync(toResearchPayload(v));
+        }}
+        update={async (id, v) => {
+          await update.mutateAsync({ id, input: toResearchPayload(v) });
+        }}
+        remove={async (id) => {
+          await remove.mutateAsync(id);
+        }}
+        errorMessage={errorMessage}
+        onOpen={onOpen}
+      />
+    </View>
   );
 }
 
@@ -415,8 +515,10 @@ function toResearchPayload(v: ResearchFormValues) {
 
 function ResumesSectionBound({
   onOpen,
+  onLayoutY,
 }: {
   onOpen(item: Parameters<NonNullable<React.ComponentProps<typeof ResumesSection>['onOpen']>>[0]): void;
+  onLayoutY(y: number): void;
 }) {
   const q = useMyResumes();
   const create = useCreateResume();
@@ -424,21 +526,26 @@ function ResumesSectionBound({
   const remove = useDeleteResume();
   const errorMessage = useErrorMessage(q.error, create.error ?? update.error ?? remove.error ?? null);
   return (
-    <ResumesSection
-      items={q.data ?? []}
-      isSaving={create.isPending || update.isPending || remove.isPending}
-      create={async (v) => {
-        await create.mutateAsync(toResumePayload(v));
-      }}
-      update={async (id, v) => {
-        await update.mutateAsync({ id, input: toResumePayload(v) });
-      }}
-      remove={async (id) => {
-        await remove.mutateAsync(id);
-      }}
-      errorMessage={errorMessage}
-      onOpen={onOpen}
-    />
+    <View
+      style={styles.sectionAnchor}
+      onLayout={(e) => onLayoutY(e.nativeEvent.layout.y)}
+    >
+      <ResumesSection
+        items={q.data ?? []}
+        isSaving={create.isPending || update.isPending || remove.isPending}
+        create={async (v) => {
+          await create.mutateAsync(toResumePayload(v));
+        }}
+        update={async (id, v) => {
+          await update.mutateAsync({ id, input: toResumePayload(v) });
+        }}
+        remove={async (id) => {
+          await remove.mutateAsync(id);
+        }}
+        errorMessage={errorMessage}
+        onOpen={onOpen}
+      />
+    </View>
   );
 }
 
@@ -452,8 +559,10 @@ function toResumePayload(v: ResumeFormValues) {
 
 function PortfolioLinksSectionBound({
   onOpen,
+  onLayoutY,
 }: {
   onOpen(item: Parameters<NonNullable<React.ComponentProps<typeof PortfolioLinksSection>['onOpen']>>[0]): void;
+  onLayoutY(y: number): void;
 }) {
   const q = useMyPortfolioLinks();
   const create = useCreatePortfolioLink();
@@ -461,21 +570,26 @@ function PortfolioLinksSectionBound({
   const remove = useDeletePortfolioLink();
   const errorMessage = useErrorMessage(q.error, create.error ?? update.error ?? remove.error ?? null);
   return (
-    <PortfolioLinksSection
-      items={q.data ?? []}
-      isSaving={create.isPending || update.isPending || remove.isPending}
-      create={async (v) => {
-        await create.mutateAsync(toLinkPayload(v));
-      }}
-      update={async (id, v) => {
-        await update.mutateAsync({ id, input: toLinkPayload(v) });
-      }}
-      remove={async (id) => {
-        await remove.mutateAsync(id);
-      }}
-      errorMessage={errorMessage}
-      onOpen={onOpen}
-    />
+    <View
+      style={styles.sectionAnchor}
+      onLayout={(e) => onLayoutY(e.nativeEvent.layout.y)}
+    >
+      <PortfolioLinksSection
+        items={q.data ?? []}
+        isSaving={create.isPending || update.isPending || remove.isPending}
+        create={async (v) => {
+          await create.mutateAsync(toLinkPayload(v));
+        }}
+        update={async (id, v) => {
+          await update.mutateAsync({ id, input: toLinkPayload(v) });
+        }}
+        remove={async (id) => {
+          await remove.mutateAsync(id);
+        }}
+        errorMessage={errorMessage}
+        onOpen={onOpen}
+      />
+    </View>
   );
 }
 
@@ -484,6 +598,21 @@ function toLinkPayload(v: PortfolioLinkFormValues) {
 }
 
 const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+  },
+  scroll: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingHorizontal: Spacing.four,
+    paddingTop: Spacing.two,
+  },
+  sectionAnchor: {
+    // Marker so each section can capture its onLayout y. Has no visual
+    // effect; the absolute y of this wrapper is the section's top inside
+    // the ScrollView's content container.
+  },
   spacer: {
     height: Spacing.four,
   },

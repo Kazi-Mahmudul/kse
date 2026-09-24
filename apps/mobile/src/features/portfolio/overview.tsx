@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { FontFamilies, type TintKey } from '@/constants/theme';
@@ -34,13 +34,23 @@ const PORTFOLIO_TILES: readonly TileSpec[] = [
   { key: 'links', label: 'Links', icon: 'link-outline', tint: 'sky' },
 ] as const;
 
+/** Strong-typed view of the tile keys we expose as scroll targets. */
+export type TileKey = (typeof PORTFOLIO_TILES)[number]['key'];
+
 /**
  * Portfolio overview strip — a grid of live per-kind counts in the
  * profile "My Portfolio" tile language (design 05._profile_kse). Counts
  * render `—` while in flight so the grid doesn't reflow on hydration;
  * the grid always shows, giving the page a stable skeleton.
+ *
+ * Tapping a tile scrolls the page to the matching section so users can
+ * jump straight to the items of that kind without hunting.
  */
-export function PortfolioOverview() {
+export function PortfolioOverview({
+  onTilePress,
+}: {
+  onTilePress?(key: TileKey): void;
+}) {
   const colors = useTheme();
   const tints = useTints();
   const educationQ = useMyEducation();
@@ -67,11 +77,24 @@ export function PortfolioOverview() {
         const tint = tints[tile.tint];
         const count = counts[tile.key];
         return (
-          <View
+          <Pressable
             key={tile.key}
-            style={[
+            onPress={onTilePress ? () => onTilePress(tile.key) : undefined}
+            disabled={!onTilePress}
+            accessibilityRole={onTilePress ? 'button' : undefined}
+            accessibilityLabel={
+              onTilePress
+                ? `Jump to ${tile.label}, ${count == null ? 'loading' : count} items`
+                : undefined
+            }
+            style={({ pressed }) => [
               styles.tile,
-              { backgroundColor: colors.surfaceMuted, borderColor: colors.border },
+              {
+                backgroundColor: colors.surfaceMuted,
+                borderColor: colors.border,
+                boxShadow: `0px 1px 6px ${colors.shadow}`,
+              },
+              pressed && onTilePress && styles.pressed,
             ]}
           >
             <View style={[styles.iconPill, { backgroundColor: tint.bg }]}>
@@ -83,7 +106,7 @@ export function PortfolioOverview() {
             <ThemedText themeColor="heading" style={styles.tileCount}>
               {count == null ? '—' : count}
             </ThemedText>
-          </View>
+          </Pressable>
         );
       })}
     </View>
@@ -104,6 +127,10 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 12,
     borderWidth: 1,
+  },
+  pressed: {
+    opacity: 0.7,
+    transform: [{ scale: 0.97 }],
   },
   iconPill: {
     width: 32,
