@@ -1,12 +1,12 @@
 import { Ionicons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import type { ImageSourcePropType } from 'react-native';
-import { Image, Pressable, StyleSheet, View } from 'react-native';
+import type { ImageContentPosition, ImageSource } from 'expo-image';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
-import { TextLink } from '@/components/ui/text-link';
 import { BanglaFontFamilies, FontFamilies, Spacing } from '@/constants/theme';
 import { useTints } from '@/hooks/use-tints';
 import { useTheme } from '@/hooks/use-theme';
@@ -15,41 +15,53 @@ import { useSettingsStore } from '@/store/settings-store';
 
 /**
  * Reusable shell for the three onboarding screens (Welcome / Opportunities /
- * Community). Layout is taken from the actual Stitch designs
- * (`01._welcome_kse_onboarding/screen.png`, etc.) — full-bleed hero photo
- * fading into a white card with: brand pill top-left (always shown),
- * Skip pill top-right (screens 2 & 3 only), eyebrow chip, two-line
- * headline (line 1 dark, line 2 brand primary — rendered as ONE inline
- * `<ThemedText>` so it wraps naturally), Bengali body, 3-dot pagination,
- * full-width purple CTA with trailing arrow, and the Bengali prompt +
- * English "Login" footer.
+ * Community). Layout follows the Stitch designs (`01._welcome_kse_onboarding`,
+ * `02._opportunities_kse_onboarding`, `03._community_kse_onboarding`) and is
+ * deliberately responsive:
  *
- * Photos are cropped from the design screen.pngs (NOT the standalone
- * ChatGPT-generated photos) so the framing matches what Stitch produced.
+ * - The hero photo uses `expo-image` with `contentFit: cover` plus a per-screen
+ *   `focalPoint` so the subjects stay in frame across phone sizes (small SE up
+ *   to large modern phones, portrait + landscape-ish aspect ratios). The
+ *   `Image` component picks an appropriate focal point at render time, so
+ *   cropping adapts to each device.
+ * - Hero height is pinned to a *constant fraction* of screen height (~46%),
+ *   not a fixed pixel value. Combined with the focal point it never
+ *   aggressively crops heads/torsos — the photo always reads as a banner
+ *   above a card rather than a clipped square.
+ * - The card surfaces and the bottom-of-hero fade use the active theme's
+ *   `background` so dark mode looks intentional (a true dark surface, not an
+ *   inverted white card).
  *
- * Button labels are English ("Start" / "Next" / "Skip" / "Login") per
- * spec; all other copy is Bengali and renders in Hind Siliguri (Poppins
- * has no Bengali glyphs).
+ * All copy is Bengali (Hind Siliguri) — Poppins is the Latin display font but
+ * has no Bengali glyphs. The "KSE" pill label, skip pill, and "Login" link
+ * stay in Poppins (Latin only).
+ *
+ * The brand pill and skip pill float over the photo as dark translucent
+ * surfaces (mirrors the Stitch mocks — same look in light and dark mode).
  */
 export interface OnboardingStepProps {
   step: 1 | 2 | 3;
-  image: ImageSourcePropType;
+  image: ImageSource;
   eyebrow: string;
   /**
    * Two-line headline. Rendered inline as a single `<ThemedText>` so it
-   * wraps as one continuous block (line 2 follows line 1 visually).
-   * Line 2 is coloured brand primary; line 1 stays dark.
+   * wraps naturally. Line 2 is coloured brand primary; line 1 stays in
+   * `colors.heading` so dark mode flips to light text automatically.
    */
   headline: [string, string];
   body: string;
-  /** 'Next' for step 2; 'Start' for steps 1 and 3. */
-  primaryLabel: 'Start' | 'Next';
-  /** Show the top-right Skip pill (true on steps 2 & 3). */
+  /** Bengali CTA label (e.g. `শুরু করি`, `পরের ধাপ`). */
+  primaryLabel: string;
+  /** Show the top-right Skip pill. Stitch shows it on all three screens. */
   showSkip: boolean;
+  /**
+   * Where the photo's focal point sits inside the hero frame. Per-screen
+   * because each photo has subjects in a different position. Accepts any
+   * expo-image `contentPosition` value (string shorthand or object form,
+   * e.g. `'center'`, `'top'`, `{ top: 0.15 }`).
+   */
+  focalPoint?: ImageContentPosition;
 }
-
-/** Pure-white card background. */
-const CARD_BG = '#FFFFFF';
 
 const STEP_ROUTES = {
   1: '/onboarding/opportunities',
@@ -65,6 +77,7 @@ export function OnboardingStep({
   body,
   primaryLabel,
   showSkip,
+  focalPoint = 'center',
 }: OnboardingStepProps) {
   const colors = useTheme();
   const tints = useTints();
@@ -82,47 +95,73 @@ export function OnboardingStep({
     else finish();
   };
 
+  // Fade the bottom of the hero into the card surface — must follow the
+  // active theme's background, not a hardcoded white, or dark mode ends up
+  // with a glowing white stripe under the photo. Declared `as const` so the
+  // tuple types satisfy LinearGradient's readonly signature.
+  const fadeColors = ['rgba(0,0,0,0)', 'rgba(0,0,0,0)', colors.background] as const;
+  const fadeLocations = [0, 0.55, 1] as const;
+
+  // Translucent dark pills that float over the photo. Stay dark in both
+  // schemes — they're sitting on top of an image, not the screen surface.
+  const pillBg = 'rgba(15,23,42,0.55)';
+  const pillBorder = 'rgba(255,255,255,0.15)';
+
   return (
-    <View style={[styles.root, { backgroundColor: CARD_BG }]}>
+    <View style={[styles.root, { backgroundColor: colors.background }]}>
       {/*
-        Hero photo. Pinned to ~50% of screen height so it reads like a
-        banner. A 3-stop LinearGradient fades the lower edge into the
-        white card so the photo doesn't terminate with a hard line.
+        Hero photo. Pinned to ~46% of screen height — just enough to read
+        as a banner without forcing aggressive subject cropping on
+        taller/narrower phones. focalPoint keeps subjects in frame.
       */}
       <View style={styles.hero}>
-        <Image source={image} style={styles.heroImage} resizeMode="cover" />
+        <Image
+          source={image}
+          style={styles.heroImage}
+          contentFit="cover"
+          contentPosition={focalPoint}
+          transition={250}
+          accessibilityElementsHidden
+          importantForAccessibility="no"
+        />
+        {/* Top vignette so the iOS status bar stays readable on bright photos. */}
         <LinearGradient
-          colors={['rgba(255,255,255,0)', 'rgba(255,255,255,0.65)', CARD_BG]}
-          locations={[0.55, 0.78, 1]}
+          colors={['rgba(0,0,0,0.35)', 'rgba(0,0,0,0)']}
+          locations={[0, 1]}
+          start={{ x: 0.5, y: 0 }}
+          end={{ x: 0.5, y: 0.18 }}
+          style={styles.topVignette}
+          pointerEvents="none"
+        />
+        {/* Bottom fade — blends the photo into the themed card surface. */}
+        <LinearGradient
+          colors={fadeColors}
+          locations={fadeLocations}
           start={{ x: 0.5, y: 0.55 }}
           end={{ x: 0.5, y: 1 }}
           style={styles.fade}
           pointerEvents="none"
         />
 
-        {/*
-          Top safe-area overlay floats above the photo. Brand pill on the
-          left (always shown — matches all three Stitch mocks). Skip pill
-          on the right only on screens 2 & 3.
-        */}
+        {/* Top safe-area overlay: brand pill (left) + skip pill (right). */}
         <SafeAreaView edges={['top']} style={styles.topBar}>
-          <View style={styles.brandPill}>
-            <Image
-              source={require('@/assets/images/logo-glow.png')}
-              style={styles.brandIcon}
-              resizeMode="contain"
-              accessibilityElementsHidden
-              importantForAccessibility="no"
-            />
+          <View style={[styles.brandPill, { backgroundColor: pillBg, borderColor: pillBorder }]}>
+            <View style={[styles.brandIconWrap, { backgroundColor: colors.primary }]}>
+              <Ionicons name="school" size={12} color="#FFFFFF" />
+            </View>
             <ThemedText style={styles.brandLabel}>KSE</ThemedText>
           </View>
           {showSkip ? (
             <Pressable
               onPress={finish}
               accessibilityRole="button"
-              accessibilityLabel="Skip onboarding"
+              accessibilityLabel="Skip"
               hitSlop={8}
-              style={({ pressed }) => [styles.skip, pressed && styles.pressed]}
+              style={({ pressed }) => [
+                styles.skip,
+                { backgroundColor: pillBg, borderColor: pillBorder },
+                pressed && styles.pressed,
+              ]}
             >
               <ThemedText style={styles.skipLabel}>Skip</ThemedText>
             </Pressable>
@@ -130,25 +169,27 @@ export function OnboardingStep({
         </SafeAreaView>
       </View>
 
-      {/*
-        Card. Overlaps the hero slightly so the gradient blends naturally
-        rather than terminating at a seam.
-      */}
+      {/* Card overlaps the hero so the gradient blends rather than seams. */}
       <View style={styles.card}>
         <View style={styles.cardInner}>
           <View style={[styles.eyebrowChip, { backgroundColor: tints.indigo.bg }]}>
             <View style={[styles.eyebrowDot, { backgroundColor: colors.primary }]} />
-            <ThemedText style={[styles.eyebrowLabel, { color: colors.primary }]}>
+            <ThemedText
+              style={[
+                styles.eyebrowLabel,
+                { color: colors.primary, fontFamily: BanglaFontFamilies.semiBold },
+              ]}
+            >
               {eyebrow}
             </ThemedText>
           </View>
 
           {/*
-            Two-line headline as ONE inline ThemedText so it wraps naturally.
-            Line 1 in dark, line 2 in brand primary. The space between the
-            two halves lets line 1 break before line 2 if the screen is
-            narrow (matches the Stitch mocks).
-          */}
+              Headline as ONE inline ThemedText so line 2 follows line 1.
+              Line 1 in `colors.heading` (auto-flips in dark mode); line 2
+              in `colors.primary`. The space between halves lets line 1
+              break before line 2 on narrow screens.
+            */}
           <ThemedText
             style={[
               styles.headline,
@@ -169,7 +210,10 @@ export function OnboardingStep({
           <ThemedText
             style={[
               styles.body,
-              { color: colors.textSecondary, fontFamily: BanglaFontFamilies.regular },
+              {
+                color: colors.textSecondary,
+                fontFamily: BanglaFontFamilies.regular,
+              },
             ]}
           >
             {body}
@@ -180,10 +224,28 @@ export function OnboardingStep({
           <PrimaryCta label={primaryLabel} onPress={advance} />
 
           <View style={styles.footer}>
-            <ThemedText style={[styles.footerText, { color: colors.textSecondary }]}>
-              আগেই অ্যাকাউন্ট আছে?{' '}
+            <ThemedText
+              style={[styles.footerText, { color: colors.textSecondary }]}
+            >
+              Already have an account?
             </ThemedText>
-            <TextLink href="/(auth)/login">Login</TextLink>
+            {/*
+              Inline Login link. Must call `finish()` rather than using
+              TextLink to /login — the root AuthGate redirects back to
+              /onboarding/welcome whenever `hasCompletedOnboarding` is
+              still false, which would silently swallow the click.
+              ) */}
+            <Pressable
+              onPress={finish}
+              accessibilityRole="link"
+              accessibilityLabel="Login"
+              hitSlop={6}
+              style={({ pressed }) => [pressed && styles.pressed]}
+            >
+              <ThemedText style={[styles.footerLink, { color: colors.primary }]}>
+                Login
+              </ThemedText>
+            </Pressable>
           </View>
         </View>
       </View>
@@ -192,11 +254,11 @@ export function OnboardingStep({
 }
 
 /**
- * Full-width purple CTA matching the Stitch design (height ~56 px, label +
- * trailing arrow). Uses Ionicons because `@expo/vector-icons` is already a
- * direct dependency and `PrimaryButton` has no icon slot.
+ * Full-width primary CTA matching the Stitch design — ~56 px tall, brand
+ * primary background, Bengali label + trailing arrow. The shadow uses
+ * `colors.primary` so dark mode gets the lighter indigo glow.
  */
-function PrimaryCta({ label, onPress }: { label: 'Start' | 'Next'; onPress: () => void }) {
+function PrimaryCta({ label, onPress }: { label: string; onPress: () => void }) {
   const colors = useTheme();
   return (
     <Pressable
@@ -205,19 +267,29 @@ function PrimaryCta({ label, onPress }: { label: 'Start' | 'Next'; onPress: () =
       accessibilityLabel={label}
       style={({ pressed }) => [
         styles.cta,
-        { backgroundColor: colors.primary },
+        {
+          backgroundColor: colors.primary,
+          shadowColor: colors.primary,
+        },
         pressed && styles.pressed,
       ]}
     >
-      <ThemedText style={[styles.ctaLabel, { color: colors.onPrimary }]}>{label}</ThemedText>
+      <ThemedText
+        style={[
+          styles.ctaLabel,
+          { color: colors.onPrimary, fontFamily: BanglaFontFamilies.semiBold },
+        ]}
+      >
+        {label}
+      </ThemedText>
       <Ionicons name="arrow-forward" size={20} color={colors.onPrimary} />
     </Pressable>
   );
 }
 
 /**
- * Three-dot pagination indicator — active dot is a wide pill in the brand
- * primary colour, inactive ones are small squares in the border colour.
+ * Three-dot pagination — active step is a wide pill in brand primary;
+ * inactive dots are small circles in `colors.border`.
  */
 function PaginationDots({ current }: { current: 1 | 2 | 3 }) {
   const colors = useTheme();
@@ -231,7 +303,7 @@ function PaginationDots({ current }: { current: 1 | 2 | 3 }) {
             style={[
               styles.dot,
               {
-                width: active ? 24 : 8,
+                width: active ? 28 : 8,
                 backgroundColor: active ? colors.primary : colors.border,
               },
             ]}
@@ -247,7 +319,11 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   hero: {
-    height: '50%',
+    // Constant fraction so cropping stays predictable across screen sizes.
+    // 46% reads as a banner and avoids aggressive subject cropping on
+    // taller phones (where a 50% hero forces heavy horizontal cuts on
+    // 2:3 portrait photos).
+    height: '46%',
     width: '100%',
     overflow: 'hidden',
   },
@@ -255,12 +331,19 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
+  topVignette: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 0,
+    height: 90,
+  },
   fade: {
     position: 'absolute',
     left: 0,
     right: 0,
     bottom: 0,
-    height: '60%',
+    height: '70%',
   },
   topBar: {
     position: 'absolute',
@@ -280,13 +363,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 999,
-    backgroundColor: '#0E0E10',
-    // Subtle elevation so the pill floats above the photo.
+    borderWidth: StyleSheet.hairlineWidth,
     elevation: 2,
   },
-  brandIcon: {
+  brandIconWrap: {
     width: 18,
     height: 18,
+    borderRadius: 999,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   brandLabel: {
     color: '#FFFFFF',
@@ -298,12 +383,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     paddingVertical: 9,
     borderRadius: 999,
-    backgroundColor: '#0E0E10',
+    borderWidth: StyleSheet.hairlineWidth,
     elevation: 2,
   },
   skipLabel: {
     color: '#FFFFFF',
-    fontFamily: FontFamilies.semiBold,
     fontSize: 13,
     lineHeight: 16,
   },
@@ -337,7 +421,6 @@ const styles = StyleSheet.create({
     borderRadius: 999,
   },
   eyebrowLabel: {
-    fontFamily: BanglaFontFamilies.semiBold,
     fontSize: 12,
     lineHeight: 16,
     letterSpacing: 0.2,
@@ -373,13 +456,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 10,
     elevation: 4,
-    shadowColor: '#4F46E5',
     shadowOpacity: 0.25,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 6 },
   },
   ctaLabel: {
-    fontFamily: FontFamilies.semiBold,
     fontSize: 16,
     lineHeight: 20,
     letterSpacing: 0.2,
@@ -394,6 +475,11 @@ const styles = StyleSheet.create({
   footerText: {
     fontSize: 13,
     lineHeight: 18,
-    fontFamily: BanglaFontFamilies.regular,
+    fontFamily: FontFamilies.regular,
+  },
+  footerLink: {
+    fontSize: 13,
+    lineHeight: 18,
+    fontFamily: FontFamilies.semiBold,
   },
 });

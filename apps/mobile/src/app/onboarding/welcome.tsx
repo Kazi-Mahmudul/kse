@@ -3,22 +3,25 @@ import { OnboardingStep } from '@/features/onboarding/onboarding-step';
 /**
  * Welcome — first onboarding screen.
  *
- * Bengali copy per the Stitch mock (`01._welcome_kse_onboarding/screen.png`).
- * Hero photo is `welcome.jpg` (cropped from the design screen.png, with the
- * Stitch status bar + brand pill + Skip pill stripped so we render those
- * ourselves in RN). No Skip pill on this step (only screens 2 & 3).
- * CTA label "Start" advances to /onboarding/opportunities.
+ * English eyebrow + CTA ("Khulna Student Ecosystem" / "Start") per the
+ * English-only copy pass. Hero photo is `welcome.jpg` (five students
+ * around a MacBook on outdoor steps with the "শিক্ষা / সচেতনতা /
+ * সমৃদ্ধি" signpost in the background). Subjects are centred so a
+ * `'center'` focal point keeps them in frame across phone sizes. Skip
+ * pill shown top-right (matches the Stitch mock). The headline and
+ * body copy stay in Bangla.
  */
 export default function WelcomeScreen() {
   return (
     <OnboardingStep
       step={1}
       image={require('@/assets/images/onboarding/welcome.jpg')}
-      eyebrow="খুলনা ইকোস্টেম"
-      headline={['তোমার স্বপ্নের পথ,', 'সুযোগগুলো এখন হাতের মুঠোয়']}
-      body="ইন্টার্নশিপ, স্কলারশিপ, ইভেন্ট, ক্যারিয়ার নির্দেশনা ও ক্যারিয়ার সুযোগ — সবকিছু এক জায়গায়।"
+      eyebrow="Khulna Student Ecosystem"
+      headline={['তোমার স্বপ্নের পথে,', 'সুযোগগুলো']}
+      body="স্কলারশিপ, ইন্টার্নশিপ, টিউশন, কমিউনিটি ও ক্যারিয়ার সুযোগ—সবকিছু এক জায়গায়।"
       primaryLabel="Start"
-      showSkip={false}
+      showSkip={true}
+      focalPoint="center"
     />
   );
 }

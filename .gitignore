@@ -31,6 +31,10 @@ build/
 coverage/
 *.tsbuildinfo
 
+# Local release artifacts (APKs produced by local gradle builds)
+releases/
+*.apk
+
 # Supabase local
 supabase/.branches/
 supabase/.temp/
