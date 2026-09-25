@@ -15,38 +15,44 @@ import { useSettingsStore } from '@/store/settings-store';
 
 /**
  * Reusable shell for the three onboarding screens (Welcome / Opportunities /
- * Community). Owns the layout — full-bleed hero photo at the top fading into a
- * soft lavender card (`#FAF8FF`) with the KSE brand pill (top-left, always),
- * Skip pill (top-right, screens 2 & 3 only), eyebrow chip + two-line headline
- * (line 2 in brand purple) + body copy, 3-dot pagination, a full-width purple
- * primary CTA with a trailing arrow, and the "All have an account? Login"
- * footer.
+ * Community). Owns the layout — full-bleed hero photo at the top fading into
+ * a pure-white card with a pill-stack headline (line 2 colored), body copy,
+ * 3-dot pagination, a full-width purple primary CTA with a trailing arrow,
+ * and the "All have an account? Login" footer.
  *
- * Tapping the CTA on screen 1 or 2 advances to the next screen; on screen 3
- * (or from Skip on screens 2 & 3) it exits onboarding via `finish()`, which
- * sets `hasCompletedOnboarding` and routes to /(auth)/login or /(tabs).
+ * The brand pill ("KSE + leaf") sits top-left over the hero on all three
+ * screens, and an inline "Skip" link sits top-right. Tapping Skip finishes
+ * onboarding via `finish()`, which sets `hasCompletedOnboarding` and routes
+ * to /(auth)/login or /(tabs).
  *
- * Design references:
- *  - Welcome:         01._welcome_kse_onboarding/screen.png
- *  - Opportunities:   02._opportunities_kse_onboarding/screen.png
- *  - Community:       03._community_kse_onboarding/screen.png
+ * Design references (Bengali copy + layout):
+ *  - Welcome:       01._welcome_kse_onboarding/screen.png + Image #8 (mock)
+ *  - Opportunities: 02._opportunities_kse_onboarding/screen.png + Image #8
+ *  - Community:     03._community_kse_onboarding/screen.png + Image #8
  *
- * Copy language per design is Bengali (`HindSiliguri_700Bold`). Button labels
- * stay English ("Start" / "Next" / "Skip" / "Login") per spec.
+ * The Bengali paragraphs render in Hind Siliguri (Poppins has no Bengali
+ * glyphs); button labels stay English ("Start" / "Next" / "Skip" / "Login").
  */
 export interface OnboardingStepProps {
   step: 1 | 2 | 3;
   image: ImageSourcePropType;
-  eyebrow: string;
-  headline: [string, string]; // line 1 dark + line 2 purple
+  headline: [string, string]; // line 1 (dark chip) + line 2 (primary chip)
   body: string;
-  /** Bengali body copy can span two visual lines on small screens — body itself is one string. */
-  bodyClassName?: string;
   /** 'Next' for step 2; 'Start' for steps 1 and 3. */
   primaryLabel: 'Start' | 'Next';
-  /** Show the top-right Skip pill (true on steps 2 & 3). */
-  showSkip: boolean;
+  /**
+   * Whether to show the eyebrow chip above the headline. The mockup's
+   * opportunities screen has no eyebrow — its headline sits directly above
+   * the body. Welcome + community show a short indigo-tinted eyebrow chip.
+   */
+  showEyebrow?: boolean;
+  eyebrow?: string;
 }
+
+/** Pure-white card background (matches the new Image #8 mock). */
+const CARD_BG = '#FFFFFF';
+/** Source photo aspect — 420:720, kept as width=100% so `cover` never crops faces. */
+const PHOTO_ASPECT = 420 / 720;
 
 const STEP_ROUTES = {
   1: '/onboarding/opportunities',
@@ -54,21 +60,14 @@ const STEP_ROUTES = {
   3: null, // final step → out of onboarding
 } as const;
 
-/** Soft lavender card background sampled from the design (`#FAF8FF`). */
-const CARD_BG = '#FAF8FF';
-/** Slightly deeper lavender tint used inside the gradient fade. */
-const CARD_BG_TINT = '#F3F1FE';
-/** Skip pill background (translucent black) — design shows dark surface, not white. */
-const SKILL_BG = 'rgba(15,15,20,0.55)';
-
 export function OnboardingStep({
   step,
   image,
-  eyebrow,
   headline,
   body,
   primaryLabel,
-  showSkip,
+  showEyebrow = false,
+  eyebrow,
 }: OnboardingStepProps) {
   const colors = useTheme();
   const tints = useTints();
@@ -89,23 +88,28 @@ export function OnboardingStep({
   return (
     <View style={[styles.root, { backgroundColor: CARD_BG }]}>
       {/*
-        Hero photo: full-bleed, height pinned to ~46% of the viewport so it reads
-        like a banner. A soft LinearGradient fades the lower edge into the card
-        lavender so the photo doesn't terminate with a hard line.
+        Hero photo. Sizing uses source aspect (420:720) so `cover` fills the
+        width and lets the height fall out naturally — never crops faces.
+        Fade gradient drops into the white card from ~55% down.
       */}
       <View style={styles.hero}>
-        <Image source={image} style={StyleSheet.absoluteFill} resizeMode="cover" />
+        <Image
+          source={image}
+          style={[styles.heroImage, { aspectRatio: PHOTO_ASPECT }]}
+          resizeMode="cover"
+        />
         <LinearGradient
-          colors={['rgba(255,255,255,0)', `${CARD_BG_TINT}00`, CARD_BG]}
+          colors={['rgba(255,255,255,0)', 'rgba(255,255,255,0.65)', CARD_BG]}
           locations={[0.55, 0.78, 1]}
           start={{ x: 0.5, y: 0.55 }}
           end={{ x: 0.5, y: 1 }}
           style={styles.fade}
+          pointerEvents="none"
         />
 
         {/*
-          Top safe-area overlay. KSE brand pill is always shown (matches the
-          three design mocks); Skip is conditionally shown on steps 2 & 3.
+          Top safe-area overlay. Brand pill on the left, inline Skip on the
+          right. Both float above the photo.
         */}
         <SafeAreaView edges={['top']} style={styles.topBar}>
           <View style={styles.brandPill}>
@@ -118,43 +122,69 @@ export function OnboardingStep({
             />
             <ThemedText style={styles.brandLabel}>KSE</ThemedText>
           </View>
-          {showSkip ? (
-            <Pressable
-              onPress={finish}
-              accessibilityRole="button"
-              accessibilityLabel="Skip onboarding"
-              hitSlop={8}
-              style={({ pressed }) => [styles.skip, pressed && styles.pressed]}
-            >
-              <ThemedText style={styles.skipLabel}>Skip</ThemedText>
-            </Pressable>
-          ) : null}
+          <Pressable
+            onPress={finish}
+            accessibilityRole="button"
+            accessibilityLabel="Skip onboarding"
+            hitSlop={12}
+            style={({ pressed }) => [styles.skipLink, pressed && styles.pressed]}
+          >
+            <ThemedText style={[styles.skipLabel, { color: colors.heading }]}>
+              Skip
+            </ThemedText>
+          </Pressable>
         </SafeAreaView>
       </View>
 
       {/*
-        Card. Slightly overlaps the hero so the gradient blends naturally
-        rather than terminating at a sharp seam.
+        Card. No overlap this time — the hero already owns its own height
+        and the gradient blends to white. Contents sit in a clean padding.
       */}
       <View style={styles.card}>
         <View style={styles.cardInner}>
-          <View style={[styles.eyebrowChip, { backgroundColor: tints.indigo.bg }]}>
-            <View style={[styles.eyebrowDot, { backgroundColor: colors.primary }]} />
-            <ThemedText style={[styles.eyebrowLabel, { color: colors.primary }]}>
-              {eyebrow}
-            </ThemedText>
-          </View>
+          {showEyebrow && eyebrow ? (
+            <View style={[styles.eyebrowChip, { backgroundColor: tints.indigo.bg }]}>
+              <View style={[styles.eyebrowDot, { backgroundColor: colors.primary }]} />
+              <ThemedText style={[styles.eyebrowLabel, { color: colors.primary }]}>
+                {eyebrow}
+              </ThemedText>
+            </View>
+          ) : null}
 
-          <View>
-            <ThemedText style={[styles.headline, { color: colors.heading, fontFamily: BanglaFontFamilies.bold }]}>
-              {headline[0]}{' '}
-              <ThemedText style={[styles.headline, { color: colors.primary, fontFamily: BanglaFontFamilies.bold }]}>
+          {/*
+            Headline pill-stack: line 1 sits in a dark chip, line 2 in a
+            brand-primary chip, stacked vertically with a small gap.
+            self-start so the chip width hugs its content (matches the mock).
+          */}
+          <View style={styles.headlineWrap}>
+            <View
+              style={[
+                styles.headlineChip,
+                { backgroundColor: colors.heading },
+              ]}
+            >
+              <ThemedText style={[styles.headlineText, { color: CARD_BG }]}>
+                {headline[0]}
+              </ThemedText>
+            </View>
+            <View
+              style={[
+                styles.headlineChip,
+                { backgroundColor: colors.primary },
+              ]}
+            >
+              <ThemedText style={[styles.headlineText, { color: '#FFFFFF' }]}>
                 {headline[1]}
               </ThemedText>
-            </ThemedText>
+            </View>
           </View>
 
-          <ThemedText style={[styles.body, { color: colors.textSecondary, fontFamily: BanglaFontFamilies.regular }]}>
+          <ThemedText
+            style={[
+              styles.body,
+              { color: colors.textSecondary, fontFamily: BanglaFontFamilies.regular },
+            ]}
+          >
             {body}
           </ThemedText>
 
@@ -175,9 +205,9 @@ export function OnboardingStep({
 }
 
 /**
- * Full-width purple CTA matching the Stitch design (button height ~52 px,
+ * Full-width purple CTA matching the Stitch + mock design (height ~52 px,
  * label + trailing arrow). Uses Ionicons because `@expo/vector-icons` is
- * already a direct dependency.
+ * already a direct dependency and `PrimaryButton` has no icon slot.
  */
 function PrimaryCta({ label, onPress }: { label: 'Start' | 'Next'; onPress: () => void }) {
   const colors = useTheme();
@@ -201,7 +231,6 @@ function PrimaryCta({ label, onPress }: { label: 'Start' | 'Next'; onPress: () =
 /**
  * Three-dot pagination indicator — active dot is a wide pill in the brand
  * primary colour, inactive ones are small squares in the border colour.
- * Renders the same on every step so the user always knows where they are.
  */
 function PaginationDots({ current }: { current: 1 | 2 | 3 }) {
   const colors = useTheme();
@@ -231,18 +260,23 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   hero: {
-    height: '46%',
     width: '100%',
-    overflow: 'hidden',
+  },
+  heroImage: {
+    width: '100%',
   },
   fade: {
     position: 'absolute',
     left: 0,
     right: 0,
     bottom: 0,
-    height: '70%',
+    height: '60%',
   },
   topBar: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
     paddingHorizontal: Spacing.four,
     paddingTop: Spacing.two,
     flexDirection: 'row',
@@ -253,46 +287,45 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
     borderRadius: 999,
-    backgroundColor: 'rgba(15,15,20,0.72)',
-    // Subtle elevation so the pill floats above the photo.
-    elevation: 2,
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 3,
   },
   brandIcon: {
     width: 18,
     height: 18,
   },
   brandLabel: {
-    color: '#FFFFFF',
+    color: '#0E0E10',
     fontFamily: FontFamilies.bold,
-    fontSize: 13,
+    fontSize: 14,
     letterSpacing: 0.4,
   },
-  skip: {
-    paddingHorizontal: 18,
+  skipLink: {
+    paddingHorizontal: 8,
     paddingVertical: 8,
-    borderRadius: 999,
-    backgroundColor: SKILL_BG,
   },
   skipLabel: {
-    color: '#FFFFFF',
     fontFamily: FontFamilies.semiBold,
-    fontSize: 13,
-    lineHeight: 16,
+    fontSize: 15,
+    lineHeight: 18,
   },
   pressed: {
-    opacity: 0.75,
+    opacity: 0.6,
   },
   card: {
     flex: 1,
-    marginTop: -Spacing.four,
   },
   cardInner: {
     flex: 1,
     paddingHorizontal: Spacing.four,
-    paddingTop: Spacing.two,
+    paddingTop: Spacing.three,
     paddingBottom: Spacing.four,
     gap: Spacing.three,
   },
@@ -318,23 +351,30 @@ const styles = StyleSheet.create({
     letterSpacing: 0.2,
     flexShrink: 1,
   },
-  headline: {
-    // fontFamily is set inline to BanglaFontFamilies.bold so the Bengali
-    // script renders. Line-height tracks a 26/32 two-line headline cleanly.
-    fontSize: 26,
-    lineHeight: 32,
-    letterSpacing: -0.4,
+  headlineWrap: {
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+    gap: 8,
+  },
+  headlineChip: {
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+  },
+  headlineText: {
+    fontFamily: BanglaFontFamilies.bold,
+    fontSize: 22,
+    lineHeight: 28,
+    letterSpacing: -0.2,
   },
   body: {
-    // fontFamily is set inline to BanglaFontFamilies.regular so the Bengali
-    // glyphs render in Hind Siliguri rather than Poppins (which has no
-    // Bengali coverage).
     fontSize: 14,
     lineHeight: 22,
   },
   dots: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: 6,
     marginVertical: Spacing.one,
   },
