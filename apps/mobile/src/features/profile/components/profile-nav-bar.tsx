@@ -3,7 +3,7 @@ import { router } from 'expo-router';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
-import { FontFamilies } from '@/constants/theme';
+import { FontFamilies, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
 /**
@@ -38,8 +38,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 8,
+    // `Screen` already applies Spacing.four (24px) horizontal padding, so
+    // the nav row only needs vertical padding for the gear's hit-target.
+    paddingVertical: Spacing.two,
   },
   spacer: {
     width: 36,
