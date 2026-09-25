@@ -74,11 +74,12 @@ function AuthGate({ children }: { children: React.ReactNode }) {
     useSettingsStore.persist.hasHydrated(),
   );
   useEffect(() => {
-    const unsub = useSettingsStore.persist.onFinishHydration(() => setSettingsHydrated(true));
-    // Cover the case where rehydration already finished before this effect
-    // ran (e.g. on subsequent renders).
-    if (useSettingsStore.persist.hasHydrated()) setSettingsHydrated(true);
-    return unsub;
+    // onFinishHydration fires once rehydration finishes. If it already
+    // finished before mount, the lazy `useState` initializer above picked
+    // up `hasHydrated() === true`, so we don't need to re-check here.
+    return useSettingsStore.persist.onFinishHydration(() =>
+      setSettingsHydrated(true),
+    );
   }, []);
   const segments = useSegments();
 
