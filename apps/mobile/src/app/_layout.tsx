@@ -21,7 +21,7 @@ import {
 } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Appearance, Platform } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
@@ -60,6 +60,17 @@ const queryClient = new QueryClient({
  * Without that wait we'd race the gate against the persisted state on
  * cold start and either skip onboarding for existing users or show
  * onboarding twice.
+ *
+ * Flicker suppression: Supabase's `onAuthStateChange` callback can fire
+ * with a transient `null` session during token refresh (the listener is
+ * invoked before the refreshed session object arrives). Without a guard
+ * those nulls leak into the auth store, the gate re-runs, and
+ * `router.replace('/(auth)/login')` teleports the user out of whatever
+ * screen they were on — that's the "back button takes me to home" bug.
+ * We track the last known stable session in a ref and only treat a null
+ * as a genuine sign-out when the event is `SIGNED_OUT`. Ordinary back
+ * navigation (a `segments` change without an auth change) is allowed to
+ * pass through unmolested.
  */
 function AuthGate({ children }: { children: React.ReactNode }) {
   const session = useAuthStore((s) => s.session);
@@ -81,16 +92,48 @@ function AuthGate({ children }: { children: React.ReactNode }) {
       setSettingsHydrated(true),
     );
   }, []);
+
   const segments = useSegments();
 
+  // Last session we believe is "really" valid — used to distinguish a
+  // genuine sign-out from a Supabase token-refresh flicker.
+  const lastStableSessionRef = useRef<typeof session>(null);
+
   useEffect(() => {
+    let firstEvent = true;
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session);
+      if (data.session) lastStableSessionRef.current = data.session;
       markReady();
     });
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+    } = supabase.auth.onAuthStateChange((event, nextSession) => {
+      // `INITIAL_SESSION` from `getSession` already delivered the real
+      // session above; the listener firing with the same value is fine.
+      // Skip the first listener fire so we don't double-update.
+      if (firstEvent) {
+        firstEvent = false;
+        // ...but still seed the stable-session ref if the listener is
+        // the one that delivered the first real session.
+        if (nextSession) lastStableSessionRef.current = nextSession;
+        return;
+      }
+      // SIGNED_OUT is the only event that genuinely clears the session.
+      // A null session alongside TOKEN_REFRESHED / USER_UPDATED / etc.
+      // is a flicker — keep the previous session alive.
+      if (event === 'SIGNED_OUT') {
+        lastStableSessionRef.current = null;
+        setSession(null);
+        markReady();
+        return;
+      }
+      if (!nextSession && lastStableSessionRef.current) {
+        // Transient null while we still believe the user is signed in.
+        // Ignore — the next event will deliver the refreshed session.
+        return;
+      }
+      if (nextSession) lastStableSessionRef.current = nextSession;
       setSession(nextSession);
       markReady();
     });
@@ -116,7 +159,10 @@ function AuthGate({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    if (!session && !inAuthGroup) {
+    // Genuine sign-out (no stable session AND no flicker in progress)
+    // → force-login. If `lastStableSessionRef.current` is set, the null
+    // is a flicker and we leave the user where they are.
+    if (!session && !lastStableSessionRef.current && !inAuthGroup) {
       router.replace('/(auth)/login');
     } else if (session && inAuthGroup) {
       router.replace('/(tabs)');
