@@ -1,8 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import type { ImageSourcePropType } from 'react-native';
-import { Image, Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
@@ -15,27 +13,25 @@ import { useSettingsStore } from '@/store/settings-store';
 
 /**
  * Reusable shell for the three onboarding screens (Welcome / Opportunities /
- * Community). Owns the layout — full-bleed hero photo at the top fading into
- * a pure-white card with a pill-stack headline (line 2 colored), body copy,
- * 3-dot pagination, a full-width purple primary CTA with a trailing arrow,
- * and the "All have an account? Login" footer.
+ * Community). Pure white background, no hero photo — the brand pill ("KSE")
+ * sits top-left and an inline "Skip" link sits top-right. Below them sits
+ * the eyebrow chip (when shown), a pill-stack headline (line 1 dark, line 2
+ * brand primary), body copy, 3-dot pagination, a full-width purple CTA, and
+ * the "All have an account? Login" footer.
  *
- * The brand pill ("KSE + leaf") sits top-left over the hero on all three
- * screens, and an inline "Skip" link sits top-right. Tapping Skip finishes
- * onboarding via `finish()`, which sets `hasCompletedOnboarding` and routes
- * to /(auth)/login or /(tabs).
+ * Tapping Skip or the CTA on the final step calls `finish()`, which sets
+ * `hasCompletedOnboarding` and routes to /(auth)/login or /(tabs).
  *
- * Design references (Bengali copy + layout):
+ * Design references (Bengali copy + layout, no photos):
  *  - Welcome:       01._welcome_kse_onboarding/screen.png + Image #8 (mock)
  *  - Opportunities: 02._opportunities_kse_onboarding/screen.png + Image #8
  *  - Community:     03._community_kse_onboarding/screen.png + Image #8
  *
- * The Bengali paragraphs render in Hind Siliguri (Poppins has no Bengali
+ * Bengali paragraphs render in Hind Siliguri (Poppins has no Bengali
  * glyphs); button labels stay English ("Start" / "Next" / "Skip" / "Login").
  */
 export interface OnboardingStepProps {
   step: 1 | 2 | 3;
-  image: ImageSourcePropType;
   headline: [string, string]; // line 1 (dark chip) + line 2 (primary chip)
   body: string;
   /** 'Next' for step 2; 'Start' for steps 1 and 3. */
@@ -49,10 +45,8 @@ export interface OnboardingStepProps {
   eyebrow?: string;
 }
 
-/** Pure-white card background (matches the new Image #8 mock). */
+/** Pure-white background. */
 const CARD_BG = '#FFFFFF';
-/** Source photo aspect — 420:720, kept as width=100% so `cover` never crops faces. */
-const PHOTO_ASPECT = 420 / 720;
 
 const STEP_ROUTES = {
   1: '/onboarding/opportunities',
@@ -62,7 +56,6 @@ const STEP_ROUTES = {
 
 export function OnboardingStep({
   step,
-  image,
   headline,
   body,
   primaryLabel,
@@ -88,57 +81,29 @@ export function OnboardingStep({
   return (
     <View style={[styles.root, { backgroundColor: CARD_BG }]}>
       {/*
-        Hero photo. Sizing uses source aspect (420:720) so `cover` fills the
-        width and lets the height fall out naturally — never crops faces.
-        Fade gradient drops into the white card from ~55% down.
+        Top safe-area row — brand pill on the left, inline Skip on the right.
+        Sits inside the safe area so it never collides with the status bar.
       */}
-      <View style={styles.hero}>
-        <Image
-          source={image}
-          style={[styles.heroImage, { aspectRatio: PHOTO_ASPECT }]}
-          resizeMode="cover"
-        />
-        <LinearGradient
-          colors={['rgba(255,255,255,0)', 'rgba(255,255,255,0.65)', CARD_BG]}
-          locations={[0.55, 0.78, 1]}
-          start={{ x: 0.5, y: 0.55 }}
-          end={{ x: 0.5, y: 1 }}
-          style={styles.fade}
-          pointerEvents="none"
-        />
-
-        {/*
-          Top safe-area overlay. Brand pill on the left, inline Skip on the
-          right. Both float above the photo.
-        */}
-        <SafeAreaView edges={['top']} style={styles.topBar}>
-          <View style={styles.brandPill}>
-            <Image
-              source={require('@/assets/images/logo-glow.png')}
-              style={styles.brandIcon}
-              resizeMode="contain"
-              accessibilityElementsHidden
-              importantForAccessibility="no"
-            />
-            <ThemedText style={styles.brandLabel}>KSE</ThemedText>
-          </View>
-          <Pressable
-            onPress={finish}
-            accessibilityRole="button"
-            accessibilityLabel="Skip onboarding"
-            hitSlop={12}
-            style={({ pressed }) => [styles.skipLink, pressed && styles.pressed]}
-          >
-            <ThemedText style={[styles.skipLabel, { color: colors.heading }]}>
-              Skip
-            </ThemedText>
-          </Pressable>
-        </SafeAreaView>
-      </View>
+      <SafeAreaView edges={['top']} style={styles.topBar}>
+        <View style={styles.brandPill}>
+          <ThemedText style={styles.brandLabel}>KSE</ThemedText>
+        </View>
+        <Pressable
+          onPress={finish}
+          accessibilityRole="button"
+          accessibilityLabel="Skip onboarding"
+          hitSlop={12}
+          style={({ pressed }) => [styles.skipLink, pressed && styles.pressed]}
+        >
+          <ThemedText style={[styles.skipLabel, { color: colors.heading }]}>
+            Skip
+          </ThemedText>
+        </Pressable>
+      </SafeAreaView>
 
       {/*
-        Card. No overlap this time — the hero already owns its own height
-        and the gradient blends to white. Contents sit in a clean padding.
+        Card content sits directly below the top bar. No hero — the screen
+        is a single white surface with all the headline + body + CTA content.
       */}
       <View style={styles.card}>
         <View style={styles.cardInner}>
@@ -205,9 +170,9 @@ export function OnboardingStep({
 }
 
 /**
- * Full-width purple CTA matching the Stitch + mock design (height ~52 px,
- * label + trailing arrow). Uses Ionicons because `@expo/vector-icons` is
- * already a direct dependency and `PrimaryButton` has no icon slot.
+ * Full-width purple CTA matching the design (height ~52 px, label + trailing
+ * arrow). Uses Ionicons because `@expo/vector-icons` is already a direct
+ * dependency and `PrimaryButton` has no icon slot.
  */
 function PrimaryCta({ label, onPress }: { label: 'Start' | 'Next'; onPress: () => void }) {
   const colors = useTheme();
@@ -259,24 +224,7 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
   },
-  hero: {
-    width: '100%',
-  },
-  heroImage: {
-    width: '100%',
-  },
-  fade: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    height: '60%',
-  },
   topBar: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
     paddingHorizontal: Spacing.four,
     paddingTop: Spacing.two,
     flexDirection: 'row',
@@ -284,28 +232,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   brandPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
     paddingHorizontal: 14,
     paddingVertical: 9,
     borderRadius: 999,
-    backgroundColor: '#FFFFFF',
-    shadowColor: '#000',
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 3,
-  },
-  brandIcon: {
-    width: 18,
-    height: 18,
+    backgroundColor: '#0E0E10',
   },
   brandLabel: {
-    color: '#0E0E10',
+    color: '#FFFFFF',
     fontFamily: FontFamilies.bold,
     fontSize: 14,
-    letterSpacing: 0.4,
+    letterSpacing: 0.6,
   },
   skipLink: {
     paddingHorizontal: 8,
@@ -325,9 +261,10 @@ const styles = StyleSheet.create({
   cardInner: {
     flex: 1,
     paddingHorizontal: Spacing.four,
-    paddingTop: Spacing.three,
+    paddingTop: Spacing.four,
     paddingBottom: Spacing.four,
     gap: Spacing.three,
+    justifyContent: 'center',
   },
   eyebrowChip: {
     alignSelf: 'flex-start',

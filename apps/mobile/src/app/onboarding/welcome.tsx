@@ -11,7 +11,6 @@ export default function WelcomeScreen() {
   return (
     <OnboardingStep
       step={1}
-      image={require('@/assets/images/onboarding/welcome.jpg')}
       eyebrow="খুলনা ইকোস্টেম"
       showEyebrow
       headline={['তোমার স্বপ্নের পথ,', 'সুযোগগুলো এখন হাতের মুঠোয়']}

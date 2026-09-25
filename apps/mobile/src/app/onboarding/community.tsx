@@ -12,7 +12,6 @@ export default function CommunityScreen() {
   return (
     <OnboardingStep
       step={3}
-      image={require('@/assets/images/onboarding/community.jpg')}
       eyebrow="স্টুডেন্ট কমিউনিটি"
       showEyebrow
       headline={['একসাথে শিখি,', 'একসাথে এগিয়ে যাই।']}
