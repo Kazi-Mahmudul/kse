@@ -43,14 +43,43 @@ const queryClient = new QueryClient({
 });
 
 /**
- * Restores the persisted session, keeps the store in sync with Supabase,
- * and gates navigation: unauthenticated users can only reach (auth).
+ * Three-layer navigation gate, evaluated in this order:
+ *
+ *   1. Onboarding: if the user hasn't seen the welcome/opportunities/
+ *      community screens yet, route to /onboarding/welcome regardless of
+ *      auth state. Tapping Start / Next / Skip sets
+ *      `hasCompletedOnboarding` in the persisted settings store and the
+ *      next effect pass reroutes out of onboarding.
+ *   2. Auth: if onboarding is done and there's no session, push to
+ *      /(auth)/login.
+ *   3. Auth → tabs: if the user is on an auth screen with a valid session,
+ *      push to /(tabs).
+ *
+ * The gate waits on both `authReady` (Supabase session restored) and
+ * `settingsHydrated` (AsyncStorage rehydrated) before it does anything.
+ * Without that wait we'd race the gate against the persisted state on
+ * cold start and either skip onboarding for existing users or show
+ * onboarding twice.
  */
 function AuthGate({ children }: { children: React.ReactNode }) {
   const session = useAuthStore((s) => s.session);
   const ready = useAuthStore((s) => s.ready);
   const setSession = useAuthStore((s) => s.setSession);
   const markReady = useAuthStore((s) => s.markReady);
+  const hasCompletedOnboarding = useSettingsStore((s) => s.hasCompletedOnboarding);
+  // `persist.hasHydrated()` is a static API on the persisted store —
+  // subscribe to it so the gate waits until AsyncStorage has rehydrated
+  // before deciding where to route.
+  const [settingsHydrated, setSettingsHydrated] = useState(
+    useSettingsStore.persist.hasHydrated(),
+  );
+  useEffect(() => {
+    const unsub = useSettingsStore.persist.onFinishHydration(() => setSettingsHydrated(true));
+    // Cover the case where rehydration already finished before this effect
+    // ran (e.g. on subsequent renders).
+    if (useSettingsStore.persist.hasHydrated()) setSettingsHydrated(true);
+    return unsub;
+  }, []);
   const segments = useSegments();
 
   useEffect(() => {
@@ -68,20 +97,36 @@ function AuthGate({ children }: { children: React.ReactNode }) {
   }, [setSession, markReady]);
 
   useEffect(() => {
-    if (!ready) return;
+    if (!ready || !settingsHydrated) return;
+
+    const inOnboarding = segments[0] === 'onboarding';
     const inAuthGroup = segments[0] === '(auth)';
+
+    if (!hasCompletedOnboarding) {
+      // Cold start, never seen onboarding → push to the welcome screen.
+      if (!inOnboarding) router.replace('/onboarding/welcome');
+      return;
+    }
+
+    // Onboarding finished but the user is still parked on an onboarding
+    // route (e.g. they hit back from login and we're between renders).
+    if (inOnboarding) {
+      router.replace(session ? '/(tabs)' : '/(auth)/login');
+      return;
+    }
+
     if (!session && !inAuthGroup) {
       router.replace('/(auth)/login');
     } else if (session && inAuthGroup) {
       router.replace('/(tabs)');
     }
-  }, [ready, session, segments]);
+  }, [ready, settingsHydrated, hasCompletedOnboarding, session, segments]);
 
   useEffect(() => {
-    if (ready) SplashScreen.hideAsync();
-  }, [ready]);
+    if (ready && settingsHydrated) SplashScreen.hideAsync();
+  }, [ready, settingsHydrated]);
 
-  if (!ready) return null; // keep the native splash visible until restored
+  if (!ready || !settingsHydrated) return null; // keep the native splash visible
   return <>{children}</>;
 }
 
@@ -146,6 +191,7 @@ export default function RootLayout() {
                 state: blurActiveElement,
               }}
             >
+              <Stack.Screen name="onboarding" />
               <Stack.Screen name="(tabs)" />
               <Stack.Screen name="(auth)" />
               <Stack.Screen name="create" options={{ presentation: 'modal' }} />

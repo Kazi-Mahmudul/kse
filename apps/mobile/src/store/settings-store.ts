@@ -14,26 +14,51 @@ export type ThemePreference = 'system' | 'light' | 'dark';
 
 interface SettingsState {
   themePreference: ThemePreference;
+  /**
+   * Set true after the user has seen the three onboarding screens (or hit
+   * Skip). Persists across reinstalls via AsyncStorage. Read by the root
+   * `AuthGate` to decide whether to push to `/onboarding/welcome` first.
+   */
+  hasCompletedOnboarding: boolean;
   setThemePreference: (pref: ThemePreference) => void;
+  setHasCompletedOnboarding: (value: boolean) => void;
 }
 
 /**
  * Device-local settings (CLAUDE.md rule 12: keep client state out of the
  * server). Persisted via AsyncStorage — key `kse.settings`. No server sync
  * in MVP (a future step could sync `themePreference` to a `profiles` column).
+ *
+ * `version: 2` was bumped when `hasCompletedOnboarding` was added. The
+ * `migrate` callback defaults the new key on payloads persisted at v1 —
+ * older installs land on the onboarding flow exactly once, then the flag
+ * persists from there.
  */
 export const useSettingsStore = create<SettingsState>()(
   persist(
     (set) => ({
       themePreference: 'system',
+      hasCompletedOnboarding: false,
       setThemePreference: (pref) => set({ themePreference: pref }),
+      setHasCompletedOnboarding: (value) => set({ hasCompletedOnboarding: value }),
     }),
     {
       name: 'kse.settings',
       storage: createJSONStorage(() => AsyncStorage),
-      // Bump this when the shape changes so old persisted payloads don't
-      // silently overwrite new defaults.
-      version: 1,
+      version: 2,
+      migrate: (persisted, fromVersion) => {
+        // v1 only had themePreference; the new key falls through to its
+        // default (false), which means older installs land on onboarding
+        // once. Intentional: every user who upgrades to v2 of the app
+        // should see the new screens at least once.
+        if (fromVersion < 2) {
+          return {
+            ...(persisted as object),
+            hasCompletedOnboarding: false,
+          };
+        }
+        return persisted as SettingsState;
+      },
     },
   ),
 );
