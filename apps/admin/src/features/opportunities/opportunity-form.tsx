@@ -199,7 +199,7 @@ export function OpportunityForm({
           <span className="text-sm font-medium text-zinc-700">
             Deadline note
             <span className="ml-2 font-normal text-zinc-400">
-              (free-text for prose-only windows like "Annual; check current call")
+              (free-text for prose-only windows like &ldquo;Annual; check current call&rdquo;)
             </span>
           </span>
           <input
