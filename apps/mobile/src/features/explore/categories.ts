@@ -3,7 +3,7 @@ import type { IconName } from '@/types/icon';
 
 /** Explore sections (spec §32). Slugs double as route params. */
 export interface ExploreCategory {
-  slug: 'internship' | 'scholarship' | 'event' | 'workshop' | 'tuition' | 'mentorship';
+  slug: 'internship' | 'scholarship' | 'event' | 'workshop' | 'tuition' | 'mentorship' | 'tolet';
   label: string;
   description: string;
   icon: IconName;
@@ -29,6 +29,14 @@ export const EXPLORE_CATEGORIES: ExploreCategory[] = [
     icon: 'school-outline',
     tint: 'success',
     countKey: 'scholarship',
+  },
+  {
+    slug: 'tolet',
+    label: 'Bachelor To-Let',
+    description: 'Rooms & sublets near campus',
+    icon: 'home-outline',
+    tint: 'primary',
+    countKey: 'tolet',
   },
   {
     slug: 'event',

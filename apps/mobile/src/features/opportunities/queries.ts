@@ -59,6 +59,30 @@ export function useOpportunityFeed(filters: OpportunityFilters) {
     getNextPageParam: (lastPage) =>
       lastPage.hasMore ? lastPage.page + 1 : undefined,
     placeholderData: keepPreviousData,
+    select: (data) => {
+      // `keepPreviousData` on an infinite query keeps the *previous* query's
+      // pages array intact while the new query loads its first page, then
+      // appends new pages on top. When a filter narrows results (e.g. chip
+      // changes from "All" to "International"), the new page 1 contains the
+      // same rows the old pages 1-N already had — `flatMap(pages.rows)`
+      // emits each id twice and FlatList warns about duplicate keys.
+      //
+      // Walk pages from newest to oldest and drop any row whose id already
+      // appeared in a newer page, so the freshest version wins. The reversed
+      // array is then flipped back to its original order before returning.
+      const seen = new Set<string>();
+      const dedupedReversed = [...data.pages]
+        .reverse()
+        .map((page) => ({
+          ...page,
+          rows: page.rows.filter((row) => {
+            if (seen.has(row.id)) return false;
+            seen.add(row.id);
+            return true;
+          }),
+        }));
+      return { ...data, pages: dedupedReversed.reverse() };
+    },
   });
 }
 

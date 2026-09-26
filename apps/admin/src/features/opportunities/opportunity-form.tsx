@@ -194,6 +194,24 @@ export function OpportunityForm({
           />
           {err('deadline')}
         </label>
+
+        <label className="flex flex-col gap-1.5 md:col-span-2">
+          <span className="text-sm font-medium text-zinc-700">
+            Deadline note
+            <span className="ml-2 font-normal text-zinc-400">
+              (free-text for prose-only windows like "Annual; check current call")
+            </span>
+          </span>
+          <input
+            type="text"
+            name="deadline_note"
+            defaultValue={opportunity?.deadline_note ?? ''}
+            placeholder="Annual; check current call"
+            maxLength={500}
+            className={inputClass}
+          />
+          {err('deadline_note')}
+        </label>
       </div>
 
       {type === 'scholarship' && (

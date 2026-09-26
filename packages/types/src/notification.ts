@@ -10,6 +10,12 @@ export const NOTIFICATION_TYPES = [
   'community_announcement',
   'platform_announcement',
   'custom',
+  // Bachelor To-Let events (spec bachelor-to-let §Notifications).
+  'tolet_submitted',
+  'tolet_approved',
+  'tolet_rejected',
+  'tolet_reported',
+  'tolet_status_changed',
 ] as const;
 
 export type NotificationType = (typeof NOTIFICATION_TYPES)[number];

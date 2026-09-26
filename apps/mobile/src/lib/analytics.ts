@@ -27,7 +27,14 @@ export type AnalyticsEvent =
   | 'tutor_viewed'
   | 'community_joined'
   | 'notification_opened'
-  | 'deadline_reminder_dispatched';
+  | 'deadline_reminder_dispatched'
+  // Bachelor To-Let (spec bachelor-to-let §Notifications / §Analytics).
+  | 'tolet_listing_viewed'
+  | 'tolet_listing_favorited'
+  | 'tolet_listing_contact_clicked'
+  | 'tolet_listing_submitted'
+  | 'tolet_listing_reported'
+  | 'tolet_listing_withdrawn';
 
 export interface AnalyticsEventMap {
   signup_completed: never;
@@ -39,6 +46,12 @@ export interface AnalyticsEventMap {
   community_joined: { id: string; joined: boolean };
   notification_opened: { id: string };
   deadline_reminder_dispatched: { opportunityId: string; daysBefore: number };
+  tolet_listing_viewed: { id: string };
+  tolet_listing_favorited: { id: string; saved: boolean };
+  tolet_listing_contact_clicked: { id: string; method: 'phone' | 'whatsapp' | 'email' };
+  tolet_listing_submitted: { id: string };
+  tolet_listing_reported: { id: string; reason: string };
+  tolet_listing_withdrawn: { id: string };
 }
 
 export type EventProperties<E extends AnalyticsEvent> = AnalyticsEventMap[E];
@@ -129,6 +142,20 @@ export const analytics = {
   notificationOpened: (id: string) => track('notification_opened', { id }),
   deadlineReminderDispatched: (opportunityId: string, daysBefore: number) =>
     track('deadline_reminder_dispatched', { opportunityId, daysBefore }),
+  // Bachelor To-Let helpers.
+  toletListingViewed: (id: string) => track('tolet_listing_viewed', { id }),
+  toletListingFavorited: (id: string, saved: boolean) =>
+    track('tolet_listing_favorited', { id, saved }),
+  toletContactClicked: (
+    id: string,
+    method: 'phone' | 'whatsapp' | 'email',
+  ) => track('tolet_listing_contact_clicked', { id, method }),
+  toletListingSubmitted: (id: string) =>
+    track('tolet_listing_submitted', { id }),
+  toletListingReported: (id: string, reason: string) =>
+    track('tolet_listing_reported', { id, reason }),
+  toletListingWithdrawn: (id: string) =>
+    track('tolet_listing_withdrawn', { id }),
 };
 
 export const _debug = { HAS_POSTHOG, HAS_SENTRY, providers: providers.map((p) => p.name) };

@@ -57,6 +57,10 @@ export function ScholarshipCard({ opportunity, matchLevel }: ScholarshipCardProp
     ? FUNDING_TYPE_LABELS[opportunity.funding_type]
     : null;
   const deadlineLabel = formatDeadline(opportunity.deadline);
+  const deadlineNote =
+    !opportunity.deadline && opportunity.deadline_note
+      ? opportunity.deadline_note
+      : null;
 
   const open = () =>
     router.push({
@@ -177,7 +181,7 @@ export function ScholarshipCard({ opportunity, matchLevel }: ScholarshipCardProp
                 ) : null}
               </View>
             )}
-            {deadlineLabel ? (
+            {deadlineLabel || deadlineNote ? (
               <Text style={[styles.deadline, { color: colors.textMuted }]}>
                 <Text style={{ color: colors.textMuted }}>Deadline: </Text>
                 <Text
@@ -186,7 +190,7 @@ export function ScholarshipCard({ opportunity, matchLevel }: ScholarshipCardProp
                     { color: colors.bodyStrong ?? colors.text },
                   ]}
                 >
-                  {deadlineLabel}
+                  {deadlineLabel ?? deadlineNote}
                 </Text>
               </Text>
             ) : null}
@@ -194,7 +198,7 @@ export function ScholarshipCard({ opportunity, matchLevel }: ScholarshipCardProp
         </Pressable>
 
         <View style={styles.bookmark}>
-          <BookmarkButton opportunityId={opportunity.id} variant="icon" />
+          <BookmarkButton id={opportunity.id} variant="icon" />
         </View>
       </View>
     </View>

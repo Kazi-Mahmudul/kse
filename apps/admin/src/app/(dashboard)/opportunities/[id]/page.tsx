@@ -72,6 +72,7 @@ export default async function EditOpportunityPage({
     eligibility: opportunity.eligibility ?? '',
     application_url: opportunity.application_url ?? '',
     deadline: toDateTimeLocal(opportunity.deadline),
+    deadline_note: opportunity.deadline_note ?? '',
     degree_level: opportunity.degree_level ?? '',
     funding_type: opportunity.funding_type ?? '',
     country: opportunity.country ?? '',

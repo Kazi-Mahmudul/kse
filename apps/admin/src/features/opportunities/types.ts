@@ -32,6 +32,8 @@ export interface OpportunityFormData {
   eligibility: string;
   application_url: string;
   deadline: string;
+  /** Free-text deadline description (paired with `deadline`). */
+  deadline_note: string;
   degree_level: string;
   funding_type: string;
   country: string;

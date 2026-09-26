@@ -6,6 +6,9 @@ import {
   OPPORTUNITY_MODES,
   OPPORTUNITY_STATUSES,
   OPPORTUNITY_TYPES,
+  TOLET_GENDER_PREFERENCES,
+  TOLET_LISTING_STATUSES,
+  TOLET_ROOM_TYPES,
 } from '@kse/types';
 
 import { uuidField } from './common';
@@ -27,6 +30,9 @@ export const opportunityCreateSchema = z.object({
   eligibility: z.string().trim().max(2000).nullable().optional(),
   application_url: z.string().url('Enter a valid application URL').nullable().optional(),
   deadline: isoDateString.nullable().optional(),
+  /** Free-text deadline description for prose-only apply-by windows
+   *  ("Annual; check current call"). Surfaced when `deadline` is null. */
+  deadline_note: z.string().trim().max(500).nullable().optional(),
   degree_level: z.enum(DEGREE_LEVELS).nullable().optional(),
   funding_type: z.enum(FUNDING_TYPES).nullable().optional(),
   country: z.string().trim().max(100).nullable().optional(),
@@ -40,6 +46,29 @@ export const opportunityCreateSchema = z.object({
     .nullable()
     .optional(),
   internship_type: z.enum(OPPORTUNITY_INTERNSHIP_TYPES).nullable().optional(),
+  // Bachelor To-Let fields (spec bachelor-to-let).
+  rent_amount: z.number().nonnegative().finite().nullable().optional(),
+  rent_currency: z
+    .string()
+    .trim()
+    .regex(/^[A-Z]{3}$/, 'Use a 3-letter ISO currency code (e.g. BDT, USD)')
+    .nullable()
+    .optional(),
+  room_type: z.enum(TOLET_ROOM_TYPES).nullable().optional(),
+  gender_preference: z.enum(TOLET_GENDER_PREFERENCES).nullable().optional(),
+  available_from: z.string().date().nullable().optional(),
+  bachelor_friendly: z.boolean().optional(),
+  utilities_included: z.boolean().optional(),
+  landlord_phone: z.string().trim().max(30).nullable().optional(),
+  whatsapp: z.string().trim().max(30).nullable().optional(),
+  contact_email: z.string().email().nullable().optional(),
+  listing_status: z.enum(TOLET_LISTING_STATUSES).optional(),
+  image_urls: z.array(z.string().url()).max(8).optional(),
+  city: z.string().trim().max(80).nullable().optional(),
+  area: z.string().trim().max(80).nullable().optional(),
+  floor: z.number().int().min(-2).max(100).nullable().optional(),
+  total_rooms: z.number().int().positive().max(200).nullable().optional(),
+  available_rooms: z.number().int().nonnegative().max(200).nullable().optional(),
   featured: z.boolean().optional(),
   verified: z.boolean().optional(),
   source_name: z.string().trim().max(150).nullable().optional(),
@@ -128,6 +157,7 @@ export const opportunityFormSchema = z.object({
   eligibility: optionalText(2000),
   application_url: optionalUrl('Enter a valid application URL'),
   deadline: deadlineField,
+  deadline_note: optionalText(500),
   degree_level: z.preprocess(
     emptyToNull,
     z.enum(DEGREE_LEVELS, { message: 'Invalid degree level' }).nullable(),
@@ -172,6 +202,104 @@ export const opportunityFormSchema = z.object({
     emptyToNull,
     z.enum(OPPORTUNITY_INTERNSHIP_TYPES, { message: 'Invalid internship type' }).nullable(),
   ),
+  // Bachelor To-Let fields (spec bachelor-to-let). The form section only
+  // renders for tolet, so these keys are usually absent on other types.
+  rent_amount: z.preprocess(
+    (value) => {
+      const normalized = emptyToNull(value);
+      if (normalized === null) return null;
+      return typeof normalized === 'string' ? Number(normalized) : normalized;
+    },
+    z
+      .number({ message: 'Enter a number' })
+      .nonnegative('Rent cannot be negative')
+      .finite()
+      .nullable(),
+  ),
+  rent_currency: z.preprocess(
+    emptyToNull,
+    z
+      .string()
+      .trim()
+      .toUpperCase()
+      .regex(/^[A-Z]{3}$/, 'Use a 3-letter ISO currency code (e.g. BDT, USD)')
+      .nullable(),
+  ),
+  room_type: z.preprocess(
+    emptyToNull,
+    z.enum(TOLET_ROOM_TYPES, { message: 'Choose a room type' }).nullable(),
+  ),
+  gender_preference: z.preprocess(
+    emptyToNull,
+    z.enum(TOLET_GENDER_PREFERENCES).nullable(),
+  ),
+  available_from: z.preprocess(
+    (value) => {
+      const v = emptyToNull(value);
+      if (v == null) return null;
+      const s = String(v);
+      // Accept both YYYY-MM-DD (date input) and datetime-local.
+      return s.length >= 10 ? s.slice(0, 10) : null;
+    },
+    z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Use a YYYY-MM-DD date').nullable(),
+  ),
+  bachelor_friendly: booleanField,
+  utilities_included: booleanField,
+  landlord_phone: z.preprocess(
+    emptyToNull,
+    z.string().trim().max(30).nullable(),
+  ),
+  whatsapp: z.preprocess(
+    emptyToNull,
+    z.string().trim().max(30).nullable(),
+  ),
+  contact_email: z.preprocess(
+    emptyToNull,
+    z.string().trim().email('Enter a valid email').nullable(),
+  ),
+  listing_status: z.preprocess(
+    emptyToNull,
+    z.enum(TOLET_LISTING_STATUSES).nullable(),
+  ),
+  image_urls: z.preprocess(
+    (value) => {
+      // Multi-value or comma-separated.
+      if (Array.isArray(value)) {
+        return value.filter((v): v is string => typeof v === 'string' && v.length > 0);
+      }
+      if (typeof value === 'string' && value.length > 0) {
+        return value.split(/[\n,]/).map((s) => s.trim()).filter(Boolean);
+      }
+      return [];
+    },
+    z.array(z.string().url()).max(8, 'Up to 8 photos'),
+  ),
+  city: optionalText(80),
+  area: optionalText(80),
+  floor: z.preprocess(
+    (value) => {
+      const normalized = emptyToNull(value);
+      if (normalized === null) return null;
+      return typeof normalized === 'string' ? Number(normalized) : normalized;
+    },
+    z.number().int().min(-2).max(100).nullable(),
+  ),
+  total_rooms: z.preprocess(
+    (value) => {
+      const normalized = emptyToNull(value);
+      if (normalized === null) return null;
+      return typeof normalized === 'string' ? Number(normalized) : normalized;
+    },
+    z.number().int().positive().max(200).nullable(),
+  ),
+  available_rooms: z.preprocess(
+    (value) => {
+      const normalized = emptyToNull(value);
+      if (normalized === null) return null;
+      return typeof normalized === 'string' ? Number(normalized) : normalized;
+    },
+    z.number().int().nonnegative().max(200).nullable(),
+  ),
   status: z.enum(OPPORTUNITY_STATUSES, { message: 'Choose a status' }),
   featured: booleanField,
   verified: booleanField,
@@ -188,6 +316,28 @@ export const opportunityFormSchema = z.object({
       code: 'custom',
       path: ['stipend_currency'],
       message: 'Set both stipend amount and currency, or leave both empty',
+    });
+  }
+  // Same pair-check for rent.
+  const hasRent = values.rent_amount !== null;
+  const hasRentCurrency = values.rent_currency !== null;
+  if (hasRent !== hasRentCurrency) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['rent_currency'],
+      message: 'Set both rent amount and currency, or leave both empty',
+    });
+  }
+  // available_rooms ≤ total_rooms
+  if (
+    values.available_rooms != null
+    && values.total_rooms != null
+    && values.available_rooms > values.total_rooms
+  ) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['available_rooms'],
+      message: 'Available rooms cannot exceed total rooms',
     });
   }
 });

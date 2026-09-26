@@ -10,6 +10,7 @@ import type {
   EducationResultType,
   EventType,
   FundingType,
+  NotificationType,
   OpportunityInternshipType,
   OpportunityMode,
   OpportunityStatus,
@@ -19,6 +20,9 @@ import type {
   ScholarshipApplicationStatus,
   StudyGroup,
   TestScoreType,
+  ToletGenderPreference,
+  ToletListingStatus,
+  ToletRoomType,
   UndergradDegreeType,
   UserActivityType,
   UserRole,
@@ -45,6 +49,9 @@ import {
   SCHOLARSHIP_APPLICATION_STATUS_LABELS,
   STUDY_GROUPS,
   TEST_SCORE_TYPES,
+  TOLET_GENDER_PREFERENCES,
+  TOLET_LISTING_STATUSES,
+  TOLET_ROOM_TYPES,
   UNDERGRAD_DEGREE_TYPES,
   USER_ACTIVITY_TYPES,
 } from '@kse/types';
@@ -59,6 +66,7 @@ export const OPPORTUNITY_TYPE_LABELS: Record<OpportunityType, string> = {
   workshop: 'Workshop',
   event: 'Event',
   mentorship: 'Mentorship',
+  tolet: 'Bachelor To-Let',
 };
 
 export const OPPORTUNITY_STATUS_LABELS: Record<OpportunityStatus, string> = {
@@ -109,6 +117,45 @@ export const EVENT_TYPE_LABELS: Record<EventType, string> = {
   hackathon: 'Hackathon',
   meetup: 'Meetup',
 };
+
+// ── Bachelor To-Let (student housing) labels ───────────────────────────────
+
+export const TOLET_ROOM_TYPE_LABELS: Record<ToletRoomType, string> = {
+  single: 'Single room',
+  shared: 'Shared room',
+  sublet: 'Sublet',
+  mess_sublet: 'Mess sublet',
+  studio: 'Studio',
+  family: 'Host family',
+};
+
+export const TOLET_GENDER_PREFERENCE_LABELS: Record<ToletGenderPreference, string> = {
+  any: 'Any gender',
+  male_only: 'Boys only',
+  female_only: 'Girls only',
+};
+
+export const TOLET_LISTING_STATUS_LABELS: Record<ToletListingStatus, string> = {
+  available: 'Available',
+  almost_full: 'Almost full',
+  full: 'Full',
+  unavailable: 'Unavailable',
+};
+
+export const TOLET_LISTING_STATUS_OPTIONS = TOLET_LISTING_STATUSES.map((value) => ({
+  value,
+  label: TOLET_LISTING_STATUS_LABELS[value],
+}));
+
+export const TOLET_ROOM_TYPE_OPTIONS = TOLET_ROOM_TYPES.map((value) => ({
+  value,
+  label: TOLET_ROOM_TYPE_LABELS[value],
+}));
+
+export const TOLET_GENDER_PREFERENCE_OPTIONS = TOLET_GENDER_PREFERENCES.map((value) => ({
+  value,
+  label: TOLET_GENDER_PREFERENCE_LABELS[value],
+}));
 
 export const USER_ROLE_LABELS: Record<UserRole, string> = {
   student: 'Student',
@@ -343,10 +390,11 @@ export const STORAGE_BUCKETS = {
   certificates: 'certificates',
   resumes: 'resumes',
   communityMedia: 'community-media',
+  toletListings: 'tolet-listings',
 } as const;
 
 export const NOTIFICATION_TYPE_LABELS: Record<
-  import('@kse/types').NotificationType,
+  NotificationType,
   string
 > = {
   deadline_reminder: 'Deadline reminder',
@@ -355,9 +403,13 @@ export const NOTIFICATION_TYPE_LABELS: Record<
   community_announcement: 'Community announcement',
   platform_announcement: 'Platform announcement',
   custom: 'Other',
+  tolet_submitted: 'New Bachelor To-Let listing',
+  tolet_approved: 'Listing approved',
+  tolet_rejected: 'Listing rejected',
+  tolet_reported: 'Listing reported',
+  tolet_status_changed: 'Listing availability changed',
 };
 
-import type { NotificationType } from '@kse/types';
 export const NOTIFICATION_TYPE_OPTIONS: { value: NotificationType; label: string }[] =
   Object.entries(NOTIFICATION_TYPE_LABELS).map(([value, label]) => ({
     value: value as NotificationType,

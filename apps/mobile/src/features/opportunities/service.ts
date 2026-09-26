@@ -78,7 +78,7 @@ export function toPrefixTsQuery(q: string): string {
 }
 
 export const SUMMARY_SELECT =
-  'id, type, title, organization_name, summary, image_url, location, opportunity_mode, deadline, featured, verified, stipend_amount, stipend_currency, internship_type, degree_level, funding_type, country, event_type, starts_at';
+  'id, type, title, organization_name, summary, image_url, location, opportunity_mode, deadline, deadline_note, featured, verified, stipend_amount, stipend_currency, internship_type, degree_level, funding_type, country, event_type, starts_at';
 
 /** One page of opportunities matching text + filters, soonest deadline first. */
 export async function fetchOpportunities(

@@ -117,7 +117,7 @@ export function InternshipCard({ opportunity }: InternshipCardProps) {
         </Pressable>
 
         <View style={styles.bookmark}>
-          <BookmarkButton opportunityId={opportunity.id} variant="icon" />
+          <BookmarkButton id={opportunity.id} variant="icon" />
         </View>
       </View>
     </View>

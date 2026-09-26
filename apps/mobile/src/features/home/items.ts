@@ -67,10 +67,10 @@ export const QUICK_ACCESS: QuickAccessItem[] = [
     href: '/(tabs)/explore/mentorship',
   },
   {
-    key: 'more',
-    label: 'More',
-    icon: 'ellipsis-horizontal',
-    tint: 'slate',
-    href: '/(tabs)/explore',
+    key: 'tolet',
+    label: 'Bachelor To-Let',
+    icon: 'home-outline',
+    tint: 'cyan',
+    href: '/(tabs)/explore/tolet',
   },
 ];

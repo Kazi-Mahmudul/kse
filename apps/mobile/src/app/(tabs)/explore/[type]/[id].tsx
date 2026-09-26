@@ -155,6 +155,11 @@ export default function OpportunityDetailScreen() {
                   : 'Application deadline'}
             </ThemedText>
             <ThemedText type="smallBold">{formatDate(opportunity.deadline)}</ThemedText>
+            {!opportunity.deadline && opportunity.deadline_note ? (
+              <ThemedText type="small" themeColor="textSecondary">
+                {opportunity.deadline_note}
+              </ThemedText>
+            ) : null}
           </View>
           <Badge
             label={deadlineLabel(opportunity.deadline)}
@@ -269,7 +274,7 @@ export default function OpportunityDetailScreen() {
         </>
       )}
 
-      <BookmarkButton opportunityId={opportunity.id} variant="button" />
+      <BookmarkButton id={opportunity.id} variant="button" />
 
       {isEvent && <RegisterButton opportunityId={opportunity.id} />}
 

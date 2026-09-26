@@ -1,5 +1,6 @@
 export * from './master-data';
 export * from './opportunity';
+export * from './tolet';
 export * from './user';
 export * from './tuition';
 export * from './community';

@@ -115,7 +115,7 @@ export function OpportunityCard({ opportunity, showType = false }: OpportunityCa
             label={deadlineLabel(opportunity.deadline)}
             tone={expired ? 'danger' : tone === 'warning' ? 'warning' : 'neutral'}
           />
-          <BookmarkButton opportunityId={opportunity.id} />
+          <BookmarkButton id={opportunity.id} />
         </View>
       </View>
       {opportunity.summary && (

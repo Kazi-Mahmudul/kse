@@ -7,29 +7,52 @@ import { analytics } from '@/lib/analytics';
 import { useTheme } from '@/hooks/use-theme';
 
 interface BookmarkButtonProps {
-  opportunityId: string;
+  /** Opportunity or Bachelor To-Let id. Both share `saved_opportunities`. */
+  id: string;
+  /**
+   * Source surface — used for analytics so the Save funnel can be split by
+   * content type. Both surfaces share the same saved-state cache, so the
+   * behaviour is otherwise identical.
+   */
+  kind?: 'opportunity' | 'tolet';
+  /** Legacy single-purpose prop. Prefer `id` + `kind`. */
+  opportunityId?: string;
   /** "icon" — compact Pressable for list cards; "button" — outline row for detail. */
   variant?: 'icon' | 'button';
 }
 
 /**
- * Bookmark toggle (step 10). State lives in the shared ids Set, so every
- * card and the detail screen stay in sync through one cache entry.
+ * Bookmark / favorite toggle (step 10). State lives in the shared ids Set, so
+ * every card and the detail screen stay in sync through one cache entry.
+ *
+ * Reused for Bachelor To-Let listings — the `saved_opportunities` table covers
+ * both via the `opportunity_id` FK. Only the analytics event name differs.
  */
-export function BookmarkButton({ opportunityId, variant = 'icon' }: BookmarkButtonProps) {
+export function BookmarkButton({
+  id,
+  kind = 'opportunity',
+  opportunityId,
+  variant = 'icon',
+}: BookmarkButtonProps) {
   const colors = useTheme();
   const idsQuery = useSavedOpportunityIds();
   const toggle = useToggleSavedOpportunity();
 
-  const saved = idsQuery.data?.has(opportunityId) ?? false;
+  const effectiveId = id ?? opportunityId ?? '';
+  const saved = effectiveId ? idsQuery.data?.has(effectiveId) ?? false : false;
   const label = saved ? 'Saved' : 'Save for later';
   const icon = saved ? 'bookmark' : 'bookmark-outline';
   const tint = saved ? colors.primary : colors.textSecondary;
 
   const onPress = () => {
+    if (!effectiveId) return;
     const next = !saved;
-    toggle.mutate({ opportunityId, saved: next });
-    analytics.opportunitySaved(opportunityId, next);
+    toggle.mutate({ opportunityId: effectiveId, saved: next });
+    if (kind === 'tolet') {
+      analytics.toletListingFavorited?.(effectiveId, next);
+    } else {
+      analytics.opportunitySaved(effectiveId, next);
+    }
   };
 
   if (variant === 'button') {

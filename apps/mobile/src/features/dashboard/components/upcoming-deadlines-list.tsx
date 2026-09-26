@@ -23,13 +23,14 @@ const ROW_LIMIT = 3;
  */
 const BADGE: Record<
   OpportunityType,
-  { tint: 'indigo' | 'amber' | 'emerald' | 'fuchsia' | 'teal'; icon: IconName }
+  { tint: 'indigo' | 'amber' | 'emerald' | 'fuchsia' | 'teal' | 'cyan'; icon: IconName }
 > = {
   internship: { tint: 'indigo', icon: 'briefcase-outline' },
   scholarship: { tint: 'amber', icon: 'school-outline' },
   workshop: { tint: 'emerald', icon: 'desktop-outline' },
   event: { tint: 'fuchsia', icon: 'calendar-outline' },
   mentorship: { tint: 'teal', icon: 'person-outline' },
+  tolet: { tint: 'cyan', icon: 'home-outline' },
 };
 
 /**

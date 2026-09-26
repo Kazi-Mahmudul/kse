@@ -22,6 +22,15 @@ const NAV_ITEMS: readonly NavItem[] = [
   },
   { href: '/tuition', label: 'Tuition & Tutors' },
   {
+    href: '/tolet',
+    label: 'Bachelor To-Let',
+    children: [
+      { href: '/tolet', label: 'All listings' },
+      { href: '/tolet/pending', label: 'Pending review' },
+      { href: '/tolet/reports', label: 'Reports' },
+    ],
+  },
+  {
     href: '/communities',
     label: 'Communities',
     children: [

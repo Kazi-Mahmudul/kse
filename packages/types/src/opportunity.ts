@@ -11,6 +11,7 @@ export const OPPORTUNITY_TYPES = [
   'workshop',
   'event',
   'mentorship',
+  'tolet',
 ] as const;
 
 export type OpportunityType = (typeof OPPORTUNITY_TYPES)[number];
@@ -57,6 +58,40 @@ export const EVENT_TYPES = ['workshop', 'seminar', 'hackathon', 'meetup'] as con
 
 export type EventType = (typeof EVENT_TYPES)[number];
 
+// ── Bachelor To-Let sub-types ──────────────────────────────────────────────
+
+/** Bachelor To-Let room types (mirrors public.tolet_room_type). */
+export const TOLET_ROOM_TYPES = [
+  'single',
+  'shared',
+  'sublet',
+  'mess_sublet',
+  'studio',
+  'family',
+] as const;
+
+export type ToletRoomType = (typeof TOLET_ROOM_TYPES)[number];
+
+/** Bachelor To-Let gender preference for tenants. */
+export const TOLET_GENDER_PREFERENCES = ['any', 'male_only', 'female_only'] as const;
+
+export type ToletGenderPreference = (typeof TOLET_GENDER_PREFERENCES)[number];
+
+/**
+ * Operational availability of a published Bachelor To-Let listing. Distinct
+ * from `OpportunityStatus`, which is the moderation workflow gate. A listing
+ * can be `status='published'` AND `listing_status='full'` — it's still live,
+ * just no longer accepting tenants.
+ */
+export const TOLET_LISTING_STATUSES = [
+  'available',
+  'almost_full',
+  'full',
+  'unavailable',
+] as const;
+
+export type ToletListingStatus = (typeof TOLET_LISTING_STATUSES)[number];
+
 /**
  * Full opportunity row as stored in the `opportunities` table.
  * Use `OpportunitySummary` for list/card payloads (CLAUDE.md §33).
@@ -74,6 +109,11 @@ export interface Opportunity {
   eligibility: string | null;
   application_url: string | null;
   deadline: string | null;
+  /**
+   * Free-text deadline description for opportunities whose apply-by window is
+   * prose ("Annual; check current call"). Read when `deadline` is NULL.
+   */
+  deadline_note: string | null;
   degree_level: DegreeLevel | null;
   funding_type: FundingType | null;
   country: string | null;
@@ -93,6 +133,24 @@ export interface Opportunity {
   // Event-only fields (spec 08._events_kse).
   event_type: EventType | null;
   starts_at: string | null;
+  // Bachelor To-Let fields (spec bachelor-to-let).
+  rent_amount: number | null;
+  rent_currency: string | null;
+  room_type: ToletRoomType | null;
+  gender_preference: ToletGenderPreference | null;
+  available_from: string | null;
+  bachelor_friendly: boolean;
+  landlord_phone: string | null;
+  whatsapp: string | null;
+  contact_email: string | null;
+  listing_status: ToletListingStatus;
+  image_urls: string[];
+  city: string | null;
+  area: string | null;
+  floor: number | null;
+  total_rooms: number | null;
+  available_rooms: number | null;
+  utilities_included: boolean;
   created_by: string | null;
   created_at: string;
   updated_at: string;
@@ -109,6 +167,8 @@ export interface OpportunitySummary {
   location: string | null;
   opportunity_mode: OpportunityMode | null;
   deadline: string | null;
+  /** Free-text deadline note (shown on cards when `deadline` is NULL). */
+  deadline_note: string | null;
   category_id: string | null;
   status: OpportunityStatus;
   featured: boolean;
@@ -124,4 +184,17 @@ export interface OpportunitySummary {
   // Event-only fields (spec 08._events_kse).
   event_type: EventType | null;
   starts_at: string | null;
+  // Bachelor To-Let fields (spec bachelor-to-let).
+  rent_amount: number | null;
+  rent_currency: string | null;
+  room_type: ToletRoomType | null;
+  gender_preference: ToletGenderPreference | null;
+  listing_status: ToletListingStatus;
+  image_urls: string[];
+  city: string | null;
+  area: string | null;
+  available_rooms: number | null;
+  total_rooms: number | null;
+  utilities_included: boolean;
+  bachelor_friendly: boolean;
 }

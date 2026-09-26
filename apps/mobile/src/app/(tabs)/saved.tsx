@@ -7,7 +7,9 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { Screen } from '@/components/ui/screen';
 import { Spacing } from '@/constants/theme';
 import { useSavedOpportunities } from '@/features/saved/queries';
+import { ToletCard } from '@/features/tolet/components/tolet-card';
 import { useTheme } from '@/hooks/use-theme';
+import type { ToletListingSummary } from '@kse/types';
 
 /** Saved opportunities (step 10) — newest bookmarks first. */
 export default function SavedScreen() {
@@ -47,9 +49,13 @@ export default function SavedScreen() {
 
       {rows.length > 0 && (
         <View style={styles.list}>
-          {rows.map(({ opportunity }) => (
-            <OpportunityCard key={opportunity.id} opportunity={opportunity} showType />
-          ))}
+          {rows.map(({ opportunity }) =>
+            opportunity.type === 'tolet' ? (
+              <ToletCard key={opportunity.id} listing={opportunity as ToletListingSummary} />
+            ) : (
+              <OpportunityCard key={opportunity.id} opportunity={opportunity} showType />
+            ),
+          )}
         </View>
       )}
     </Screen>
