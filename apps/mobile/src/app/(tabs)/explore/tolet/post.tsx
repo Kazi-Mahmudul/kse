@@ -59,6 +59,9 @@ export default function PostToletScreen() {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
+        {/* PostToletForm owns its own vertical padding via gap/section spacing;
+            the Screen wrapper above already provides the horizontal gutter,
+            so the form spans the full inner width. */}
         <PostToletForm onSubmitted={handleSubmitted} />
       </ScrollView>
     </Screen>
@@ -81,7 +84,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingHorizontal: Spacing.three,
     paddingBottom: Spacing.six,
   },
 });

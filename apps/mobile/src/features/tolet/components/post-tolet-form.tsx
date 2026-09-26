@@ -583,8 +583,10 @@ function CheckboxRow({
 }
 
 const styles = StyleSheet.create({
+  // No `padding` here — the host screen (`post.tsx` wrapped in `Screen`) already
+  // supplies the horizontal gutter via `Spacing.four`. Keeping it would stack
+  // with the section padding and crowd the form fields on narrow phones.
   scrollContent: {
-    padding: Spacing.three,
     gap: Spacing.three,
     paddingBottom: Spacing.six,
   },

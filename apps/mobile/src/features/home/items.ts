@@ -68,7 +68,7 @@ export const QUICK_ACCESS: QuickAccessItem[] = [
   },
   {
     key: 'tolet',
-    label: 'Bachelor To-Let',
+    label: 'To-Let',
     icon: 'home-outline',
     tint: 'cyan',
     href: '/(tabs)/explore/tolet',
