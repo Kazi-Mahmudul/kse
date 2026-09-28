@@ -144,9 +144,9 @@ export default function MessDashboardScreen() {
           </Card>
         )}
 
-        {/* Today's Meals Card */}
-        <Card>
-          <Text className="font-semibold text-lg mb-4">Today's Meals</Text>
+	        {/* Today's Meals Card */}
+	        <Card>
+	          <Text className="font-semibold text-lg mb-4">Today&apos;s Meals</Text>
           <View className="gap-3">
             {(Object.keys(MEAL_LABELS) as MealType[]).map(mealType => {
               const isOn = today_meals[mealType] === 'on';

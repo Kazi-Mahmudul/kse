@@ -1,9 +1,11 @@
+/* eslint-disable react-hooks/incompatible-library */
+ 
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useCallback, useState } from 'react';
-import { Controller, useForm } from 'react-hook-form';
+import { Controller, useForm, useWatch } from 'react-hook-form';
 import {
   ActivityIndicator,
   Alert,
@@ -111,7 +113,7 @@ export function PostToletForm({
     },
   });
 
-  const imageUrls = watch('image_urls') ?? [];
+  const imageUrls = useWatch({ control, name: 'image_urls' }) ?? [];
 
   const pickAndUpload = useCallback(async () => {
     if (imageUrls.length >= 8) {
@@ -145,8 +147,8 @@ export function PostToletForm({
         { shouldDirty: true, shouldValidate: true },
       );
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Upload failed';
-      Alert.alert('Upload failed', message);
+      const message = error instanceof Error ? error.message : `Upload failed`;
+      Alert.alert("Upload failed", message);
     } finally {
       setUploadingImages((n) => Math.max(0, n - 1));
     }

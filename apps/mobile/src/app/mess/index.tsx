@@ -21,6 +21,11 @@ import { PrimaryButton } from '@/components/ui/primary-button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { useMyMesses, useCreateMess, useJoinMess } from '@/features/mess/queries';
 
+// ── Create Mess Form ─────────────────────────────────────────────────────────
+
+import { useForm } from 'react-hook-form';
+import { TextField } from '@/components/ui/text-field';
+
 export default function MessHubScreen() {
   const { data: messes, isLoading, refetch, isRefetching } = useMyMesses();
   const [showCreate, setShowCreate] = useState(false);
@@ -145,11 +150,6 @@ export default function MessHubScreen() {
     </Screen>
   );
 }
-
-// ── Create Mess Form ─────────────────────────────────────────────────────────
-
-import { useForm } from 'react-hook-form';
-import { TextField } from '@/components/ui/text-field';
 
 function CreateMessForm({ onClose }: { onClose: () => void }) {
   const { control, handleSubmit, formState: { errors } } = useForm({

@@ -17,12 +17,6 @@ import {
   getAuditLogs,
   respondMemberRequest,
   removeMember,
-  addExpenseAction,
-  addPaymentAction,
-  generateSettlementAction,
-  publishSettlementAction,
-  lockSettlementAction,
-  createAnnouncementAction,
 } from '@/features/mess/actions';
 import { paisaToBdt } from '@kse/types';
 
@@ -31,20 +25,18 @@ interface Props {
   searchParams: Promise<{ tab?: string; month?: string }>;
 }
 
-const BAZAR_CATEGORY_LABELS: Record<string, string> = {
-  rice: 'Rice',
-  fish: 'Fish',
-  meat: 'Meat',
-  vegetables: 'Vegetables',
-  grocery: 'Grocery',
-  oil: 'Oil',
-  spices: 'Spices',
-  eggs: 'Eggs',
-  milk: 'Milk',
-  snacks: 'Snacks',
-  cleaning: 'Cleaning',
-  other: 'Other',
-};
+// Supabase join result types — used where the full @kse/types type isn't available
+/* eslint-disable @typescript-eslint/no-explicit-any */
+type AnyRecord = Record<string, any>;
+type MessMemberRow = { id: string; user?: AnyRecord; status: string; role: string; joined_at: string | null };
+type MealRow = { id: string; user?: AnyRecord; meal_date: string; meal_type: string; state: string };
+type BazarPurchaseRow = { id: string; buyer?: AnyRecord; purchase_date: string; total_amount: number; items?: AnyRecord[] };
+type ExpenseRow = { id: string; expense_date: string; category: string; amount: number; paid_by?: AnyRecord; description?: string };
+type PaymentRow = { id: string; member?: AnyRecord; payment_date: string; payment_method: string; status: string; amount: number };
+type SettlementItemRow = { id: string; member?: AnyRecord; total_meals: number; meal_cost: number; bazar_contribution: number; shared_expense_share: number; total_payments: number; balance_type: string; balance: number };
+type ExchangeRow = { id: string; requester?: AnyRecord; target?: AnyRecord; requester_duty?: AnyRecord; target_duty?: AnyRecord };
+type AuditLogRow = { id: string; created_at: string; actor_name?: string; action: string; description: string };
+/* eslint-enable @typescript-eslint/no-explicit-any */
 
 const EXPENSE_CATEGORY_LABELS: Record<string, string> = {
   rent: 'Rent',
@@ -83,12 +75,12 @@ export default async function MessDetailPage({ params, searchParams }: Props) {
   const settlement = await getSettlement(id, monthStart);
   const auditLogs = await getAuditLogs(id, 50);
 
-  const activeMembers = members?.filter((m: any) => m.status === 'active') ?? [];
-  const pendingMembers = members?.filter((m: any) => m.status === 'pending') ?? [];
+  const activeMembers = members?.filter((m: MessMemberRow) => m.status === 'active') ?? [];
+  const pendingMembers = members?.filter((m: MessMemberRow) => m.status === 'pending') ?? [];
 
-  const totalBazar = bazar?.reduce((sum: number, p: any) => sum + (p.total_amount ?? 0), 0) ?? 0;
-  const totalExpenses = expenses?.reduce((sum: number, e: any) => sum + (e.amount ?? 0), 0) ?? 0;
-  const totalPayments = payments?.reduce((sum: number, p: any) => sum + (p.amount ?? 0), 0) ?? 0;
+  const totalBazar = bazar?.reduce((sum: number, p: BazarPurchaseRow) => sum + (p.total_amount ?? 0), 0) ?? 0;
+  const totalExpenses = expenses?.reduce((sum: number, e: ExpenseRow) => sum + (e.amount ?? 0), 0) ?? 0;
+  const totalPayments = payments?.reduce((sum: number, p: PaymentRow) => sum + (p.amount ?? 0), 0) ?? 0;
 
   const tabs = [
     { key: 'overview', label: 'Overview' },
@@ -197,7 +189,7 @@ export default async function MessDetailPage({ params, searchParams }: Props) {
               <div>
                 <h2 className="text-lg font-semibold text-zinc-900 mb-3">Pending Requests</h2>
                 <div className="space-y-3">
-                  {pendingMembers.map((member: any) => (
+                  {pendingMembers.map((member: MessMemberRow) => (
                     <div key={member.id} className="flex items-center justify-between rounded-lg border border-yellow-200 bg-yellow-50 p-4">
                       <div>
                         <p className="font-medium">{member.user?.full_name ?? 'Unknown'}</p>
@@ -236,7 +228,7 @@ export default async function MessDetailPage({ params, searchParams }: Props) {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-zinc-200">
-                    {activeMembers.map((member: any) => (
+                    {activeMembers.map((member: MessMemberRow) => (
                       <tr key={member.id}>
                         <td className="whitespace-nowrap px-4 py-2 text-sm font-medium">
                           {member.user?.full_name ?? 'Unknown'}
@@ -288,7 +280,7 @@ export default async function MessDetailPage({ params, searchParams }: Props) {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-zinc-200">
-                  {meals?.slice(0, 100).map((meal: any) => (
+                  {meals?.slice(0, 100).map((meal: MealRow) => (
                     <tr key={meal.id}>
                       <td className="whitespace-nowrap px-4 py-2 text-sm text-zinc-600">
                         {meal.meal_date}
@@ -341,7 +333,7 @@ export default async function MessDetailPage({ params, searchParams }: Props) {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-zinc-200">
-                  {bazar?.map((purchase: any) => (
+                  {bazar?.map((purchase: BazarPurchaseRow) => (
                     <tr key={purchase.id}>
                       <td className="whitespace-nowrap px-4 py-2 text-sm text-zinc-600">
                         {purchase.purchase_date}
@@ -391,7 +383,7 @@ export default async function MessDetailPage({ params, searchParams }: Props) {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-zinc-200">
-                  {expenses?.map((expense: any) => (
+                  {expenses?.map((expense: ExpenseRow) => (
                     <tr key={expense.id}>
                       <td className="whitespace-nowrap px-4 py-2 text-sm text-zinc-600">
                         {expense.expense_date}
@@ -446,7 +438,7 @@ export default async function MessDetailPage({ params, searchParams }: Props) {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-zinc-200">
-                  {payments?.map((payment: any) => (
+                  {payments?.map((payment: PaymentRow) => (
                     <tr key={payment.id}>
                       <td className="whitespace-nowrap px-4 py-2 text-sm text-zinc-600">
                         {payment.payment_date}
@@ -557,7 +549,7 @@ export default async function MessDetailPage({ params, searchParams }: Props) {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-zinc-200">
-                      {settlement.items?.map((item: any) => (
+                      {settlement.items?.map((item: SettlementItemRow) => (
                         <tr key={item.id}>
                           <td className="whitespace-nowrap px-4 py-2 text-sm font-medium">
                             {item.member?.full_name ?? 'Unknown'}
@@ -610,7 +602,7 @@ export default async function MessDetailPage({ params, searchParams }: Props) {
               </div>
             ) : (
               <div className="space-y-3">
-                {pendingExchanges?.map((exchange: any) => (
+                {pendingExchanges?.map((exchange: ExchangeRow) => (
                   <div key={exchange.id} className="rounded-xl border border-blue-200 bg-blue-50 p-4">
                     <div className="flex items-center justify-between">
                       <div>
@@ -646,7 +638,7 @@ export default async function MessDetailPage({ params, searchParams }: Props) {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-zinc-200">
-                  {auditLogs?.map((log: any) => (
+                  {auditLogs?.map((log: AuditLogRow) => (
                     <tr key={log.id}>
                       <td className="whitespace-nowrap px-4 py-2 text-sm text-zinc-500">
                         {new Date(log.created_at).toLocaleString('en-GB')}

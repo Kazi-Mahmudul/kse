@@ -280,7 +280,7 @@ export async function generateSettlementAction(messId: string, monthStart: strin
   const supabase = await createClient();
 
   // Call the Edge Function
-  const { data: { session } } = await supabase.auth.getUser();
+  const { data: { session } } = await supabase.auth.getSession();
   if (!session) throw new Error('Not authenticated');
 
   const res = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/mess-actions`, {

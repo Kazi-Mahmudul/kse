@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
-import { Linking } from 'react-native';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Linking , Pressable, StyleSheet, View } from 'react-native';
+
 
 import { ThemedText } from '@/components/themed-text';
 import { Chip } from '@/components/ui/chip';
