@@ -14,8 +14,7 @@ export async function getAllMesses() {
     .from('messes')
     .select(`
       *,
-      manager:profiles!messes_manager_id_fkey(full_name),
-      member_count:mess_members(count)
+      manager:profiles!messes_manager_id_fkey(full_name)
     `)
     .order('created_at', { ascending: false });
 
@@ -29,8 +28,7 @@ export async function getMessById(messId: string) {
     .from('messes')
     .select(`
       *,
-      manager:profiles!messes_manager_id_fkey(full_name),
-      member_count:mess_members(count)
+      manager:profiles!messes_manager_id_fkey(full_name)
     `)
     .eq('id', messId)
     .single();

@@ -63,7 +63,7 @@ export default async function MessListPage() {
                   {mess.manager?.full_name ?? 'Unknown'}
                 </td>
                 <td className="whitespace-nowrap px-4 py-3 text-sm text-zinc-600">
-                  {mess.member_count?.count ?? 0}
+                  {mess.member_count ?? 0}
                 </td>
                 <td className="whitespace-nowrap px-4 py-3">
                   <code className="rounded bg-zinc-100 px-1.5 py-0.5 text-xs font-mono">
