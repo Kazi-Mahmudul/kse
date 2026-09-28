@@ -43,7 +43,7 @@ export async function getMessMembers(messId: string) {
     .from('mess_members')
     .select(`
       *,
-      user:profiles!mess_members_user_id_fkey(id, full_name, avatar_url, email)
+      user:profiles!mess_members_user_id_fkey(id, full_name, avatar_url)
     `)
     .eq('mess_id', messId)
     .order('joined_at', { ascending: true });
