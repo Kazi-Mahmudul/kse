@@ -31,27 +31,18 @@ DECLARE
 BEGIN
 
   -- ============================================================
-  -- Create test profiles (only if profiles table has rows, so FK is satisfied)
-  -- Skip this step if running on a fresh DB with no users yet.
-  -- In that case, the mess seed will be skipped too.
+  -- Use the FIRST profile for ALL mess seed data.
+  -- This ensures the admin/first-user who runs the seed always sees
+  -- the seeded mess data in their mobile app. All demo mess members
+  -- are the same person (the admin) to keep FK references simple.
   -- ============================================================
   IF EXISTS (SELECT 1 FROM profiles LIMIT 1) THEN
-    -- Use first existing profile(s) for demo data
     SELECT id INTO demo_user_1 FROM profiles LIMIT 1;
-
-    -- Try to get or create additional demo profiles
-    SELECT id INTO demo_user_2 FROM profiles LIMIT 1 OFFSET 1;
-    SELECT id INTO demo_user_3 FROM profiles LIMIT 1 OFFSET 2;
-    SELECT id INTO demo_user_4 FROM profiles LIMIT 1 OFFSET 3;
-    SELECT id INTO demo_user_5 FROM profiles LIMIT 1 OFFSET 4;
-
-    -- If fewer than 5 profiles exist, reuse the first one for remaining refs
-    demo_user_2 := COALESCE(demo_user_2, demo_user_1);
-    demo_user_3 := COALESCE(demo_user_3, demo_user_1);
-    demo_user_4 := COALESCE(demo_user_4, demo_user_1);
-    demo_user_5 := COALESCE(demo_user_5, demo_user_1);
-
-    RAISE NOTICE 'Using existing profiles for mess seed data';
+    demo_user_2 := demo_user_1;
+    demo_user_3 := demo_user_1;
+    demo_user_4 := demo_user_1;
+    demo_user_5 := demo_user_1;
+    RAISE NOTICE 'Using first profile for mess seed data (user_id: %)', demo_user_1;
   ELSE
     RAISE NOTICE 'No profiles found — skipping mess seed data. Create profiles first, then re-run.';
     RETURN;
