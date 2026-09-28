@@ -73,4 +73,11 @@ export const QUICK_ACCESS: QuickAccessItem[] = [
     tint: 'cyan',
     href: '/(tabs)/explore/tolet',
   },
+  {
+    key: 'mess',
+    label: 'Mess',
+    icon: 'restaurant-outline',
+    tint: 'amber',
+    href: '/mess' as Href,
+  },
 ];
