@@ -27,7 +27,7 @@ import { useForm } from 'react-hook-form';
 import { TextField } from '@/components/ui/text-field';
 
 export default function MessHubScreen() {
-  const { data: messes, isLoading, refetch, isRefetching } = useMyMesses();
+  const { data: messes, isLoading, refetch, isRefetching, error } = useMyMesses();
   const [showCreate, setShowCreate] = useState(false);
   const [showJoin, setShowJoin] = useState(false);
 
@@ -39,6 +39,19 @@ export default function MessHubScreen() {
       <Screen>
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator size="large" />
+        </View>
+      </Screen>
+    );
+  }
+
+  if (error) {
+    return (
+      <Screen>
+        <View className="flex-1 items-center justify-center p-4">
+          <Text className="text-red-500 text-center mb-4">
+            Failed to load messes: {(error as Error).message}
+          </Text>
+          <PrimaryButton label="Retry" onPress={() => refetch()} />
         </View>
       </Screen>
     );
