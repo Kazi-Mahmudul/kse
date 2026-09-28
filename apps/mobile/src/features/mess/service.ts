@@ -43,21 +43,25 @@ import type {
 // ── Mess ─────────────────────────────────────────────────────────────────────
 
 export async function fetchMyMesses(): Promise<MyMessItem[]> {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) return [];
+
   const { data, error } = await supabase
     .from('mess_members')
     .select(`
-      mess:messes(*,
+      mess:messes(
+        *,
         manager:profiles!messes_manager_id_fkey(full_name)
       ),
       role,
       status
     `)
-    .eq('user_id', (await supabase.auth.getSession()).data.session?.user.id)
+    .eq('user_id', session.user.id)
     .in('status', ['active', 'pending']);
 
   if (error) throw error;
   return (data ?? []).map((r: Record<string, unknown>) => ({
-    ...(r.mess as Mess),
+    ...(r.mess as Record<string, unknown>),
     role: r.role as MyMessItem['role'],
     status: r.status as MyMessItem['status'],
     manager_name: (r.mess as MessDetail).manager_name,
@@ -69,8 +73,7 @@ export async function fetchMessDetail(messId: string): Promise<MessDetail | null
     .from('messes')
     .select(`
       *,
-      manager:profiles!messes_manager_id_fkey(full_name),
-      member_count:mess_members(count)
+      manager:profiles!messes_manager_id_fkey(full_name)
     `)
     .eq('id', messId)
     .single();
@@ -105,7 +108,7 @@ export async function fetchMessMembers(messId: string): Promise<MessMemberDetail
     .select(`
       *,
       user:profiles!mess_members_user_id_fkey(
-        id, full_name, avatar_url, phone
+        id, full_name, avatar_url
       )
     `)
     .eq('mess_id', messId)
