@@ -31,17 +31,31 @@ DECLARE
 BEGIN
 
   -- ============================================================
-  -- Create test profiles (if they don't exist)
-  -- These allow the mess seed data to have valid FK references
+  -- Create test profiles (only if profiles table has rows, so FK is satisfied)
+  -- Skip this step if running on a fresh DB with no users yet.
+  -- In that case, the mess seed will be skipped too.
   -- ============================================================
-  INSERT INTO public.profiles (id, full_name, avatar_url, created_at)
-  VALUES
-    (demo_user_1, 'Rahim Ahmed', 'https://i.pravatar.cc/150?u=rahim', now()),
-    (demo_user_2, 'Karim Hassan', 'https://i.pravatar.cc/150?u=karim', now()),
-    (demo_user_3, 'Fatema Begum', 'https://i.pravatar.cc/150?u=fatema', now()),
-    (demo_user_4, 'Jamaluddin', 'https://i.pravatar.cc/150?u=jamal', now()),
-    (demo_user_5, 'Nusrat Jahan', 'https://i.pravatar.cc/150?u=nusrat', now())
-  ON CONFLICT (id) DO NOTHING;
+  IF EXISTS (SELECT 1 FROM profiles LIMIT 1) THEN
+    -- Use first existing profile(s) for demo data
+    SELECT id INTO demo_user_1 FROM profiles LIMIT 1;
+
+    -- Try to get or create additional demo profiles
+    SELECT id INTO demo_user_2 FROM profiles LIMIT 1 OFFSET 1;
+    SELECT id INTO demo_user_3 FROM profiles LIMIT 1 OFFSET 2;
+    SELECT id INTO demo_user_4 FROM profiles LIMIT 1 OFFSET 3;
+    SELECT id INTO demo_user_5 FROM profiles LIMIT 1 OFFSET 4;
+
+    -- If fewer than 5 profiles exist, reuse the first one for remaining refs
+    demo_user_2 := COALESCE(demo_user_2, demo_user_1);
+    demo_user_3 := COALESCE(demo_user_3, demo_user_1);
+    demo_user_4 := COALESCE(demo_user_4, demo_user_1);
+    demo_user_5 := COALESCE(demo_user_5, demo_user_1);
+
+    RAISE NOTICE 'Using existing profiles for mess seed data';
+  ELSE
+    RAISE NOTICE 'No profiles found — skipping mess seed data. Create profiles first, then re-run.';
+    RETURN;
+  END IF;
 
   -- ============================================================
   -- Create Mess #1: "12 No. Bachelor Mess" (Boyra, Khulna)
