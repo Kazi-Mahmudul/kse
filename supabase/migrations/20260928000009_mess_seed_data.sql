@@ -27,7 +27,7 @@ DECLARE
   yesterday DATE := today - 1;
 
   i INT;
-  meal_date DATE;
+  v_meal_date DATE;
 BEGIN
 
   -- ============================================================
@@ -152,34 +152,34 @@ BEGIN
   -- Meal Records for Mess #1 (last 7 days)
   -- ============================================================
   FOR i IN 0..6 LOOP
-    meal_date := today - i;
+    v_meal_date := today - i;
 
     -- demo_user_1: All meals on
     INSERT INTO meal_records (mess_id, user_id, meal_date, meal_type, state, created_by) VALUES
-      (mess_1_id, demo_user_1, meal_date, 'breakfast', 'on', demo_user_1),
-      (mess_1_id, demo_user_1, meal_date, 'lunch', 'on', demo_user_1),
-      (mess_1_id, demo_user_1, meal_date, 'dinner', 'on', demo_user_1)
+      (mess_1_id, demo_user_1, v_meal_date, 'breakfast', 'on', demo_user_1),
+      (mess_1_id, demo_user_1, v_meal_date, 'lunch', 'on', demo_user_1),
+      (mess_1_id, demo_user_1, v_meal_date, 'dinner', 'on', demo_user_1)
     ON CONFLICT (mess_id, user_id, meal_date, meal_type) DO UPDATE SET state = EXCLUDED.state;
 
     -- demo_user_2: Breakfast off, rest on
     INSERT INTO meal_records (mess_id, user_id, meal_date, meal_type, state, created_by) VALUES
-      (mess_1_id, demo_user_2, meal_date, 'breakfast', 'off', demo_user_2),
-      (mess_1_id, demo_user_2, meal_date, 'lunch', 'on', demo_user_2),
-      (mess_1_id, demo_user_2, meal_date, 'dinner', 'on', demo_user_2)
+      (mess_1_id, demo_user_2, v_meal_date, 'breakfast', 'off', demo_user_2),
+      (mess_1_id, demo_user_2, v_meal_date, 'lunch', 'on', demo_user_2),
+      (mess_1_id, demo_user_2, v_meal_date, 'dinner', 'on', demo_user_2)
     ON CONFLICT (mess_id, user_id, meal_date, meal_type) DO UPDATE SET state = EXCLUDED.state;
 
     -- demo_user_3: All meals on
     INSERT INTO meal_records (mess_id, user_id, meal_date, meal_type, state, created_by) VALUES
-      (mess_1_id, demo_user_3, meal_date, 'breakfast', 'on', demo_user_3),
-      (mess_1_id, demo_user_3, meal_date, 'lunch', 'on', demo_user_3),
-      (mess_1_id, demo_user_3, meal_date, 'dinner', 'on', demo_user_3)
+      (mess_1_id, demo_user_3, v_meal_date, 'breakfast', 'on', demo_user_3),
+      (mess_1_id, demo_user_3, v_meal_date, 'lunch', 'on', demo_user_3),
+      (mess_1_id, demo_user_3, v_meal_date, 'dinner', 'on', demo_user_3)
     ON CONFLICT (mess_id, user_id, meal_date, meal_type) DO UPDATE SET state = EXCLUDED.state;
 
     -- demo_user_4: Breakfast and dinner off
     INSERT INTO meal_records (mess_id, user_id, meal_date, meal_type, state, created_by) VALUES
-      (mess_1_id, demo_user_4, meal_date, 'breakfast', 'off', demo_user_4),
-      (mess_1_id, demo_user_4, meal_date, 'lunch', 'on', demo_user_4),
-      (mess_1_id, demo_user_4, meal_date, 'dinner', 'off', demo_user_4)
+      (mess_1_id, demo_user_4, v_meal_date, 'breakfast', 'off', demo_user_4),
+      (mess_1_id, demo_user_4, v_meal_date, 'lunch', 'on', demo_user_4),
+      (mess_1_id, demo_user_4, v_meal_date, 'dinner', 'off', demo_user_4)
     ON CONFLICT (mess_id, user_id, meal_date, meal_type) DO UPDATE SET state = EXCLUDED.state;
   END LOOP;
 
