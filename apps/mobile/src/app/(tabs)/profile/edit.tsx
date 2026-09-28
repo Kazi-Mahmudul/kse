@@ -10,6 +10,7 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
+  Text,
   TextInput,
   View,
 } from 'react-native';
@@ -19,6 +20,7 @@ import { useForm, useWatch } from 'react-hook-form';
 import { ThemedText } from '@/components/themed-text';
 import { Chip } from '@/components/ui/chip';
 import { PrimaryButton } from '@/components/ui/primary-button';
+import { SelectField } from '@/components/ui/select-field';
 import { TextField } from '@/components/ui/text-field';
 import { FontFamilies, Spacing } from '@/constants/theme';
 import { AvatarPicker } from '@/features/profile/components/avatar-picker';
@@ -33,6 +35,7 @@ import {
 } from '@/features/profile/queries';
 import { useTheme } from '@/hooks/use-theme';
 import { useTints } from '@/hooks/use-tints';
+import { KHULNA_DISTRICT_OPTIONS } from '@kse/shared';
 import {
   formToUpdatePayload,
   profileFormSchema,
@@ -136,6 +139,12 @@ function ProfileEditForm({
         bio: profile.bio ?? '',
         phone: profile.phone ?? '',
         interests: profile.interests ?? [],
+        // Country / Division are read-only but the form still keeps them in
+        // state so the picker round-trip and the post-save `reset()` don't
+        // surface "unsaved" warnings when the user only changes district.
+        country: profile.country,
+        division: profile.division,
+        district: (profile.district ?? null) as ProfileFormValues['district'],
       },
     });
 
@@ -309,6 +318,29 @@ function ProfileEditForm({
               autoCorrect={false}
               keyboardType="phone-pad"
               textContentType="telephoneNumber"
+            />
+          </Card>
+
+          {/* Location — country/division are server-locked (the platform
+              currently serves Bangladesh / Khulna Division only), district is
+              the one editable knob and is scoped to Khulna Division's ten
+              districts (English labels) until multi-division ships. */}
+          <ThemedText type="smallBold" style={styles.section}>
+            Location
+          </ThemedText>
+          <Card>
+            <LockedRow label="Country" value={profile.country} />
+            <LockedRow label="Division" value={profile.division} />
+            <SelectField
+              label="District (Khulna Division)"
+              value={profile.district}
+              options={KHULNA_DISTRICT_OPTIONS}
+              onSelect={(value) =>
+                setValue('district', (value ?? null) as ProfileFormValues['district'], {
+                  shouldDirty: true,
+                })
+              }
+              placeholder="Select your district"
             />
           </Card>
 
@@ -584,6 +616,35 @@ function InterestInput({
   );
 }
 
+/**
+ * Read-only row for server-locked fields (country / division today). Renders
+ * the value in the same visual slot a `TextField` would occupy so the form
+ * rhythm is consistent, and adds a small lock chip on the right so the user
+ * understands why they can't edit it (not editable "for now").
+ */
+function LockedRow({ label, value }: { label: string; value: string }) {
+  const colors = useTheme();
+  return (
+    <View style={styles.lockedGroup} accessibilityRole="text" accessibilityLabel={`${label}: ${value} (locked)`}>
+      <Text style={[styles.lockedLabel, { color: colors.text }]}>{label}</Text>
+      <View
+        style={[
+          styles.lockedRow,
+          { backgroundColor: colors.backgroundElement, borderColor: colors.border },
+        ]}
+      >
+        <Text style={[styles.lockedValue, { color: colors.text }]}>{value}</Text>
+        <View style={[styles.lockedChip, { backgroundColor: colors.backgroundSelected }]}>
+          <Ionicons name="lock-closed" size={12} color={colors.textSecondary} />
+          <Text style={[styles.lockedChipText, { color: colors.textSecondary }]}>
+            Locked
+          </Text>
+        </View>
+      </View>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   flex: {
     flex: 1,
@@ -744,5 +805,39 @@ const styles = StyleSheet.create({
   calloutCtaText: {
     fontFamily: FontFamilies.semiBold,
     fontSize: 13,
+  },
+
+  // Locked location row (Country / Division) — same vertical slot as a
+  // TextField so the form rhythm stays consistent.
+  lockedGroup: {
+    gap: 6,
+  },
+  lockedLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  lockedRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderRadius: 12,
+    paddingHorizontal: Spacing.three,
+    height: 50,
+    borderWidth: 1,
+  },
+  lockedValue: {
+    fontSize: 16,
+  },
+  lockedChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 999,
+  },
+  lockedChipText: {
+    fontSize: 11,
+    fontWeight: '500',
   },
 });

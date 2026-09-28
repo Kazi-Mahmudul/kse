@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+import { KHULNA_DIVISION_DISTRICTS, type KhulnaDivisionDistrict } from '@kse/types';
+
 export const academicLevelSchema = z.enum([
   'undergraduate',
   'postgraduate',
@@ -38,6 +40,14 @@ export const profileUpdateSchema = z.object({
     .regex(/^\+?[0-9]{9,15}$/, 'Enter a valid phone number')
     .nullable()
     .optional(),
+  // Location. Country and Division are surfaced by the form so the API
+  // contract is uniform; the UI keeps them locked, and the form payload
+  // re-emits whatever was on the row so the write is a no-op for those
+  // columns. Once we open up multiple divisions, the picker narrows the
+  // `district` enum dynamically — schema stays unchanged.
+  country: z.string().trim().min(2).max(80).optional(),
+  division: z.string().trim().min(2).max(80).optional(),
+  district: z.enum(KHULNA_DIVISION_DISTRICTS).nullable().optional(),
   // `avatar_url` is written by `uploadAvatar` after a successful Storage
   // upload; the form schema doesn't expose it, but the mutation reuses this
   // typed payload.
@@ -67,6 +77,13 @@ export const profileFormSchema = z.object({
     .or(z.literal(''))
     .or(z.null()),
   interests: z.array(z.string().trim().min(1).max(50)).max(20),
+  // District is the only editable location field. Country and Division are
+  // also captured in the form (so RHF has full state to display) but the
+  // form renders them as locked labels — we still validate to catch any
+  // unexpected drift before it reaches the DB.
+  country: z.string().trim().min(2).max(80),
+  division: z.string().trim().min(2).max(80),
+  district: z.enum(KHULNA_DIVISION_DISTRICTS).nullable(),
 });
 
 export type ProfileFormValues = z.infer<typeof profileFormSchema>;
@@ -77,14 +94,20 @@ export type ProfileFormValues = z.infer<typeof profileFormSchema>;
  *  elsewhere (Portfolio → Education). */
 export function formToUpdatePayload(
   values: ProfileFormValues,
-): Omit<ProfileUpdateInput, 'full_name' | 'interests' | 'university_id' | 'department_id' | 'academic_level'> & {
+): Omit<ProfileUpdateInput, 'full_name' | 'interests' | 'university_id' | 'department_id' | 'academic_level' | 'country' | 'division' | 'district'> & {
   full_name: string;
   interests: string[];
+  country: string;
+  division: string;
+  district: KhulnaDivisionDistrict | null;
 } {
   return {
     full_name: values.full_name,
     bio: values.bio.trim() === '' ? null : values.bio,
     phone: !values.phone || values.phone.trim() === '' ? null : values.phone.trim(),
     interests: values.interests,
+    country: values.country,
+    division: values.division,
+    district: values.district,
   };
 }

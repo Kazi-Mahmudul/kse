@@ -112,6 +112,29 @@ export async function fetchToletListings(
   return { rows, page, hasMore: rows.length === pageSize };
 }
 
+/**
+ * "Hot" To-Let rail for the Home screen — published + featured, freshest
+ * first. RLS already filters to published rows for anon; `featured` is the
+ * only filter applied on top. Admin marks listings as featured via the
+ * existing `opportunities.featured` toggle (no schema change needed).
+ */
+export async function listHotToletListings(
+  limit: number,
+): Promise<ToletListingSummary[]> {
+  const { data, error } = await supabase
+    .from('opportunities')
+    .select(TOLET_LIST_SELECT)
+    .eq('type', 'tolet')
+    .eq('status', 'published')
+    .eq('featured', true)
+    .order('updated_at', { ascending: false })
+    .limit(limit);
+  if (error) fail('Could not load hot Bachelor To-Let listings', error.message);
+  return ((data ?? []) as unknown as Opportunity[]).map(
+    (row) => ({ ...row, type: 'tolet' as const }) as ToletListingSummary,
+  );
+}
+
 export async function getToletListing(id: string): Promise<ToletListing> {
   const { data, error } = await supabase
     .from('opportunities')

@@ -36,6 +36,13 @@ export interface Profile {
   phone: string | null;
   is_verified: boolean;
   status: 'active' | 'suspended';
+  // Location (seeded with Bangladesh / Khulna by migration 20260927000000).
+  // `district` is nullable until the student picks one; `country` and
+  // `division` are read-only in the UI but stay as plain text in the DB so
+  // we can support multi-division expansion later without a schema change.
+  country: string;
+  division: string;
+  district: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -44,5 +51,23 @@ export interface Profile {
 export interface PublicProfile
   extends Pick<
     Profile,
-    'id' | 'full_name' | 'avatar_url' | 'university_id' | 'department_id' | 'academic_level' | 'bio' | 'interests'
+    | 'id'
+    | 'full_name'
+    | 'avatar_url'
+    | 'university_id'
+    | 'department_id'
+    | 'academic_level'
+    | 'bio'
+    | 'interests'
+    | 'country'
+    | 'division'
+    | 'district'
   > {}
+
+/**
+ * Default location applied to new sign-ups (see migration 20260927000000).
+ * The Khulna Division district list itself lives in `./education` — the
+ * profile-edit picker reuses it directly, no need to duplicate.
+ */
+export const DEFAULT_COUNTRY = 'Bangladesh';
+export const DEFAULT_DIVISION = 'Khulna';

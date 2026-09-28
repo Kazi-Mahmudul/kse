@@ -53,7 +53,7 @@ export async function getMyProfile(): Promise<MyProfile> {
   const { data, error } = await supabase
     .from('profiles')
     .select(
-      'id, full_name, avatar_url, university_id, department_id, academic_level, bio, interests, is_verified, status, created_at, updated_at, university:universities(id, name, short_name, location), department:departments(id, name)',
+      'id, full_name, avatar_url, university_id, department_id, academic_level, bio, interests, is_verified, status, country, division, district, created_at, updated_at, university:universities(id, name, short_name, location), department:departments(id, name)',
     )
     .eq('id', userId)
     .single();

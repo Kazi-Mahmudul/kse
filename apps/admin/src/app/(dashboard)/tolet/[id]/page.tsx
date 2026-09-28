@@ -7,6 +7,7 @@ import {
   deleteToletListingAction,
   setToletAvailabilityAction,
   setToletStatusAction,
+  toggleToletFeaturedAction,
   toggleToletVerifiedAction,
 } from '@/features/tolet/actions';
 import { ToletForm } from '@/features/tolet/tolet-form';
@@ -72,6 +73,7 @@ export default async function EditToletPage({
     listing_status: listing.listing_status,
     status: listing.status,
     verified: listing.verified,
+    featured: listing.featured,
     source_name: listing.source_name ?? '',
     source_url: listing.source_url ?? '',
   };
@@ -90,6 +92,11 @@ export default async function EditToletPage({
           {listing.verified ? (
             <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700">
               Verified
+            </span>
+          ) : null}
+          {listing.featured ? (
+            <span className="rounded-full bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-700">
+              🔥 Hot
             </span>
           ) : null}
         </div>
@@ -116,7 +123,7 @@ export default async function EditToletPage({
         )}
       </div>
 
-      <div className="mb-6 grid grid-cols-1 gap-4 rounded-xl border border-zinc-200 bg-white p-5 md:grid-cols-2">
+      <div className="mb-6 grid grid-cols-1 gap-4 rounded-xl border border-zinc-200 bg-white p-5 md:grid-cols-3">
         <div>
           <h2 className="text-sm font-semibold text-zinc-800">Verify listing</h2>
           <p className="mt-1 text-xs text-zinc-500">
@@ -138,6 +145,32 @@ export default async function EditToletPage({
               }`}
             >
               {listing.verified ? 'Unverify' : 'Mark verified'}
+            </button>
+          </form>
+        </div>
+
+        <div>
+          <h2 className="text-sm font-semibold text-zinc-800">Hot To-Lets rail</h2>
+          <p className="mt-1 text-xs text-zinc-500">
+            Featured listings appear in the &ldquo;Hot To-Lets&rdquo; carousel on the
+            mobile home screen.
+          </p>
+          <form action={toggleToletFeaturedAction} className="mt-3">
+            <input type="hidden" name="id" value={listing.id} />
+            <input
+              type="hidden"
+              name="featured"
+              value={listing.featured ? '' : 'on'}
+            />
+            <button
+              type="submit"
+              className={`h-9 rounded-lg px-4 text-sm font-medium transition ${
+                listing.featured
+                  ? 'border border-zinc-300 text-zinc-700 hover:bg-zinc-100'
+                  : 'bg-amber-500 text-white hover:bg-amber-400'
+              }`}
+            >
+              {listing.featured ? 'Remove from Hot' : 'Mark as Hot'}
             </button>
           </form>
         </div>

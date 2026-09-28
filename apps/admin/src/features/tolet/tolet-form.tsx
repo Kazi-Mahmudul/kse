@@ -395,11 +395,18 @@ export function ToletForm({ listing }: { listing?: ToletFormData }) {
             </select>
             {err('status')}
           </label>
-          <ToggleField
-            name="verified"
-            label="Verified"
-            defaultChecked={listing?.verified ?? false}
-          />
+          <div className="flex flex-col gap-2">
+            <ToggleField
+              name="verified"
+              label="Verified"
+              defaultChecked={listing?.verified ?? false}
+            />
+            <ToggleField
+              name="featured"
+              label="Mark as Hot (Featured)"
+              defaultChecked={listing?.featured ?? false}
+            />
+          </div>
         </div>
       </fieldset>
 

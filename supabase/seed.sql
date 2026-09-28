@@ -484,6 +484,20 @@ insert into public.opportunities (
    'student_submission')
 on conflict (id) do nothing;
 
+-- Mark four to-let listings as featured so the Home "Hot To-Lets" rail has
+-- something to show. Picked for diversity: Khulna anchor + Dhaka premium +
+-- verified single + Sylhet studio. Idempotent — re-running the seed is a
+-- no-op once the rows are flagged.
+update public.opportunities
+   set featured = true,
+       updated_at = now()
+ where id in (
+   '77777777-7777-7777-7777-777777777701', -- Single room near KUET Gate 2
+   '77777777-7777-7777-7777-777777777705', -- Studio, BIDC Road
+   '77777777-7777-7777-7777-777777777709', -- Premium studio, Bashundhara
+   '77777777-7777-7777-7777-777777777711'  -- Studio, Shahjalal University
+ );
+
 -- ── Sample community ────────────────────────────────────────────────────────
 
 insert into public.communities (name, slug, description, university_id, status) values

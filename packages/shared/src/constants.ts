@@ -31,6 +31,8 @@ import {
   ACADEMIC_LEVELS,
   CERTIFICATE_TYPES,
   DEGREE_LEVELS,
+  DEFAULT_COUNTRY,
+  DEFAULT_DIVISION,
   EDUCATION_BOARDS,
   EDUCATION_INSTITUTION_OWNERSHIPS,
   EDUCATION_INSTITUTION_TYPES,
@@ -39,6 +41,7 @@ import {
   EDUCATION_RESULT_TYPES,
   EVENT_TYPES,
   FUNDING_TYPES,
+  KHULNA_DIVISION_DISTRICTS,
   OPPORTUNITY_INTERNSHIP_TYPES,
   OPPORTUNITY_MODES,
   OPPORTUNITY_STATUSES,
@@ -377,6 +380,21 @@ export const EVENT_TYPE_OPTIONS = EVENT_TYPES.map((value) => ({
 export const ACADEMIC_LEVEL_OPTIONS = ACADEMIC_LEVELS.map((value) => ({
   value,
   label: ACADEMIC_LEVEL_LABELS[value],
+}));
+
+// ── Profile location (CLAUDE.md §6) ──────────────────────────────────────────
+//
+// Country and Division default to Bangladesh / Khulna. Today only the
+// Khulna Division is wired into the mobile profile-edit picker, so the
+// district list is the canonical "all districts in the supported division"
+// list — when we add another division we expand this constant.
+
+export const PROFILE_COUNTRY_DEFAULT = DEFAULT_COUNTRY;
+export const PROFILE_DIVISION_DEFAULT = DEFAULT_DIVISION;
+
+export const KHULNA_DISTRICT_OPTIONS = KHULNA_DIVISION_DISTRICTS.map((value) => ({
+  value,
+  label: value,
 }));
 
 /** Bottom navigation tabs (CLAUDE.md §32). */

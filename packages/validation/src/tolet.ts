@@ -212,6 +212,8 @@ export const toletAdminFormSchema = z.object({
     'expired',
   ]),
   verified: booleanField,
+  /** Featured listings surface in the "Hot To-Lets" rail on the mobile home. */
+  featured: booleanField,
   source_name: optionalText(120),
   source_url: optionalText(500),
 

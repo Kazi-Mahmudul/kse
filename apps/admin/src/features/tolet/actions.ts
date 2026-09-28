@@ -89,6 +89,7 @@ function parseToletForm(formData: FormData):
     listing_status: formData.get('listing_status'),
     status: formData.get('status'),
     verified: formData.get('verified') === 'on',
+    featured: formData.get('featured') === 'on',
     source_name: formData.get('source_name'),
     source_url: formData.get('source_url'),
   });
@@ -159,6 +160,7 @@ function buildRow(values: ToletAdminFormValues, imageUrl: string | null) {
     listing_status: values.listing_status,
     status: values.status,
     verified: values.verified,
+    featured: values.featured,
     source_name: values.source_name || null,
     source_url: values.source_url || null,
   };
@@ -330,6 +332,33 @@ export async function toggleToletVerifiedAction(formData: FormData): Promise<voi
   await admin.from('audit_logs').insert({
     actor_id: userId,
     action: next ? 'verify_tolet_listing' : 'unverify_tolet_listing',
+    target_id: id,
+    target_table: 'opportunities',
+  });
+
+  revalidatePath('/tolet');
+  revalidatePath(`/tolet/${id}`);
+}
+
+/** Toggle featured flag — featured tolet rows show in the mobile "Hot To-Lets" rail. */
+export async function toggleToletFeaturedAction(formData: FormData): Promise<void> {
+  const id = String(formData.get('id') ?? '');
+  const next = formData.get('featured') === 'on';
+
+  const userId = await requireStaffUserId();
+  const admin = createAdminClient();
+
+  const { error } = await admin
+    .from('opportunities')
+    .update({ featured: next })
+    .eq('id', id);
+  if (error) {
+    throw new Error(`Featured toggle failed: ${error.message}`);
+  }
+
+  await admin.from('audit_logs').insert({
+    actor_id: userId,
+    action: next ? 'feature_tolet_listing' : 'unfeature_tolet_listing',
     target_id: id,
     target_table: 'opportunities',
   });

@@ -18,6 +18,7 @@ import type {
 import {
   fetchToletListings,
   getToletListing,
+  listHotToletListings,
   listOwnListings,
   listToletCounts,
   listToletFacets,
@@ -50,6 +51,7 @@ export const toletKeys = {
   facets: () => [...toletKeys.all, 'facets'] as const,
   counts: () => [...toletKeys.all, 'counts'] as const,
   own: () => [...toletKeys.all, 'own'] as const,
+  hot: (limit: number) => [...toletKeys.all, 'hot', limit] as const,
 };
 
 /**
@@ -110,6 +112,19 @@ export function useOwnListings() {
   return useQuery({
     queryKey: toletKeys.own(),
     queryFn: () => listOwnListings(),
+  } satisfies UseQueryOptions<ToletListingSummary[], Error>);
+}
+
+/**
+ * "Hot" Bachelor To-Let listings for the Home screen — published + featured,
+ * freshest first. Returns an empty array when no listing is flagged featured
+ * (the rail renders an EmptyState in that case).
+ */
+export function useHotToletListings(limit = 6) {
+  return useQuery({
+    queryKey: toletKeys.hot(limit),
+    queryFn: () => listHotToletListings(limit),
+    staleTime: 60_000,
   } satisfies UseQueryOptions<ToletListingSummary[], Error>);
 }
 

@@ -45,6 +45,8 @@ export interface ToletFormData {
   listing_status: ToletListingStatus;
   status: 'draft' | 'pending_review' | 'published' | 'rejected' | 'archived' | 'expired';
   verified: boolean;
+  /** Featured listings show in the "Hot To-Lets" rail on the mobile home screen. */
+  featured: boolean;
   source_name: string;
   source_url: string;
 }
@@ -60,6 +62,7 @@ export interface ToletListingRow {
   listing_status: ToletListingStatus;
   status: 'draft' | 'pending_review' | 'published' | 'rejected' | 'archived' | 'expired';
   verified: boolean;
+  featured: boolean;
   updated_at: string;
   image_url: string | null;
 }

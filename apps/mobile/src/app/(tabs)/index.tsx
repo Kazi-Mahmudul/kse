@@ -12,6 +12,7 @@ import { ProfileCompletionCard } from '@/features/home/profile-completion-card';
 import { PromoCarousel } from '@/features/home/promo-carousel';
 import { QuickAccess } from '@/features/home/quick-access';
 import { HomeTopBar } from '@/features/home/top-bar';
+import { HotToletRail } from '@/features/tolet/components/hot-tolet-rail';
 import { useUnreadNotificationCount } from '@/features/notifications/queries';
 import { useLatestOpportunities } from '@/features/opportunities/queries';
 import { useMyProfile } from '@/features/profile/queries';
@@ -95,6 +96,20 @@ export default function HomeScreen() {
       </View>
       <View style={styles.cardSpacing}>
         <ProfileCompletionCard />
+      </View>
+
+      {/* Hot Bachelor To-Let listings — admin-flagged featured rows. The rail
+          silently hides itself until the query resolves. */}
+      <View style={styles.section}>
+        <SectionHeader
+          compact
+          title="Hot To-Lets"
+          actionLabel="See All"
+          onAction={() => router.push('/(tabs)/explore/tolet')}
+        />
+      </View>
+      <View style={styles.cardSpacing}>
+        <HotToletRail />
       </View>
 
       <View style={styles.section}>

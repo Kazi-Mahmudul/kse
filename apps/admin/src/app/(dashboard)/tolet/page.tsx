@@ -33,7 +33,7 @@ export default async function ToletListPage({
   let query = admin
     .from('opportunities')
     .select(
-      'id, title, city, area, room_type, rent_amount, rent_currency, listing_status, status, verified, updated_at, image_url',
+      'id, title, city, area, room_type, rent_amount, rent_currency, listing_status, status, verified, featured, updated_at, image_url',
       { count: 'exact' },
     )
     .eq('type', 'tolet')
@@ -214,6 +214,7 @@ export default async function ToletListPage({
                     </Link>
                     <span className="ml-2 text-xs text-zinc-400">
                       {row.verified ? '✓ verified' : ''}
+                      {row.featured ? ' · 🔥 Hot' : ''}
                     </span>
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap text-zinc-600">
