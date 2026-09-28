@@ -274,5 +274,3 @@ BEGIN
   ON CONFLICT DO NOTHING;
 
 END $$;
-
-COMMENT ON MIGRATION 20260928000009_mess_seed_data IS 'Seed data for mess management testing: 2 messes, members, meal records, bazar purchases, expenses, payments, announcements, audit logs.';
