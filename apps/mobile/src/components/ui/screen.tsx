@@ -48,6 +48,10 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
+    // flex:1 so `scroll={false}` screens can host a bounded `flex:1`
+    // ScrollView — without it the wrapper's height is content-based, the
+    // inner ScrollView never gets a limit and the page clips unscrollably.
+    flex: 1,
     alignSelf: 'center',
     width: '100%',
     maxWidth: MaxContentWidth,
