@@ -31,6 +31,18 @@ const NAV_ITEMS: readonly NavItem[] = [
     ],
   },
   {
+    href: '/hub',
+    label: 'Student Hub',
+    children: [
+      { href: '/hub', label: 'All listings' },
+      { href: '/hub/pending', label: 'Pending review' },
+      { href: '/hub/categories', label: 'Categories' },
+      { href: '/hub/reports', label: 'Reports' },
+      { href: '/hub/book-exchange', label: 'Book Exchange' },
+      { href: '/hub/research', label: 'Research Partners' },
+    ],
+  },
+  {
     href: '/communities',
     label: 'Communities',
     children: [

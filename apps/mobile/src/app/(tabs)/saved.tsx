@@ -3,23 +3,28 @@ import { router } from 'expo-router';
 
 import { BackHeader } from '@/components/back-header';
 import { OpportunityCard } from '@/components/opportunity-card';
+import { ThemedText } from '@/components/themed-text';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Screen } from '@/components/ui/screen';
 import { Spacing } from '@/constants/theme';
 import { useSavedOpportunities } from '@/features/saved/queries';
+import { ListingCard } from '@/features/hub/components/listing-card';
+import { useSavedHubListings } from '@/features/hub/queries';
 import { ToletCard } from '@/features/tolet/components/tolet-card';
 import { useTheme } from '@/hooks/use-theme';
 import type { ToletListingSummary } from '@kse/types';
 
-/** Saved opportunities (step 10) — newest bookmarks first. */
+/** Saved opportunities + Student Hub places (spec student-hub §24). */
 export default function SavedScreen() {
   const colors = useTheme();
   const query = useSavedOpportunities();
   const rows = query.data ?? [];
+  const hubQuery = useSavedHubListings();
+  const hubRows = hubQuery.data ?? [];
 
   return (
     <Screen>
-      <BackHeader title="Saved opportunities" />
+      <BackHeader title="Saved" />
 
       {query.isPending && (
         <View style={styles.centered}>
@@ -37,11 +42,11 @@ export default function SavedScreen() {
         />
       )}
 
-      {query.isSuccess && rows.length === 0 && (
+      {query.isSuccess && rows.length === 0 && hubRows.length === 0 && (
         <EmptyState
           icon="bookmark-outline"
           title="Nothing saved yet"
-          message="Tap the bookmark on any opportunity to keep it here and track its deadline."
+          message="Tap the bookmark on any opportunity or Student Hub place to keep it here."
           actionLabel="Explore opportunities"
           onAction={() => router.push('/(tabs)/explore')}
         />
@@ -58,6 +63,19 @@ export default function SavedScreen() {
           )}
         </View>
       )}
+
+      {hubRows.length > 0 ? (
+        <View style={styles.hubSection}>
+          <ThemedText type="default" style={{ fontWeight: '700', marginBottom: Spacing.two }}>
+            Student Hub places
+          </ThemedText>
+          <View style={styles.list}>
+            {hubRows.map((listing) => (
+              <ListingCard key={listing.id} listing={listing} />
+            ))}
+          </View>
+        </View>
+      ) : null}
     </Screen>
   );
 }
@@ -69,5 +87,8 @@ const styles = StyleSheet.create({
   },
   list: {
     gap: Spacing.two + 2,
+  },
+  hubSection: {
+    marginTop: Spacing.three,
   },
 });

@@ -16,6 +16,12 @@ export const NOTIFICATION_TYPES = [
   'tolet_rejected',
   'tolet_reported',
   'tolet_status_changed',
+  // Student Hub events (spec student-hub §25).
+  'hub_listing_approved',
+  'hub_listing_rejected',
+  'research_request',
+  'research_request_response',
+  'book_contact',
 ] as const;
 
 export type NotificationType = (typeof NOTIFICATION_TYPES)[number];

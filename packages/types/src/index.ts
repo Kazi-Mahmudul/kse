@@ -9,3 +9,4 @@ export * from './portfolio';
 export * from './education';
 export * from './scholarship';
 export * from './mess';
+export * from './hub';

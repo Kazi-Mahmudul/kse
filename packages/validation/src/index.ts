@@ -11,3 +11,4 @@ export * from './masterData';
 export * from './settings';
 export * from './scholarship';
 export * from './mess';
+export * from './hub';

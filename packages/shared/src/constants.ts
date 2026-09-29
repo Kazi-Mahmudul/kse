@@ -1,5 +1,8 @@
 import type {
   AcademicLevel,
+  BookCondition,
+  BookIntent,
+  BookListingStatus,
   CertificateType,
   DegreeLevel,
   EducationBoard,
@@ -10,6 +13,10 @@ import type {
   EducationResultType,
   EventType,
   FundingType,
+  HubListingStatus,
+  HubPriceType,
+  HubReportReason,
+  HubServiceType,
   NotificationType,
   OpportunityInternshipType,
   OpportunityMode,
@@ -17,6 +24,7 @@ import type {
   OpportunityType,
   PostgradDegreeType,
   ProjectType,
+  ResearchCollaborationType,
   ScholarshipApplicationStatus,
   StudyGroup,
   TestScoreType,
@@ -143,6 +151,78 @@ export const TOLET_LISTING_STATUS_LABELS: Record<ToletListingStatus, string> = {
   almost_full: 'Almost full',
   full: 'Full',
   unavailable: 'Unavailable',
+};
+
+// ── Student Hub labels ───────────────────────────────────────────────────────
+
+export const HUB_LISTING_STATUS_LABELS: Record<HubListingStatus, string> = {
+  draft: 'Draft',
+  pending_review: 'Pending review',
+  published: 'Published',
+  rejected: 'Rejected',
+  suspended: 'Suspended',
+  archived: 'Archived',
+};
+
+export const HUB_SERVICE_TYPE_LABELS: Record<HubServiceType, string> = {
+  laundry: 'Laundry',
+  electrician: 'Electrician',
+  plumber: 'Plumber',
+  ac_technician: 'AC technician',
+  fan_repair: 'Fan repair',
+  repair_other: 'Other repair',
+  parking: 'Parking',
+  bookshop: 'Bookshop',
+  library: 'Library',
+  restaurant: 'Restaurant',
+  cafe: 'Cafe',
+  shop: 'Shop',
+  other: 'Other',
+};
+
+export const HUB_PRICE_TYPE_LABELS: Record<HubPriceType, string> = {
+  fixed: 'Fixed price',
+  starting_from: 'Starting from',
+  approximate: 'Approximate',
+};
+
+export const BOOK_CONDITION_LABELS: Record<BookCondition, string> = {
+  new: 'New',
+  like_new: 'Like new',
+  good: 'Good',
+  fair: 'Fair',
+};
+
+export const BOOK_INTENT_LABELS: Record<BookIntent, string> = {
+  exchange: 'Exchange',
+  sell: 'Sell',
+  give_away: 'Give away',
+};
+
+export const BOOK_STATUS_LABELS: Record<BookListingStatus, string> = {
+  active: 'Active',
+  reserved: 'Reserved',
+  exchanged: 'Exchanged',
+  sold: 'Sold',
+  removed: 'Removed',
+};
+
+export const RESEARCH_COLLABORATION_LABELS: Record<ResearchCollaborationType, string> = {
+  partner: 'Research partner',
+  group: 'Research group',
+  mentorship: 'Mentorship',
+  any: 'Any collaboration',
+};
+
+export const HUB_REPORT_REASON_LABELS: Record<HubReportReason, string> = {
+  incorrect_information: 'Incorrect information',
+  closed_business: 'Business closed',
+  wrong_phone_number: 'Wrong phone number',
+  wrong_location: 'Wrong location',
+  fake_listing: 'Fake listing',
+  expired_discount: 'Expired discount',
+  inappropriate_content: 'Inappropriate content',
+  other: 'Other',
 };
 
 export const TOLET_LISTING_STATUS_OPTIONS = TOLET_LISTING_STATUSES.map((value) => ({
@@ -409,6 +489,7 @@ export const STORAGE_BUCKETS = {
   resumes: 'resumes',
   communityMedia: 'community-media',
   toletListings: 'tolet-listings',
+  studentHub: 'student-hub',
 } as const;
 
 export const NOTIFICATION_TYPE_LABELS: Record<
@@ -426,6 +507,11 @@ export const NOTIFICATION_TYPE_LABELS: Record<
   tolet_rejected: 'Listing rejected',
   tolet_reported: 'Listing reported',
   tolet_status_changed: 'Listing availability changed',
+  hub_listing_approved: 'Student Hub listing approved',
+  hub_listing_rejected: 'Student Hub listing rejected',
+  research_request: 'Research partner request',
+  research_request_response: 'Research request update',
+  book_contact: 'Book exchange contact',
 };
 
 export const NOTIFICATION_TYPE_OPTIONS: { value: NotificationType; label: string }[] =
