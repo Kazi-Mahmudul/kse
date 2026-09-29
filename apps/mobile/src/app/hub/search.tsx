@@ -1,5 +1,5 @@
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
-import { Stack } from 'expo-router';
+import { Stack, useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
 
 import { BackHeader } from '@/components/back-header';
@@ -23,7 +23,9 @@ import { blurActiveElement } from '@/lib/focus';
  */
 export default function HubSearchScreen() {
   const colors = useTheme();
-  const [rawQuery, setRawQuery] = useState('');
+  // `q` arrives from the global search's "See all" so the query carries over.
+  const params = useLocalSearchParams<{ q?: string }>();
+  const [rawQuery, setRawQuery] = useState(typeof params.q === 'string' ? params.q : '');
   const q = useDebouncedValue(rawQuery, 300);
 
   const enabled = q.trim().length >= 2;

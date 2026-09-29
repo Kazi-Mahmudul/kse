@@ -88,7 +88,7 @@ export function useHubExploreCounts() {
   } satisfies UseQueryOptions<HubExploreCounts, Error>);
 }
 
-export function useHubFeed(filters: HubFilters) {
+export function useHubFeed(filters: HubFilters, options?: { enabled?: boolean }) {
   return useInfiniteQuery({
     queryKey: hubKeys.listings(filters),
     queryFn: ({ pageParam }) => svc.fetchHubListings(filters, pageParam),
@@ -96,6 +96,7 @@ export function useHubFeed(filters: HubFilters) {
     getNextPageParam: (lastPage) =>
       lastPage.hasMore ? lastPage.page + 1 : undefined,
     placeholderData: keepPreviousData,
+    enabled: options?.enabled ?? true,
     select: (data) => {
       const seen = new Set<string>();
       const dedupedReversed = [...data.pages]
@@ -204,7 +205,7 @@ export function useSubmitHubListing() {
 
 // ── Book Exchange ────────────────────────────────────────────────────────────
 
-export function useBookFeed(filters: BookFilters) {
+export function useBookFeed(filters: BookFilters, options?: { enabled?: boolean }) {
   return useInfiniteQuery({
     queryKey: hubKeys.books(filters),
     queryFn: ({ pageParam }) => svc.fetchBookListings(filters, pageParam),
@@ -212,6 +213,7 @@ export function useBookFeed(filters: BookFilters) {
     getNextPageParam: (lastPage) =>
       lastPage.hasMore ? lastPage.page + 1 : undefined,
     placeholderData: keepPreviousData,
+    enabled: options?.enabled ?? true,
     select: (data) => {
       const seen = new Set<string>();
       const dedupedReversed = [...data.pages]
@@ -285,7 +287,7 @@ export function useContactBookOwner() {
 
 // ── Research partners ────────────────────────────────────────────────────────
 
-export function useResearchFeed(filters: ResearchFilters) {
+export function useResearchFeed(filters: ResearchFilters, options?: { enabled?: boolean }) {
   return useInfiniteQuery({
     queryKey: hubKeys.research(filters),
     queryFn: ({ pageParam }) => svc.fetchResearchProfiles(filters, pageParam),
@@ -293,6 +295,7 @@ export function useResearchFeed(filters: ResearchFilters) {
     getNextPageParam: (lastPage) =>
       lastPage.hasMore ? lastPage.page + 1 : undefined,
     placeholderData: keepPreviousData,
+    enabled: options?.enabled ?? true,
   });
 }
 
