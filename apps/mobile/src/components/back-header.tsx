@@ -12,7 +12,12 @@ export function BackHeader({ title }: { title: string }) {
   return (
     <View style={styles.header}>
       <Pressable
-        onPress={() => router.back()}
+        // Deep links / direct URLs can land here with no stack behind the
+        // screen — fall back to the app root instead of an unhandled GO_BACK.
+        onPress={() => {
+          if (router.canGoBack()) router.back();
+          else router.replace('/');
+        }}
         accessibilityRole="button"
         accessibilityLabel="Go back"
         style={({ pressed }) => [styles.back, pressed && styles.pressed]}

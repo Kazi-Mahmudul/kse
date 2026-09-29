@@ -55,6 +55,7 @@ export default function BookExchangeScreen() {
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.chipRow}
+        style={styles.chipScroller}
       >
         {(Object.keys(BOOK_INTENT_LABELS) as BookIntent[]).map((value) => (
           <Chip
@@ -143,6 +144,11 @@ const styles = StyleSheet.create({
   chipRow: {
     gap: Spacing.one + 2,
     paddingVertical: Spacing.two,
+  },
+  // react-native-web gives ScrollViews flexGrow:1 — neutralise it so this
+  // one-line row can't balloon and push the feed to the bottom.
+  chipScroller: {
+    flexGrow: 0,
   },
   actions: {
     flexDirection: 'row',

@@ -128,6 +128,7 @@ export default function HubListingScreen() {
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.photoRow}
+        style={styles.photoScroller}
       >
         {(listing.image_urls.length > 0 ? listing.image_urls : listing.image_url ? [listing.image_url] : []).map(
           (url) => (
@@ -344,6 +345,11 @@ const styles = StyleSheet.create({
   photoRow: {
     gap: Spacing.two,
     paddingVertical: Spacing.two,
+  },
+  // flexGrow:0 — RNW ScrollViews default to flexGrow:1 and would balloon
+  // this photo strip on short pages, pushing content down.
+  photoScroller: {
+    flexGrow: 0,
   },
   photo: {
     width: 200,

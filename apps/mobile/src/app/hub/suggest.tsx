@@ -75,7 +75,8 @@ export default function SuggestPlaceScreen() {
         message:
           'Thanks! An admin will review the place before it appears in Student Hub.',
       });
-      router.back();
+      if (router.canGoBack()) router.back();
+      else router.replace('/hub');
     } catch (error) {
       void alertDialog({
         title: 'Could not send',

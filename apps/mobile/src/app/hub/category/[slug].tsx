@@ -103,6 +103,7 @@ export default function HubCategoryScreen() {
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.chipRow}
+        style={styles.chipScroller}
       >
         {serviceOptions.map((type) => (
           <Chip
@@ -244,6 +245,12 @@ const styles = StyleSheet.create({
   chipRow: {
     gap: Spacing.one + 2,
     paddingVertical: Spacing.two,
+  },
+  // react-native-web gives every ScrollView flexGrow:1 — inside Screen's
+  // stretched column that balloons this one-line row to fill all leftover
+  // height and pushes the listing cards to the bottom of the page.
+  chipScroller: {
+    flexGrow: 0,
   },
   featureRow: {
     flexDirection: 'row',

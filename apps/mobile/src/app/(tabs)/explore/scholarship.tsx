@@ -142,6 +142,7 @@ export default function ScholarshipHubScreen() {
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.chipRow}
+          style={styles.chipScroller}
         >
           {QUICK_CHIPS.map((chip) => (
             <Chip
@@ -270,6 +271,11 @@ const styles = StyleSheet.create({
     gap: Spacing.two,
     paddingVertical: Spacing.three,
     paddingRight: Spacing.three,
+  },
+  // react-native-web gives ScrollViews flexGrow:1 — neutralise it so this
+  // one-line row can't balloon and push the feed to the bottom.
+  chipScroller: {
+    flexGrow: 0,
   },
   listContent: {
     paddingBottom: Spacing.six,
