@@ -9,6 +9,7 @@ import { Screen } from '@/components/ui/screen';
 import { SearchBar } from '@/components/ui/search-bar';
 import { Spacing, ThemeColor } from '@/constants/theme';
 import { EXPLORE_CATEGORIES, type ExploreCategory } from '@/features/explore/categories';
+import { useHubExploreCounts } from '@/features/hub/queries';
 import { useOpportunityCountsByType } from '@/features/opportunities/queries';
 import { useTutorCount } from '@/features/tuition/queries';
 import { useTheme } from '@/hooks/use-theme';
@@ -29,8 +30,10 @@ export default function ExploreScreen() {
   const [query, setQuery] = useState('');
   const countsQuery = useOpportunityCountsByType();
   const tutorCountQuery = useTutorCount();
+  const hubCountsQuery = useHubExploreCounts();
   const counts = countsQuery.data;
   const tutorCount = tutorCountQuery.data;
+  const hubCounts = hubCountsQuery.data;
 
   // Live category filter: typing "intern" narrows the rows immediately, so
   // the bar gives feedback before the user commits to the global search.
@@ -81,19 +84,24 @@ export default function ExploreScreen() {
             <CategoryRow
               key={category.slug}
               category={category}
-              count={
-                category.countKey === 'tutors'
-                  ? tutorCount
-                  : category.countKey
-                    ? counts?.[category.countKey]
-                    : undefined
-              }
+              count={resolveCount(category)}
             />
           ))}
         </View>
       )}
     </Screen>
   );
+
+  /** Live badge number for one row, whatever table it counts from. */
+  function resolveCount(category: ExploreCategory): number | undefined {
+    const key = category.countKey;
+    if (!key) return undefined;
+    if (key === 'tutors') return tutorCount;
+    if (key === 'hub_listings' || key === 'books' || key === 'research') {
+      return hubCounts?.[key];
+    }
+    return counts?.[key];
+  }
 }
 
 function CategoryRow({
@@ -114,10 +122,12 @@ function CategoryRow({
   return (
     <Pressable
       onPress={() =>
-        router.push({
-          pathname: '/(tabs)/explore/[type]',
-          params: { type: category.slug },
-        })
+        router.push(
+          category.href ?? {
+            pathname: '/(tabs)/explore/[type]',
+            params: { type: category.slug },
+          },
+        )
       }
       android_ripple={{ color: colors.shadow }}
       style={({ pressed }) => [

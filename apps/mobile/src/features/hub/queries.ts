@@ -16,6 +16,7 @@ import type {
   HubFilters,
   HubListingDetail,
   HubListingSubmission,
+  HubExploreCounts,
   ResearchFilters,
   ResearchProfileDetail,
   ResearchRequest,
@@ -46,6 +47,8 @@ export const hubKeys = {
   facets: (categorySlug?: string) => [...hubKeys.all, 'facets', categorySlug ?? null] as const,
   favoriteIds: () => [...hubKeys.all, 'favoriteIds'] as const,
   saved: () => [...hubKeys.all, 'saved'] as const,
+  /** Explore-menu badge counts (published listings / active books / research). */
+  exploreCounts: () => [...hubKeys.all, 'explore-counts'] as const,
 
   books: (filters: BookFilters) =>
     [...hubKeys.all, 'books', filters.q ?? null, filters.intent ?? null, filters.condition ?? null] as const,
@@ -74,6 +77,15 @@ export function useHubCategories() {
     queryFn: () => svc.fetchHubCategories(),
     staleTime: 300_000,
   } satisfies UseQueryOptions<HubCategory[], Error>);
+}
+
+/** Explore-menu badge counts for the Student Hub rows. */
+export function useHubExploreCounts() {
+  return useQuery({
+    queryKey: hubKeys.exploreCounts(),
+    queryFn: () => svc.fetchHubExploreCounts(),
+    staleTime: 60_000,
+  } satisfies UseQueryOptions<HubExploreCounts, Error>);
 }
 
 export function useHubFeed(filters: HubFilters) {

@@ -23,6 +23,13 @@ const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
 const URL_RE = /^https?:\/\/\S+$/i;
 
+/** Optional phone: an empty input must not fail the pattern check — blank
+ *  means "not provided" (form defaults are empty strings, not undefined).
+ *  Kept as a plain ZodString (no preprocess/effects) so zodResolver's
+ *  generics stay inferable. */
+const optionalPhone = () =>
+  z.string().trim().regex(/^(?:|[+0-9 ()\-]{6,20})$/, 'Enter a valid phone number').optional();
+
 // ── Directory listing (mobile suggestion form) ───────────────────────────────
 
 export const hubListingFormSchema = z.object({
@@ -38,8 +45,8 @@ export const hubListingFormSchema = z.object({
   address: z.string().trim().max(200).optional(),
   area: z.string().trim().max(80).optional(),
   city: z.string().trim().min(2, 'Enter a city').max(80),
-  phone: z.string().trim().regex(PHONE_PATTERN, 'Enter a valid phone number').optional(),
-  whatsapp: z.string().trim().regex(PHONE_PATTERN, 'Enter a valid phone number').optional(),
+  phone: optionalPhone(),
+  whatsapp: optionalPhone(),
   opening_hours: z.string().trim().max(120).optional(),
   price_note: z.string().trim().max(120).optional(),
   price_type: z.enum(['fixed', 'starting_from', 'approximate']).optional(),

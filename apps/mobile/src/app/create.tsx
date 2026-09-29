@@ -35,6 +35,30 @@ const ACTIONS: {
     href: '/(tabs)/explore/scholarship',
   },
   {
+    label: 'Open Student Hub',
+    description: 'Local services, shops and student deals',
+    icon: 'apps-outline',
+    href: '/hub',
+  },
+  {
+    label: 'Suggest a place',
+    description: 'Add a local service to Student Hub for review',
+    icon: 'add-circle-outline',
+    href: '/hub/suggest',
+  },
+  {
+    label: 'Post a To-Let',
+    description: 'List a room, sublet or mess seat for students',
+    icon: 'home-outline',
+    href: '/(tabs)/explore/tolet/post',
+  },
+  {
+    label: 'Sell or exchange a book',
+    description: 'Reach students looking for your used books',
+    icon: 'swap-horizontal-outline',
+    href: '/hub/book-exchange/post',
+  },
+  {
     label: 'Find a tutor',
     description: 'Verified tutors near your university',
     icon: 'book-outline',

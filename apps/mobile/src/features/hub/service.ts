@@ -5,6 +5,7 @@ import type {
   BookListingSummary,
   BookPage,
   HubCategory,
+  HubExploreCounts,
   HubFacet,
   HubFilters,
   HubListingDetail,
@@ -78,6 +79,29 @@ export async function fetchHubCategories(): Promise<HubCategory[]> {
     .order('sort_order', { ascending: true });
   if (error) fail('Could not load Student Hub categories', error.message);
   return (data ?? []) as unknown as HubCategory[];
+}
+
+/** Badge counts for the Explore menu rows (head-counts only, no rows). */
+export async function fetchHubExploreCounts(): Promise<HubExploreCounts> {
+  const [listings, books, profiles] = await Promise.all([
+    supabase
+      .from('student_hub_listings')
+      .select('id', { count: 'exact', head: true })
+      .eq('status', 'published'),
+    supabase
+      .from('student_book_listings')
+      .select('id', { count: 'exact', head: true })
+      .eq('status', 'active'),
+    supabase
+      .from('research_profiles')
+      .select('id', { count: 'exact', head: true })
+      .eq('status', 'active'),
+  ]);
+  return {
+    hub_listings: listings.count ?? 0,
+    books: books.count ?? 0,
+    research: profiles.count ?? 0,
+  };
 }
 
 // ── Directory listings ───────────────────────────────────────────────────────

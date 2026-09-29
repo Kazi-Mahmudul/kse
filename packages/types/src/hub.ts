@@ -201,6 +201,13 @@ export interface HubFacet {
   areas: { value: string; count: number }[];
 }
 
+/** Live badge counts for the Student Hub rows on the Explore menu. */
+export interface HubExploreCounts {
+  hub_listings: number;
+  books: number;
+  research: number;
+}
+
 /** Payload for the hub-actions `submit_listing` (user suggestion). */
 export interface HubListingSubmission {
   category_id: string;

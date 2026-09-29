@@ -139,6 +139,13 @@ export default function StudentHubScreen() {
           subtitle="Find collaborators across Khulna Division"
           onPress={() => router.push('/hub/research')}
         />
+        <FeatureTile
+          icon="add-circle-outline"
+          tintKey="amber"
+          title="Suggest a place"
+          subtitle="Send a local service for admin review"
+          onPress={() => router.push('/hub/suggest')}
+        />
       </View>
     </Screen>
   );
