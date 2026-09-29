@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router, Stack } from 'expo-router';
+import { useSmartBack } from '@/hooks/use-smart-back';
 import { useCallback } from 'react';
 import { ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 
@@ -30,6 +31,7 @@ import type { ToletListingSummary } from '@kse/types';
  */
 export default function MyToletListingsScreen() {
   const colors = useTheme();
+  const goBack = useSmartBack('/(tabs)/explore/tolet');
   const query = useMyToletListings();
   const withdraw = useWithdrawToletListing();
 
@@ -66,7 +68,7 @@ export default function MyToletListingsScreen() {
       <Screen>
         <View style={styles.header}>
           <Pressable
-            onPress={() => router.back()}
+            onPress={() => goBack()}
             accessibilityRole="button"
             accessibilityLabel="Back"
             hitSlop={12}

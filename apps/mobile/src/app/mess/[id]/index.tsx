@@ -14,6 +14,7 @@ import {
   Alert,
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
+import { useSmartBack } from '@/hooks/use-smart-back';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Screen } from '@/components/ui/screen';
@@ -36,6 +37,7 @@ const MEAL_LABELS: Record<string, string> = {
 };
 
 export default function MessDashboardScreen() {
+  const goBack = useSmartBack('/mess');
   const { id } = useLocalSearchParams<{ id: string }>();
   const { data: dashboard, isLoading, refetch, isRefetching } = useMemberDashboard(id);
   const { data: mess } = useMessDetail(id);
@@ -72,7 +74,7 @@ export default function MessDashboardScreen() {
           onPress: async () => {
             try {
               await leaveMess.mutateAsync({ messId: id, memberId: '' });
-              router.back();
+              goBack();
             } catch (e) {
               Alert.alert('Error', 'Failed to leave mess');
             }

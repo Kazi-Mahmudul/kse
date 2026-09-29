@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
+import { useSmartBack } from '@/hooks/use-smart-back';
 import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, TextInput, View } from 'react-native';
 
@@ -36,7 +37,7 @@ const VISIBILITY_OPTIONS: { value: CommunityPollResultVisibility; label: string 
  */
 export default function CreateCommunityPollScreen() {
   const colors = useTheme();
-  const router = useRouter();
+  const goBack = useSmartBack('/(tabs)/community');
   const { id } = useLocalSearchParams<{ id: string }>();
   const communityQuery = useCommunity(id);
   const createPost = useCreatePost(id);
@@ -138,7 +139,7 @@ export default function CreateCommunityPollScreen() {
         },
       },
       {
-        onSuccess: () => router.back(),
+        onSuccess: () => goBack(),
         onError: (error) => {
           void alertDialog({ title: 'Could not create poll', message: error.message });
         },

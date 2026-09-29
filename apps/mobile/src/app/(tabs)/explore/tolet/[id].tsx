@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
-import { router, Stack, useLocalSearchParams } from 'expo-router';
+import { Stack, useLocalSearchParams } from 'expo-router';
+import { useSmartBack } from '@/hooks/use-smart-back';
 import { Linking, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { BookmarkButton } from '@/components/bookmark-button';
@@ -30,6 +31,7 @@ import { REPORT_REASONS } from '@kse/validation';
 export default function ToletDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const colors = useTheme();
+  const goBack = useSmartBack('/(tabs)/explore/tolet');
   const query = useToletListing(id ?? '');
   const report = useReportToletListing();
 
@@ -53,7 +55,7 @@ export default function ToletDetailScreen() {
           title="Listing unavailable"
           message="This listing could not be loaded — it may have been removed or is still under review."
           actionLabel="Back to To-Let"
-          onAction={() => router.back()}
+          onAction={() => goBack()}
         />
       </Screen>
     );
@@ -128,7 +130,7 @@ export default function ToletDetailScreen() {
             label="Back"
             variant="outline"
             size="compact"
-            onPress={() => router.back()}
+            onPress={() => goBack()}
           />
         </View>
 

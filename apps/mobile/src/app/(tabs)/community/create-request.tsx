@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { Image } from 'expo-image';
-import { useRouter } from 'expo-router';
+import { useSmartBack } from '@/hooks/use-smart-back';
 import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { useForm } from 'react-hook-form';
@@ -33,7 +33,7 @@ const MAX_RULES = 8;
  */
 export default function CreateCommunityRequestScreen() {
   const colors = useTheme();
-  const router = useRouter();
+  const goBack = useSmartBack('/(tabs)/community');
   const categories = useCategories();
   const universities = useUniversities();
   const departments = useDepartments();
@@ -119,7 +119,7 @@ export default function CreateCommunityRequestScreen() {
         },
         {
           onSuccess: () => {
-            router.back();
+            goBack();
             void alertDialog({
               title: 'Request submitted',
               message: 'Your community request is now pending admin review.',

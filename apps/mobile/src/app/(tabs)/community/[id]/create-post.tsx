@@ -1,7 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { Image } from 'expo-image';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
+import { useSmartBack } from '@/hooks/use-smart-back';
 import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { useForm } from 'react-hook-form';
@@ -38,7 +39,7 @@ const BASE_TYPES: { value: CommunityPostType; label: string }[] = [
  */
 export default function CreateCommunityPostScreen() {
   const colors = useTheme();
-  const router = useRouter();
+  const goBack = useSmartBack('/(tabs)/community');
   const { id } = useLocalSearchParams<{ id: string }>();
   const communityQuery = useCommunity(id);
   const createPost = useCreatePost(id);
@@ -116,7 +117,7 @@ export default function CreateCommunityPostScreen() {
         linkUrl: values.linkUrl.trim() ? values.linkUrl.trim() : null,
       },
       {
-        onSuccess: () => router.back(),
+        onSuccess: () => goBack(),
         onError: (error) => {
           void alertDialog({ title: 'Could not post', message: error.message });
         },

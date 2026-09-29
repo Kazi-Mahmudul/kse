@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router, Stack } from 'expo-router';
+import { useSmartBack } from '@/hooks/use-smart-back';
 import { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
@@ -68,6 +69,7 @@ function chipToFilters(chip: QuickChip): Partial<ToletFilters> {
 
 export default function ToletHubScreen() {
   const colors = useTheme();
+  const goBack = useSmartBack('/(tabs)/explore');
   const [searchText, setSearchText] = useState('');
   const [activeChip, setActiveChip] = useState<QuickChip>('all');
   const [filterSheetOpen, setFilterSheetOpen] = useState(false);
@@ -115,7 +117,7 @@ export default function ToletHubScreen() {
       <Screen>
         <View style={styles.header}>
           <Pressable
-            onPress={() => router.back()}
+            onPress={() => goBack()}
             accessibilityRole="button"
             accessibilityLabel="Back"
             hitSlop={12}

@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router, type Href } from 'expo-router';
+import { useSmartBack } from '@/hooks/use-smart-back';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -75,6 +76,7 @@ const ACTIONS: {
 /** Quick-action sheet opened from the center "+" in the tab bar. */
 export default function CreateScreen() {
   const colors = useTheme();
+  const goBack = useSmartBack('/');
   const insets = useSafeAreaInsets();
 
   return (
@@ -82,7 +84,7 @@ export default function CreateScreen() {
       <View style={[styles.header, { paddingTop: insets.top + Spacing.three }]}>
         <ThemedText type="subtitle">Quick actions</ThemedText>
         <Pressable
-          onPress={() => router.back()}
+          onPress={() => goBack()}
           accessibilityRole="button"
           accessibilityLabel="Close"
           style={({ pressed }) => [styles.close, pressed && styles.pressed]}

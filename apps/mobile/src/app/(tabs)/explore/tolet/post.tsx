@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
-import { router, Stack } from 'expo-router';
+import { Stack } from 'expo-router';
+import { useSmartBack } from '@/hooks/use-smart-back';
 import { useCallback } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
@@ -21,15 +22,16 @@ import { useTheme } from '@/hooks/use-theme';
  */
 export default function PostToletScreen() {
   const colors = useTheme();
+  const goBack = useSmartBack('/(tabs)/explore/tolet');
 
   const handleSubmitted = useCallback((listingId: string) => {
     void listingId;
-    router.back();
-  }, []);
+    goBack();
+  }, [goBack]);
 
   const handleCancel = useCallback(() => {
-    router.back();
-  }, []);
+    goBack();
+  }, [goBack]);
 
   return (
     <Screen>

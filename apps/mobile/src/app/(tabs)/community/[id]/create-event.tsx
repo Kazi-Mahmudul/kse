@@ -1,4 +1,5 @@
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
+import { useSmartBack } from '@/hooks/use-smart-back';
 import { StyleSheet, View } from 'react-native';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -27,8 +28,8 @@ import type { CommunityEventMode } from '@kse/types';
  * schema + DB CHECKs reject invalid ranges.
  */
 export default function CreateCommunityEventScreen() {
+  const goBack = useSmartBack('/(tabs)/community');
   const { id } = useLocalSearchParams<{ id: string }>();
-  const router = useRouter();
   const communityQuery = useCommunity(id);
   const createEvent = useCreateEvent(id);
 
@@ -108,7 +109,7 @@ export default function CreateCommunityEventScreen() {
         organizer: values.organizer.trim() || null,
       },
       {
-        onSuccess: () => router.back(),
+        onSuccess: () => goBack(),
         onError: (error) => {
           void alertDialog({ title: 'Could not create event', message: error.message });
         },

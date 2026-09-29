@@ -1,6 +1,7 @@
 import Constants from 'expo-constants';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import { useSmartBack } from '@/hooks/use-smart-back';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
@@ -121,10 +122,11 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 
 function BackHeader({ title }: { title: string }) {
   const colors = useTheme();
+  const goBack = useSmartBack('/(tabs)/profile');
   return (
     <View style={styles.header}>
       <Pressable
-        onPress={() => router.back()}
+        onPress={() => goBack()}
         accessibilityRole="button"
         accessibilityLabel="Go back"
         hitSlop={8}

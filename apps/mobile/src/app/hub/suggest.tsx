@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { router, Stack } from 'expo-router';
+import { Stack } from 'expo-router';
 import { Controller, useForm } from 'react-hook-form';
 import { useState } from 'react';
 import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
@@ -12,6 +12,7 @@ import { SelectField } from '@/components/ui/select-field';
 import { TextField } from '@/components/ui/text-field';
 import { Spacing } from '@/constants/theme';
 import { useHubCategories, useSubmitHubListing } from '@/features/hub/queries';
+import { useSmartBack } from '@/hooks/use-smart-back';
 import { useTheme } from '@/hooks/use-theme';
 import { alertDialog } from '@/lib/confirm';
 import { HUB_SERVICE_TYPE_LABELS } from '@kse/shared';
@@ -31,6 +32,7 @@ const SERVICE_OPTIONS = HUB_SERVICE_TYPES.map((value) => ({
  */
 export default function SuggestPlaceScreen() {
   const colors = useTheme();
+  const goBack = useSmartBack('/hub');
   const categoriesQuery = useHubCategories();
   const submit = useSubmitHubListing();
 
@@ -75,8 +77,7 @@ export default function SuggestPlaceScreen() {
         message:
           'Thanks! An admin will review the place before it appears in Student Hub.',
       });
-      if (router.canGoBack()) router.back();
-      else router.replace('/hub');
+      goBack();
     } catch (error) {
       void alertDialog({
         title: 'Could not send',

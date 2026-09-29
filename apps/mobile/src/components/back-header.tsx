@@ -1,23 +1,19 @@
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
+import { useSmartBack } from '@/hooks/use-smart-back';
 import { useTheme } from '@/hooks/use-theme';
 
 /** Screen header with a back chevron (stack/modal screens). */
 export function BackHeader({ title }: { title: string }) {
   const colors = useTheme();
+  const goBack = useSmartBack();
   return (
     <View style={styles.header}>
       <Pressable
-        // Deep links / direct URLs can land here with no stack behind the
-        // screen — fall back to the app root instead of an unhandled GO_BACK.
-        onPress={() => {
-          if (router.canGoBack()) router.back();
-          else router.replace('/');
-        }}
+        onPress={goBack}
         accessibilityRole="button"
         accessibilityLabel="Go back"
         style={({ pressed }) => [styles.back, pressed && styles.pressed]}

@@ -1,6 +1,7 @@
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { useState } from 'react';
-import { router, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
+import { useSmartBack } from '@/hooks/use-smart-back';
 
 import { BackHeader } from '@/components/back-header';
 import { OpportunityCard } from '@/components/opportunity-card';
@@ -22,6 +23,7 @@ import { OPPORTUNITY_TYPES, type OpportunityType } from '@kse/types';
 /** Per-type listing with mode + deadline filters (steps 8–9). Tuition has its own screen. */
 export default function ExploreTypeScreen() {
   const colors = useTheme();
+  const goBack = useSmartBack('/(tabs)/explore');
   const { type } = useLocalSearchParams<{ type: string }>();
   const category = type ? findCategory(type) : undefined;
   const isOpportunityType = OPPORTUNITY_TYPES.includes(type as OpportunityType);
@@ -49,7 +51,7 @@ export default function ExploreTypeScreen() {
           title={`${category.label} discovery is coming`}
           message="Mentor profiles and mentorship requests arrive in a later release."
           actionLabel="Back to categories"
-          onAction={() => router.back()}
+          onAction={() => goBack()}
         />
       </Screen>
     );

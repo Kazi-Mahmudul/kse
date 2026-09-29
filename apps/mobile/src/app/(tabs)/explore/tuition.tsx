@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
+import { useSmartBack } from '@/hooks/use-smart-back';
 import { useState } from 'react';
 import { ActivityIndicator, Modal, Pressable, StyleSheet, View } from 'react-native';
 
@@ -36,6 +37,7 @@ const SORT_OPTIONS: { value: TutorSort; label: string }[] = [
  */
 export default function TuitionScreen() {
   const colors = useTheme();
+  const goBack = useSmartBack('/(tabs)/explore');
   // `q` deep-links from the global Search screen's "See all tutors" so the
   // query carries over instead of forcing a retype.
   const params = useLocalSearchParams<{ q?: string }>();
@@ -67,7 +69,7 @@ export default function TuitionScreen() {
     <Screen style={{ backgroundColor: colors.surfaceMuted }}>
       <View style={styles.headerRow}>
         <Pressable
-          onPress={() => router.back()}
+          onPress={() => goBack()}
           accessibilityRole="button"
           accessibilityLabel="Go back"
           style={({ pressed }) => [styles.back, pressed && styles.pressed]}
