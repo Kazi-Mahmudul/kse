@@ -1,17 +1,17 @@
+import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { BanglaFontFamilies } from '@/constants/theme';
-import { BannerArt } from '@/features/home/banner-art';
 import type { PromoBanner } from '@/features/home/promo-banners';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useTheme } from '@/hooks/use-theme';
 
 /**
  * Fixed palette layered on top of the gradients. Not themed: it rides on the
- * banner in both color schemes, like the banner art itself.
+ * banner in both color schemes, like the photo blend itself.
  */
 const ART = {
   glow: 'rgba(255,255,255,0.05)',
@@ -26,13 +26,17 @@ function withAlpha(hex: string, alpha: number): string {
 }
 
 /**
- * One hero carousel slide: diagonal gradient, Bangla copy + CTA pill on the
- * left, and student artwork anchored to the right — the same composition as
- * the retired single promo banner, parameterised per slide.
+ * One hero carousel slide, composed like a bKash promo banner: the slide's
+ * brand gradient carries the Bangla copy + CTA on the left, while a real
+ * photograph is anchored to the right and blended into the colour with a
+ * horizontal gradient overlay — the person/scene emerges from the brand
+ * colour instead of being hard-cropped against it.
  */
 export function PromoSlide({ banner }: { banner: PromoBanner }) {
   const scheme = useColorScheme() === 'dark' ? 'dark' : 'light';
   const colors = useTheme();
+  /** First stop of the slide gradient — the colour the photo blends from. */
+  const base = banner.gradient[scheme][0];
 
   return (
     <LinearGradient
@@ -41,14 +45,35 @@ export function PromoSlide({ banner }: { banner: PromoBanner }) {
       end={{ x: 1, y: 1 }}
       style={styles.slide}
     >
+      {/* Hero photograph, anchored right and covered to the slide's edge */}
+      <Image
+        source={{ uri: banner.photo }}
+        style={styles.photo}
+        contentFit="cover"
+        transition={250}
+        accessible={false}
+      />
+
+      {/* The blend: solid brand colour over the copy side, dissolving to
+          transparent across the photo so it emerges from the gradient. */}
+      <LinearGradient
+        colors={[withAlpha(base, 0.97), withAlpha(base, 0.86), withAlpha(base, 0)]}
+        locations={[0, 0.38, 0.78]}
+        start={{ x: 0, y: 0.5 }}
+        end={{ x: 1, y: 0.5 }}
+        style={styles.photoBlend}
+      />
+
+      {/* Soft bottom scrim — keeps the pagination dots legible over busy
+          photo bottoms without dimming the headline area. */}
+      <LinearGradient
+        colors={['rgba(0,0,0,0)', 'rgba(15,23,42,0.25)']}
+        style={styles.bottomScrim}
+      />
+
       {/* Decorative background circles (clipped by the slide's overflow) */}
       <View style={styles.glowCircle} />
-      <View style={[styles.accentCircle, { backgroundColor: withAlpha(banner.accent, 0.3) }]} />
-
-      {/* Artwork first, so long Bangla copy can overlap its soft backdrop */}
-      <View style={[styles.art, styles[banner.art === 'internship-photo' ? 'artPhoto' : 'artSvg']]}>
-        <BannerArt art={banner.art} accent={banner.accent} />
-      </View>
+      <View style={[styles.accentCircle, { backgroundColor: withAlpha(banner.accent, 0.28) }]} />
 
       <View style={styles.copy}>
         <ThemedText themeColor="onPrimary" style={styles.title} numberOfLines={2}>
@@ -85,6 +110,31 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
+  photo: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    width: '62%',
+    // In style, not as a prop — react-native-web deprecates props.pointerEvents.
+    pointerEvents: 'none',
+  },
+  photoBlend: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    pointerEvents: 'none',
+  },
+  bottomScrim: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: 56,
+    pointerEvents: 'none',
+  },
   glowCircle: {
     position: 'absolute',
     right: -28,
@@ -104,25 +154,9 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     pointerEvents: 'none',
   },
-  art: {
-    position: 'absolute',
-    // In style, not as a prop — react-native-web deprecates props.pointerEvents.
-    pointerEvents: 'none',
-  },
-  artPhoto: {
-    right: 4,
-    bottom: 0,
-    width: 148,
-  },
-  artSvg: {
-    right: 0,
-    bottom: 4,
-    width: 128,
-    height: 128,
-  },
   copy: {
     flex: 1,
-    maxWidth: '60%',
+    maxWidth: '58%',
   },
   title: {
     fontFamily: BanglaFontFamilies.bold,

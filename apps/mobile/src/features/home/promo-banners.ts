@@ -1,9 +1,6 @@
 import type { Href } from 'expo-router';
 
-import type { BannerArtKey } from '@/features/home/banner-art';
-
-/** Gradient stops for one banner, per color scheme — the same three-stop
- *  shape as the retired single banner's bannerFrom/bannerVia/bannerTo. */
+/** Gradient stops for one banner, per color scheme. */
 type GradientStops = [string, string, string];
 
 export interface PromoBanner {
@@ -17,27 +14,33 @@ export interface PromoBanner {
   /** English label for screen readers (app-wide a11y convention). */
   ctaA11y: string;
   href: Href;
-  art: BannerArtKey;
-  /** Light tint of the slide's hue, reused by the artwork + decor circle. */
+  /**
+   * Hero photograph (Unsplash), anchored to the right of the slide and
+   * blended into the brand gradient by the slide's overlay — the
+   * bKash-style composition (photo emerges from the brand colour).
+   */
+  photo: string;
+  /** Light tint of the slide's hue, reused by the decor circle. */
   accent: string;
   gradient: { light: GradientStops; dark: GradientStops };
 }
 
 /**
  * Home hero carousel slides. Every slide keeps the same structure (Bangla
- * copy + CTA left, artwork right) but shifts along the indigo→sky→cyan→
- * fuchsia range of the brand so the carousel feels varied without leaving
- * the purple/blue identity.
+ * copy + CTA left, blended photograph right) but shifts along the
+ * indigo→sky→cyan→fuchsia range of the brand so the carousel feels varied
+ * without leaving the purple/blue identity. Photos are verified live
+ * (HTTP 200) and subject-checked Unsplash images.
  */
 export const PROMO_BANNERS: PromoBanner[] = [
   {
     key: 'internship',
-    title: 'স্বপ্নের ইন্টার্নশিপ খুঁজে নাও',
+    title: 'স্বপ্নের ইন্টারনশিপ খুঁজে নাও',
     subtitle: 'তোমার ক্যারিয়ারের প্রথম ধাপ শুরু হোক আজ',
     cta: 'সুযোগগুলো দেখুন',
     ctaA11y: 'Explore internship opportunities',
     href: '/(tabs)/explore/internship',
-    art: 'internship-photo',
+    photo: 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=800&q=80',
     accent: '#818CF8', // indigo-400
     gradient: {
       // The original hero banner's stops, kept so slide 1 reads as unchanged.
@@ -52,7 +55,7 @@ export const PROMO_BANNERS: PromoBanner[] = [
     cta: 'স্কলারশিপ দেখুন',
     ctaA11y: 'Explore scholarships',
     href: '/(tabs)/explore/scholarship',
-    art: 'scholarship',
+    photo: 'https://images.unsplash.com/photo-1541339907198-e08756dedf3f?w=800&q=80',
     accent: '#C4B5FD', // violet-300
     gradient: {
       light: ['#8B5CF6', '#7C3AED', '#6D28D9'],
@@ -66,7 +69,7 @@ export const PROMO_BANNERS: PromoBanner[] = [
     cta: 'ওয়ার্কশপ দেখুন',
     ctaA11y: 'Explore workshops',
     href: '/(tabs)/explore/workshop',
-    art: 'skills',
+    photo: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=800&q=80',
     accent: '#7DD3FC', // sky-300
     gradient: {
       light: ['#0284C7', '#2563EB', '#4F46E5'],
@@ -80,7 +83,7 @@ export const PROMO_BANNERS: PromoBanner[] = [
     cta: 'টিউশন খুঁজুন',
     ctaA11y: 'Find tuition opportunities',
     href: '/(tabs)/explore/tuition',
-    art: 'tuition',
+    photo: 'https://images.unsplash.com/photo-1513258496099-48168024aec0?w=800&q=80',
     accent: '#67E8F9', // cyan-300
     gradient: {
       light: ['#0891B2', '#0284C7', '#1D4ED8'],
@@ -94,7 +97,7 @@ export const PROMO_BANNERS: PromoBanner[] = [
     cta: 'কমিউনিটিতে যোগ দিন',
     ctaA11y: 'Browse communities',
     href: '/(tabs)/community',
-    art: 'community',
+    photo: 'https://images.unsplash.com/photo-1543269865-cbf427effbad?w=800&q=80',
     accent: '#F0ABFC', // fuchsia-300
     gradient: {
       light: ['#C026D3', '#9333EA', '#7E22CE'],
@@ -108,7 +111,7 @@ export const PROMO_BANNERS: PromoBanner[] = [
     cta: 'প্রোফাইল তৈরি করুন',
     ctaA11y: 'Open your profile',
     href: '/(tabs)/profile',
-    art: 'profile',
+    photo: 'https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=800&q=80',
     accent: '#A5B4FC', // indigo-300
     gradient: {
       light: ['#4338CA', '#3730A3', '#312E81'],
