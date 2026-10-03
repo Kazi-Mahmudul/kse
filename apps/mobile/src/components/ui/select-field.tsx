@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
@@ -60,7 +60,12 @@ export function SelectField({
         <Ionicons name="chevron-down" size={16} color={colors.textSecondary} />
       </Pressable>
 
-      <Modal visible={open} transparent animationType="slide" onRequestClose={() => setOpen(false)}>
+      <Modal
+        visible={open}
+        transparent
+        animationType={Platform.OS === 'web' ? 'none' : 'slide'}
+        onRequestClose={() => setOpen(false)}
+      >
         <Pressable
           style={[styles.backdrop, { backgroundColor: colors.scrim }]}
           onPress={() => setOpen(false)}

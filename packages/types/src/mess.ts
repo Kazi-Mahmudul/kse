@@ -68,6 +68,8 @@ export interface Mess {
   address: string | null;
   description: string | null;
   max_members: number;
+  /** Maintained by trigger (20260928000010): count of active members. */
+  member_count?: number;
   manager_id: string;
   is_active: boolean;
   created_at: string;
@@ -365,6 +367,26 @@ export interface MemberDashboard {
   announcements: MessAnnouncement[];
 }
 
+/**
+ * Live balance for the current Dhaka month (get_member_running_balance RPC).
+ * balance = meal_cost + shared_expense_share − bazar_contribution − payments.
+ * Positive balance = member owes the mess; negative = mess owes the member.
+ */
+export interface RunningBalance {
+  month_start: string;
+  month_end: string;
+  meals: number;
+  meal_rate: number;               // In paisa
+  meal_cost: number;               // In paisa
+  shared_expense_share: number;    // In paisa
+  shared_expense_total: number;    // In paisa
+  active_members: number;
+  bazar_contribution: number;      // In paisa (credit)
+  payments: number;                // In paisa (confirmed only)
+  balance: number;                 // In paisa
+  balance_type: 'due' | 'receivable' | 'settled';
+}
+
 /** Dashboard summary for a manager */
 export interface ManagerDashboard {
   mess: Mess;
@@ -461,6 +483,16 @@ export interface AnnouncementInput {
 /** Amount in paisa converted to BDT string for display */
 export function paisaToBdt(paisa: number): string {
   return `৳${(paisa / 100).toLocaleString('en-BD', { minimumFractionDigits: 2 })}`;
+}
+
+/** Compact variant ("৳1,200" instead of "৳1,200.00") for cards and headings. */
+export function paisaToBdtCompact(paisa: number): string {
+  const bdt = paisa / 100;
+  const hasFraction = Math.round(paisa) % 100 !== 0;
+  return `৳${bdt.toLocaleString('en-BD', {
+    minimumFractionDigits: hasFraction ? 2 : 0,
+    maximumFractionDigits: 2,
+  })}`;
 }
 
 /** BDT string (user input) to paisa */

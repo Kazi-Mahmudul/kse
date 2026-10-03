@@ -88,11 +88,14 @@ async function requireActiveMember(supabase: ReturnType<typeof createClient>, me
 const RATE_RULES: Record<string, { limit: number; windowSeconds: number }> = {
   create_mess: { limit: 5, windowSeconds: 3600 },
   join_mess: { limit: 10, windowSeconds: 3600 },
+  set_meal: { limit: 120, windowSeconds: 3600 },
   request_exchange: { limit: 20, windowSeconds: 3600 },
   respond_exchange: { limit: 30, windowSeconds: 3600 },
   record_payment: { limit: 20, windowSeconds: 3600 },
   add_expense: { limit: 30, windowSeconds: 3600 },
   add_bazar: { limit: 30, windowSeconds: 3600 },
+  delete_bazar: { limit: 30, windowSeconds: 3600 },
+  delete_expense: { limit: 30, windowSeconds: 3600 },
 };
 
 async function checkRateLimit(action: string, userId: string): Promise<void> {
@@ -555,16 +558,18 @@ Deno.serve(async (req) => {
 
         const newStatus = acceptOrReject === 'accept' ? 'accepted' : 'rejected';
 
-        // If accepting, swap the duties
+        // If accepting, swap the duties. swap_bazar_duties() flips the
+        // pending request to 'accepted' inside the same transaction, so a
+        // double-tap or concurrent response can never swap twice.
         if (acceptOrReject === 'accept') {
-          // Swap: requester's duty date ↔ target's duty date
           const { error: swapErr } = await supabase.rpc('swap_bazar_duties', {
             p_exchange_id: exchange_id,
           });
           if (swapErr) throw new Bad('Failed to swap duties: ' + swapErr.message);
         }
 
-        // Update exchange status
+        // Record the responder (status was already set atomically by the
+        // RPC for accepts; re-writing the same value is harmless).
         const { error: updateErr } = await supabase
           .from('bazar_exchange_requests')
           .update({
@@ -780,17 +785,20 @@ Deno.serve(async (req) => {
             .eq('id', existing.id);
         }
 
-        // Calculate totals
-        // Total meal cost = bazar purchases + shared expenses
-        const { data: bazarTotal } = await supabase
+        // Calculate totals. Meal rate = bazar ÷ meals (shared expenses are
+        // split per member separately — folding them into the rate would
+        // double-count them).
+        const { data: bazarTotalRow } = await supabase
           .rpc('get_mess_bazar_total', {
             p_mess_id: mess_id,
             p_start_date: month_start,
             p_end_date: month_end,
           })
-          .single() as { data: { sum: number } | null };
+          .single() as { data: { total: number } | null };
 
-        const { data: expenseTotal } = await supabase
+        const bazarTotal = Number(bazarTotalRow?.total ?? 0);
+
+        const { data: expenseRows } = await supabase
           .from('mess_expenses')
           .select('amount')
           .eq('mess_id', mess_id)
@@ -798,7 +806,7 @@ Deno.serve(async (req) => {
           .lte('expense_date', month_end)
           .eq('is_shared', true);
 
-        const totalMealCost = (bazarTotal?.sum ?? 0) + (expenseTotal?.reduce((s, e) => s + e.amount, 0) ?? 0);
+        const sharedTotal = expenseRows?.reduce((s, e) => s + e.amount, 0) ?? 0;
 
         // Total meals
         const { data: mealData } = await supabase
@@ -809,7 +817,8 @@ Deno.serve(async (req) => {
           .lte('meal_date', month_end);
 
         const totalMeals = mealData?.filter(r => r.state === 'on').length ?? 0;
-        const mealRate = totalMeals > 0 ? Math.round(totalMealCost / totalMeals) : 0;
+        const mealRate = totalMeals > 0 ? Math.round(bazarTotal / totalMeals) : 0;
+        const totalPot = bazarTotal + sharedTotal;
 
         // Create settlement
         const { data: settlement, error: settlementErr } = await supabase
@@ -818,7 +827,7 @@ Deno.serve(async (req) => {
             mess_id,
             month_start,
             month_end,
-            total_meal_cost: totalMealCost,
+            total_meal_cost: totalPot,
             total_meals: totalMeals,
             meal_rate: mealRate,
             status: 'draft',
@@ -853,7 +862,8 @@ Deno.serve(async (req) => {
             const memberMealCount = memberMeals?.filter(r => r.state === 'on').length ?? 0;
             const mealCost = memberMealCount * mealRate;
 
-            // Get bazar contribution
+            // Get bazar contribution — money the member laid out, so it is
+            // a CREDIT against what they owe, not an extra cost.
             const { data: bazarContrib } = await supabase
               .rpc('get_member_bazar_contribution', {
                 p_mess_id: mess_id,
@@ -876,12 +886,12 @@ Deno.serve(async (req) => {
             const totalPayments = payments?.reduce((s, p) => s + p.amount, 0) ?? 0;
 
             // Shared expense share per member (evenly split among active members)
-            const sharedExpenseShare = expenseTotal
-              ? Math.round(expenseTotal.reduce((s, e) => s + e.amount, 0) / members.length)
+            const sharedExpenseShare = members.length > 0
+              ? Math.round(sharedTotal / members.length)
               : 0;
 
-            const totalCost = mealCost + (bazarContrib ?? 0) + sharedExpenseShare;
-            const balance = totalCost - totalPayments;
+            const totalCost = mealCost + sharedExpenseShare;
+            const balance = totalCost - Number(bazarContrib ?? 0) - totalPayments;
 
             let balanceType: 'due' | 'receivable' | 'settled' = 'settled';
             if (balance > 0) balanceType = 'due';
@@ -967,6 +977,367 @@ Deno.serve(async (req) => {
           'monthly_settlement', settlement_id, 'Settlement locked');
 
         return json({ success: true });
+      }
+
+      // ── Set Meal (ON/OFF with cut-off enforcement) ────────────────────────
+      case 'set_meal': {
+        await checkRateLimit('set_meal', userId);
+
+        const { mess_id, meal_date, meal_type, state } = params as {
+          mess_id: string;
+          meal_date: string;
+          meal_type: 'breakfast' | 'lunch' | 'dinner';
+          state: 'on' | 'off';
+        };
+
+        if (!mess_id || !meal_date || !meal_type || !state) {
+          throw new Bad('mess_id, meal_date, meal_type and state are required');
+        }
+
+        await requireActiveMember(supabase, mess_id, userId);
+
+        // Cut-off check (server time, Asia/Dhaka aware)
+        const { data: allowed } = await supabase
+          .rpc('can_modify_meal', {
+            mess_uuid: mess_id,
+            member_uuid: userId,
+            meal_date_val: meal_date,
+            m_type: meal_type,
+          })
+          .single();
+
+        if (!allowed) {
+          // Managers may override after cut-off, with an audit trail.
+          let isManager = false;
+          const { data: mess } = await supabase
+            .from('messes')
+            .select('manager_id')
+            .eq('id', mess_id)
+            .single();
+          isManager = mess?.manager_id === userId;
+          if (!isManager) {
+            throw new Bad('Meal change window has closed for this meal', 403);
+          }
+          await logAudit(supabase, mess_id, userId, 'meal_modified_after_cutoff',
+            'meal_record', null,
+            `Manager set ${meal_type} ${state} for ${meal_date} after cut-off`);
+        }
+
+        const { data: existing } = await supabase
+          .from('meal_records')
+          .select('id')
+          .eq('mess_id', mess_id)
+          .eq('user_id', userId)
+          .eq('meal_date', meal_date)
+          .eq('meal_type', meal_type)
+          .single();
+
+        let record;
+        if (existing) {
+          const { data: updated, error: updateErr } = await supabase
+            .from('meal_records')
+            .update({ state, updated_at: new Date().toISOString() })
+            .eq('id', existing.id)
+            .select()
+            .single();
+          if (updateErr) throw new Bad(updateErr.message);
+          record = updated;
+        } else {
+          const { data: inserted, error: insertErr } = await supabase
+            .from('meal_records')
+            .insert({
+              mess_id,
+              user_id: userId,
+              meal_date,
+              meal_type,
+              state,
+              created_by: userId,
+            })
+            .select()
+            .single();
+          if (insertErr) throw new Bad(insertErr.message);
+          record = inserted;
+        }
+
+        return json({ record });
+      }
+
+      // ── Delete Bazar Purchase ─────────────────────────────────────────────
+      case 'delete_bazar_purchase': {
+        await checkRateLimit('delete_bazar', userId);
+
+        const { purchase_id, mess_id } = params as { purchase_id: string; mess_id: string };
+        if (!purchase_id) throw new Bad('purchase_id is required');
+
+        const { data: purchase } = await supabase
+          .from('bazar_purchases')
+          .select('mess_id, buyer_id, purchase_date, total_amount')
+          .eq('id', purchase_id)
+          .single();
+
+        if (!purchase) throw new Bad('Purchase not found', 404);
+        if (purchase.mess_id !== mess_id) throw new Bad('Purchase does not belong to this mess');
+
+        let isManager = false;
+        const { data: mess } = await supabase
+          .from('messes')
+          .select('manager_id')
+          .eq('id', purchase.mess_id)
+          .single();
+        isManager = mess?.manager_id === userId;
+
+        if (!isManager && purchase.buyer_id !== userId) {
+          throw new Bad('Only the buyer or the manager can delete this entry', 403);
+        }
+
+        // Block deletion if a locked settlement covers the purchase month.
+        const { data: lockedSettlement } = await supabase
+          .from('monthly_settlements')
+          .select('id')
+          .eq('mess_id', purchase.mess_id)
+          .eq('status', 'locked')
+          .lte('month_start', purchase.purchase_date)
+          .gte('month_end', purchase.purchase_date)
+          .maybeSingle();
+
+        if (lockedSettlement) {
+          throw new Bad('Month is locked — bazar entries can no longer be changed');
+        }
+
+        await supabase.from('bazar_purchase_items').delete().eq('purchase_id', purchase_id);
+        const { error: deleteErr } = await supabase
+          .from('bazar_purchases')
+          .delete()
+          .eq('id', purchase_id);
+        if (deleteErr) throw new Bad(deleteErr.message);
+
+        await logAudit(supabase, purchase.mess_id, userId, 'bazar_entry_deleted',
+          'bazar_purchase', purchase_id,
+          `Deleted bazar purchase of ৳${(purchase.total_amount / 100).toFixed(2)}`,
+          { total_amount: purchase.total_amount, purchase_date: purchase.purchase_date });
+
+        return json({ success: true });
+      }
+
+      // ── Delete Expense ────────────────────────────────────────────────────
+      case 'delete_expense': {
+        await checkRateLimit('delete_expense', userId);
+
+        const { expense_id } = params as { expense_id: string; mess_id?: string };
+        if (!expense_id) throw new Bad('expense_id is required');
+
+        const { data: expense } = await supabase
+          .from('mess_expenses')
+          .select('mess_id, amount, expense_date, category')
+          .eq('id', expense_id)
+          .single();
+
+        if (!expense) throw new Bad('Expense not found', 404);
+        await requireManager(supabase, expense.mess_id, userId);
+
+        const { data: lockedSettlement } = await supabase
+          .from('monthly_settlements')
+          .select('id')
+          .eq('mess_id', expense.mess_id)
+          .eq('status', 'locked')
+          .lte('month_start', expense.expense_date)
+          .gte('month_end', expense.expense_date)
+          .maybeSingle();
+
+        if (lockedSettlement) {
+          throw new Bad('Month is locked — expenses can no longer be changed');
+        }
+
+        const { error: deleteErr } = await supabase
+          .from('mess_expenses')
+          .delete()
+          .eq('id', expense_id);
+        if (deleteErr) throw new Bad(deleteErr.message);
+
+        await logAudit(supabase, expense.mess_id, userId, 'expense_deleted',
+          'mess_expense', expense_id,
+          `Deleted expense: ${expense.category} ৳${(expense.amount / 100).toFixed(2)}`,
+          { amount: expense.amount, category: expense.category });
+
+        return json({ success: true });
+      }
+
+      // ── Bazar Duty Assignment (manager) ───────────────────────────────────
+      case 'upsert_bazar_duty': {
+        const { mess_id, member_user_id, duty_date, duty_id } = params as {
+          mess_id: string;
+          member_user_id: string;
+          duty_date: string;
+          duty_id?: string;
+        };
+
+        if (!mess_id || !member_user_id || !duty_date) {
+          throw new Bad('mess_id, member_user_id and duty_date are required');
+        }
+
+        await requireManager(supabase, mess_id, userId);
+
+        const { data: member } = await supabase
+          .from('mess_members')
+          .select('status')
+          .eq('mess_id', mess_id)
+          .eq('user_id', member_user_id)
+          .eq('status', 'active')
+          .single();
+        if (!member) throw new Bad('Assigned member must be an active mess member');
+
+        let duty;
+        if (duty_id) {
+          const { data: updated, error: updateErr } = await supabase
+            .from('bazar_duties')
+            .update({ user_id: member_user_id, duty_date, updated_at: new Date().toISOString() })
+            .eq('id', duty_id)
+            .eq('mess_id', mess_id)
+            .select()
+            .single();
+          if (updateErr) throw new Bad(updateErr.message);
+          duty = updated;
+        } else {
+          const { data: inserted, error: insertErr } = await supabase
+            .from('bazar_duties')
+            .insert({ mess_id, user_id: member_user_id, duty_date, created_by: userId })
+            .select()
+            .single();
+          if (insertErr) throw new Bad(insertErr.message);
+          duty = inserted;
+        }
+
+        await logAudit(supabase, mess_id, userId, 'duty_schedule_changed',
+          'bazar_duty', duty.id,
+          `Bazar duty ${duty_id ? 'updated' : 'assigned'} for ${duty_date}`);
+
+        return json({ duty });
+      }
+
+      case 'delete_bazar_duty': {
+        const { duty_id } = params as { duty_id: string; mess_id?: string };
+        if (!duty_id) throw new Bad('duty_id is required');
+
+        const { data: duty } = await supabase
+          .from('bazar_duties')
+          .select('mess_id, duty_date')
+          .eq('id', duty_id)
+          .single();
+        if (!duty) throw new Bad('Duty not found', 404);
+        await requireManager(supabase, duty.mess_id, userId);
+
+        // Duties referenced by ACCEPTED/REJECTED exchanges are permanent
+        // history (FK is NOT NULL ON DELETE RESTRICT) — offer reassignment.
+        const { count: historyCount } = await supabase
+          .from('bazar_exchange_requests')
+          .select('*', { count: 'exact', head: true })
+          .neq('status', 'pending')
+          .or(`requester_duty_id.eq.${duty_id},target_duty_id.eq.${duty_id}`);
+        if ((historyCount ?? 0) > 0) {
+          throw new Bad('This duty has exchange history and can no longer be removed. Reassign it to another member instead.');
+        }
+
+        // Void any pending exchange that references this duty
+        await supabase
+          .from('bazar_exchange_requests')
+          .update({
+            status: 'rejected',
+            responded_at: new Date().toISOString(),
+            responded_by: userId,
+            response_note: 'Duty was removed by the manager',
+          })
+          .eq('status', 'pending')
+          .or(`requester_duty_id.eq.${duty_id},target_duty_id.eq.${duty_id}`);
+
+        const { error: deleteErr } = await supabase
+          .from('bazar_duties')
+          .delete()
+          .eq('id', duty_id);
+        if (deleteErr) throw new Bad(deleteErr.message);
+
+        await logAudit(supabase, duty.mess_id, userId, 'duty_schedule_changed',
+          'bazar_duty', duty_id, `Bazar duty removed for ${duty.duty_date}`);
+
+        return json({ success: true });
+      }
+
+      // ── Mess Settings (manager) ───────────────────────────────────────────
+      case 'update_mess': {
+        const { mess_id, name, location, address, description, max_members, is_active } = params as {
+          mess_id: string;
+          name?: string;
+          location?: string;
+          address?: string;
+          description?: string;
+          max_members?: number;
+          is_active?: boolean;
+        };
+
+        await requireManager(supabase, mess_id, userId);
+
+        const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
+        if (name !== undefined) {
+          if (!name.trim()) throw new Bad('Mess name cannot be empty');
+          patch.name = name.trim();
+        }
+        if (location !== undefined) patch.location = location?.trim() || null;
+        if (address !== undefined) patch.address = address?.trim() || null;
+        if (description !== undefined) patch.description = description?.trim() || null;
+        if (max_members !== undefined) {
+          if (max_members < 2 || max_members > 50) throw new Bad('Max members must be 2–50');
+          patch.max_members = max_members;
+        }
+        if (is_active !== undefined) patch.is_active = is_active;
+
+        const { data: mess, error: updateErr } = await supabase
+          .from('messes')
+          .update(patch)
+          .eq('id', mess_id)
+          .select()
+          .single();
+        if (updateErr) throw new Bad(updateErr.message);
+
+        await logAudit(supabase, mess_id, userId, 'settings_changed',
+          'mess', mess_id, 'Updated mess information');
+
+        return json({ mess });
+      }
+
+      case 'update_meal_cutoffs': {
+        const { mess_id, breakfast, lunch, dinner } = params as {
+          mess_id: string;
+          breakfast?: string | null;   // 'HH:MM' Dhaka time, or null for default
+          lunch?: string | null;
+          dinner?: string | null;
+        };
+
+        await requireManager(supabase, mess_id, userId);
+
+        const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
+        // Table defaults (20260928000003) restored when a time is cleared.
+        const DEFAULT_MINUTES: Record<string, number> = { breakfast: 30, lunch: 60, dinner: 120 };
+        for (const [key, value] of Object.entries({ breakfast, lunch, dinner })) {
+          if (value !== undefined) {
+            if (value !== null && !/^\d{2}:\d{2}$/.test(value)) {
+              throw new Bad(`${key} cut-off must be HH:MM or empty`);
+            }
+            patch[`${key}_cutoff_time`] = value;
+            // A specific time overrides the minutes-based default
+            patch[`${key}_cutoff_minutes`] = value === null ? DEFAULT_MINUTES[key] : 0;
+          }
+        }
+
+        const { data: settings, error: updateErr } = await supabase
+          .from('meal_cutoff_settings')
+          .upsert({ mess_id, ...patch }, { onConflict: 'mess_id' })
+          .select()
+          .single();
+        if (updateErr) throw new Bad(updateErr.message);
+
+        await logAudit(supabase, mess_id, userId, 'settings_changed',
+          'meal_cutoff_settings', mess_id, 'Updated meal cut-off times');
+
+        return json({ settings });
       }
 
       // ── Create Announcement ─────────────────────────────────────────────────

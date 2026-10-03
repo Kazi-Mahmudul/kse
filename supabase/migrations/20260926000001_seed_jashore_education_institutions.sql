@@ -47,7 +47,8 @@ values
   ('Mahakal Pilot School and College', 'college', 'private', 'Jashore', 'Abhaynagar'),
   ('Sheikh Abdul Wahab Model College', 'college', 'private', 'Jashore', 'Abhaynagar'),
   ('Sreedharpur Union College', 'college', 'private', 'Jashore', 'Abhaynagar'),
-  ('Sundali S.T. School and College', 'college', 'private', 'Jashore', 'Abhaynagar');
+  ('Sundali S.T. School and College', 'college', 'private', 'Jashore', 'Abhaynagar')
+on conflict do nothing;
 
 -- ── Keshabpur Upazila (14) ──────────────────────────────────────────────────
 insert into public.education_institutions (name, type, ownership_type, city, area)
@@ -65,7 +66,8 @@ values
   ('Baliadanga Sarbojanin Debalaya Technical and Business Management College', 'college', 'private', 'Jashore', 'Keshabpur'),
   ('Muktijoddha Mahavidyalaya', 'college', 'private', 'Jashore', 'Keshabpur'),
   ('Haji Abdul Motaleb Women''s College', 'college', 'private', 'Jashore', 'Keshabpur'),
-  ('Hijaldanga Shaheed Foli Ghat Lat Masud Memorial College', 'college', 'private', 'Jashore', 'Keshabpur');
+  ('Hijaldanga Shaheed Foli Ghat Lat Masud Memorial College', 'college', 'private', 'Jashore', 'Keshabpur')
+on conflict do nothing;
 
 -- ── Chaugachha Upazila (11) ─────────────────────────────────────────────────
 insert into public.education_institutions (name, type, ownership_type, city, area)
@@ -80,7 +82,8 @@ values
   ('Pashapol Amjam Tala Model College', 'college', 'private', 'Jashore', 'Chaugachha'),
   ('Marua Oklahoma Yousuf Ali Khan Secondary School and College', 'college', 'private', 'Jashore', 'Chaugachha'),
   ('Solua Adarsha Degree College', 'college', 'private', 'Jashore', 'Chaugachha'),
-  ('Hakimpur Women''s College', 'college', 'private', 'Jashore', 'Chaugachha');
+  ('Hakimpur Women''s College', 'college', 'private', 'Jashore', 'Chaugachha')
+on conflict do nothing;
 
 -- ── Jhikargachha Upazila (13) ───────────────────────────────────────────────
 insert into public.education_institutions (name, type, ownership_type, city, area)
@@ -97,7 +100,8 @@ values
   ('Raghunath Nagar College', 'college', 'private', 'Jashore', 'Jhikargachha'),
   ('Shaheed Mashiur Rahman Degree College', 'college', 'private', 'Jashore', 'Jhikargachha'),
   ('Shammalini Girls'' Degree College', 'college', 'private', 'Jashore', 'Jhikargachha'),
-  ('Shimulia College', 'college', 'private', 'Jashore', 'Jhikargachha');
+  ('Shimulia College', 'college', 'private', 'Jashore', 'Jhikargachha')
+on conflict do nothing;
 
 -- ── Bagherpara Upazila (13) ─────────────────────────────────────────────────
 insert into public.education_institutions (name, type, ownership_type, city, area)
@@ -114,7 +118,8 @@ values
   ('Mirzapur Adarsha Women''s Degree College, Khajura', 'college', 'private', 'Jashore', 'Bagherpara'),
   ('Jadavpur Technical School and Business Management College', 'college', 'private', 'Jashore', 'Bagherpara'),
   ('Raipur School and College', 'college', 'private', 'Jashore', 'Bagherpara'),
-  ('Shaheed Sirajuddin Hossain Government College', 'college', 'public', 'Jashore', 'Bagherpara');
+  ('Shaheed Sirajuddin Hossain Government College', 'college', 'public', 'Jashore', 'Bagherpara')
+on conflict do nothing;
 
 -- ── Monirampur Upazila (21) ─────────────────────────────────────────────────
 insert into public.education_institutions (name, type, ownership_type, city, area)
@@ -139,7 +144,8 @@ values
   ('Rajganj Mahavidyalaya', 'college', 'private', 'Jashore', 'Monirampur'),
   ('Shaheed Muktijoddha A.R. Women''s College', 'college', 'private', 'Jashore', 'Monirampur'),
   ('Sabuj Palli College', 'college', 'private', 'Jashore', 'Monirampur'),
-  ('Sammilani Degree College', 'college', 'private', 'Jashore', 'Monirampur');
+  ('Sammilani Degree College', 'college', 'private', 'Jashore', 'Monirampur')
+on conflict do nothing;
 
 -- ── Sharsha Upazila (12) ────────────────────────────────────────────────────
 insert into public.education_institutions (name, type, ownership_type, city, area)
@@ -155,14 +161,16 @@ values
   ('Lakshmanpur School and College', 'college', 'private', 'Jashore', 'Sharsha'),
   ('Sharsha Technical School and College', 'college', 'private', 'Jashore', 'Sharsha'),
   ('Government Bir Shrestha Noor Mohammad College', 'college', 'public', 'Jashore', 'Sharsha'),
-  ('Sharsha Upazila College', 'college', 'private', 'Jashore', 'Sharsha');
+  ('Sharsha Upazila College', 'college', 'private', 'Jashore', 'Sharsha')
+on conflict do nothing;
 
 -- ── Jashore Sadar Upazila (3 medical colleges) ──────────────────────────────
 insert into public.education_institutions (name, type, ownership_type, city, area)
 values
   ('Ad-Din Sakina Medical College', 'medical_college', 'private', 'Jashore', 'Jashore Sadar'),
   ('Armed Forces Medical College', 'medical_college', 'public', 'Jashore', 'Jashore Sadar'),
-  ('Jashore Medical College', 'medical_college', 'public', 'Jashore', 'Jashore Sadar');
+  ('Jashore Medical College', 'medical_college', 'public', 'Jashore', 'Jashore Sadar')
+on conflict do nothing;
 
 -- ── Jashore Sadar — District Level (35) ─────────────────────────────────────
 insert into public.education_institutions (name, type, ownership_type, city, area)
@@ -202,4 +210,5 @@ values
   ('Shaheed Mashiur Rahman Law College, Jashore', 'college', 'private', 'Jashore', 'Jashore Sadar'),
   ('Government Michael Madhusudan College, Jashore', 'college', 'public', 'Jashore', 'Jashore Sadar'),
   ('Singia Adarsha Degree College', 'college', 'private', 'Jashore', 'Jashore Sadar'),
-  ('Hamidpur Al-Hera College', 'college', 'private', 'Jashore', 'Jashore Sadar');
+  ('Hamidpur Al-Hera College', 'college', 'private', 'Jashore', 'Jashore Sadar')
+on conflict do nothing;

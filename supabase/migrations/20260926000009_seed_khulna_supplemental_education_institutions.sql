@@ -75,4 +75,5 @@ values
   ('Khulna Art College', 'arts_college', 'private', 'Khulna', 'Sonadanga'),
   ('Squire Polytechnic Institute', 'polytechnic', 'private', 'Khulna', 'Khulna Sadar'),
   ('Squire Medical Institute', 'technical_school', 'private', 'Khulna', 'Khulna Sadar'),
-  ('PSTI (Public Science and Technology Institute) Polytechnic Institute', 'polytechnic', 'private', 'Khulna', 'Khulna Sadar');
+  ('PSTI (Public Science and Technology Institute) Polytechnic Institute', 'polytechnic', 'private', 'Khulna', 'Khulna Sadar')
+on conflict do nothing;

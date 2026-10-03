@@ -3,33 +3,29 @@
  *
  * Reads go through Supabase client directly (RLS enforced).
  * Writes go through the `mess-actions` Edge Function (rate-limited, audited).
+ * All business dates are Dhaka-local (see lib/dates).
  */
 
 import { supabase } from '@/lib/supabase';
+import { dhakaToday, monthRangeFrom } from './lib/dates';
 import type {
   Mess,
   MessDetail,
-  MessMember,
   MessMemberDetail,
   MyMessItem,
-  MessInvite,
   MealRecord,
   MealCutoffSettings,
   MealCalendarEntry,
-  DailyMealSummary,
   BazarDuty,
-  BazarExchangeRequest,
-  ExchangeRequestDetail,
   BazarPurchase,
   BazarPurchaseDetail,
-  BazarPurchaseItem,
   MessExpense,
   MessPayment,
   MonthlySettlement,
   SettlementDetail,
-  SettlementItem,
   MessAnnouncement,
   MessAuditLog,
+  RunningBalance,
   CreateMessInput,
   MealToggleInput,
   BazarPurchaseInput,
@@ -39,6 +35,32 @@ import type {
   AnnouncementInput,
   MemberDashboard,
 } from '@kse/types';
+
+// ── Edge Function helper ─────────────────────────────────────────────────────
+
+async function callMessAction(action: string, params: Record<string, unknown> = {}): Promise<Record<string, unknown>> {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) throw new Error('Not authenticated');
+
+  const res = await fetch(`${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/mess-actions`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${session.access_token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ action, ...params }),
+  });
+
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.error || 'Request failed');
+  return json as Record<string, unknown>;
+}
+
+async function requireSessionUserId(): Promise<string> {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) throw new Error('Not authenticated');
+  return session.user.id;
+}
 
 // ── Mess ─────────────────────────────────────────────────────────────────────
 
@@ -60,12 +82,15 @@ export async function fetchMyMesses(): Promise<MyMessItem[]> {
     .in('status', ['active', 'pending']);
 
   if (error) throw error;
-  return (data ?? []).map((r: Record<string, unknown>) => ({
-    ...(r.mess as Record<string, unknown>),
-    role: r.role as MyMessItem['role'],
-    status: r.status as MyMessItem['status'],
-    manager_name: (r.mess as MessDetail).manager_name,
-  })) as MyMessItem[];
+  return (data ?? []).map((r: Record<string, unknown>) => {
+    const mess = (r.mess ?? {}) as Record<string, unknown> & { manager?: { full_name?: string } };
+    return {
+      ...mess,
+      manager_name: mess.manager?.full_name ?? undefined,
+      role: r.role as MyMessItem['role'],
+      status: r.status as MyMessItem['status'],
+    } as MyMessItem;
+  });
 }
 
 export async function fetchMessDetail(messId: string): Promise<MessDetail | null> {
@@ -83,21 +108,16 @@ export async function fetchMessDetail(messId: string): Promise<MessDetail | null
 }
 
 export async function createMess(input: CreateMessInput): Promise<Mess> {
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) throw new Error('Not authenticated');
+  const json = await callMessAction('create_mess', input as unknown as Record<string, unknown>);
+  return json.mess as Mess;
+}
 
-  const res = await fetch(`${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/mess-actions`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${session.access_token}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ action: 'create_mess', ...input }),
-  });
-
-  const json = await res.json();
-  if (!res.ok) throw new Error(json.error || 'Failed to create mess');
-  return json.mess;
+export async function updateMessSettings(
+  messId: string,
+  patch: Partial<Pick<Mess, 'name' | 'location' | 'address' | 'description' | 'max_members'>>,
+): Promise<Mess> {
+  const json = await callMessAction('update_mess', { mess_id: messId, ...patch });
+  return json.mess as Mess;
 }
 
 // ── Members ──────────────────────────────────────────────────────────────────
@@ -115,81 +135,57 @@ export async function fetchMessMembers(messId: string): Promise<MessMemberDetail
     .order('joined_at', { ascending: true });
 
   if (error) throw error;
-  return data as MessMemberDetail[];
+  // Flatten the joined profile into the *_name/_avatar_url fields the UI reads.
+  return (data ?? []).map((r: Record<string, unknown>) => ({
+    ...(r as unknown as MessMemberDetail),
+    user_name: (r.user as { full_name?: string } | null)?.full_name ?? undefined,
+    user_avatar_url: (r.user as { avatar_url?: string | null } | null)?.avatar_url ?? null,
+  }));
 }
 
 export async function joinMess(messId: string, inviteCode?: string): Promise<void> {
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) throw new Error('Not authenticated');
-
-  const res = await fetch(`${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/mess-actions`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${session.access_token}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ action: 'join_mess', mess_id: messId, invite_code: inviteCode }),
-  });
-
-  const json = await res.json();
-  if (!res.ok) throw new Error(json.error || 'Failed to join mess');
+  await callMessAction('join_mess', { mess_id: messId, invite_code: inviteCode });
 }
 
 export async function respondJoinRequest(
   memberId: string,
   messId: string,
-  action: 'accept' | 'reject'
+  action: 'accept' | 'reject',
 ): Promise<void> {
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) throw new Error('Not authenticated');
-
-  const res = await fetch(`${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/mess-actions`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${session.access_token}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ action: 'respond_join_request', member_id: memberId, mess_id: messId, accept_action: action }),
-  });
-
-  const json = await res.json();
-  if (!res.ok) throw new Error(json.error || 'Failed to respond');
+  await callMessAction('respond_join_request', { member_id: memberId, mess_id: messId, accept_action: action });
 }
 
 export async function leaveMess(memberId: string, messId: string): Promise<void> {
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) throw new Error('Not authenticated');
+  await callMessAction('update_member_status', { member_id: memberId, mess_id: messId, status: 'left' });
+}
 
-  const res = await fetch(`${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/mess-actions`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${session.access_token}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ action: 'update_member_status', member_id: memberId, mess_id: messId, status: 'left' }),
-  });
+export async function removeMember(memberId: string, messId: string): Promise<void> {
+  await callMessAction('update_member_status', { member_id: memberId, mess_id: messId, status: 'removed' });
+}
 
-  const json = await res.json();
-  if (!res.ok) throw new Error(json.error || 'Failed to leave mess');
+export async function transferManager(messId: string, newManagerId: string): Promise<void> {
+  await callMessAction('transfer_manager', { mess_id: messId, new_manager_id: newManagerId });
 }
 
 // ── Meals ─────────────────────────────────────────────────────────────────────
 
+/** The signed-in member's own meal calendar (one entry per recorded day). */
 export async function fetchMealCalendar(
   messId: string,
   startDate: string,
-  endDate: string
+  endDate: string,
 ): Promise<MealCalendarEntry[]> {
+  const userId = await requireSessionUserId();
   const { data, error } = await supabase
     .from('meal_records')
     .select('*')
     .eq('mess_id', messId)
+    .eq('user_id', userId)
     .gte('meal_date', startDate)
     .lte('meal_date', endDate);
 
   if (error) throw error;
 
-  // Group by date
   const byDate = new Map<string, MealCalendarEntry>();
   for (const rec of (data ?? []) as MealRecord[]) {
     if (!byDate.has(rec.meal_date)) {
@@ -204,10 +200,12 @@ export async function fetchMealCalendar(
 }
 
 export async function fetchTodayMeals(messId: string, date: string): Promise<Record<string, 'on' | 'off'>> {
+  const userId = await requireSessionUserId();
   const { data, error } = await supabase
     .from('meal_records')
     .select('*')
     .eq('mess_id', messId)
+    .eq('user_id', userId)
     .eq('meal_date', date);
 
   if (error) throw error;
@@ -219,63 +217,28 @@ export async function fetchTodayMeals(messId: string, date: string): Promise<Rec
   return result;
 }
 
-export async function toggleMeal(input: MealToggleInput): Promise<MealRecord> {
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) throw new Error('Not authenticated');
-
-  // Check if record exists
-  const { data: existing } = await supabase
-    .from('meal_records')
-    .select('*')
-    .eq('mess_id', input.mess_id)
-    .eq('user_id', session.user.id)
-    .eq('meal_date', input.meal_date)
-    .eq('meal_type', input.meal_type)
-    .single();
-
-  let record: MealRecord;
-  if (existing) {
-    const { data, error } = await supabase
-      .from('meal_records')
-      .update({ state: input.state })
-      .eq('id', existing.id)
-      .select()
-      .single();
-    if (error) throw error;
-    record = data;
-  } else {
-    const { data, error } = await supabase
-      .from('meal_records')
-      .insert({
-        mess_id: input.mess_id,
-        user_id: session.user.id,
-        meal_date: input.meal_date,
-        meal_type: input.meal_type,
-        state: input.state,
-        created_by: session.user.id,
-      })
-      .select()
-      .single();
-    if (error) throw error;
-    record = data;
-  }
-
-  return record;
-}
-
+/** Meal counts for a month. `userId` filters to one member ('me' = the
+ *  signed-in member); omitted = mess-wide totals. */
 export async function fetchMealStats(
   messId: string,
   monthStart: string,
-  monthEnd: string
+  monthEnd: string,
+  userId?: 'me' | string,
 ): Promise<{ breakfast: number; lunch: number; dinner: number; total: number }> {
-  const { data, error } = await supabase
+  let query = supabase
     .from('meal_records')
     .select('meal_type, state')
     .eq('mess_id', messId)
     .gte('meal_date', monthStart)
     .lte('meal_date', monthEnd)
     .eq('state', 'on');
+  if (userId === 'me') {
+    query = query.eq('user_id', await requireSessionUserId());
+  } else if (userId) {
+    query = query.eq('user_id', userId);
+  }
 
+  const { data, error } = await query;
   if (error) throw error;
 
   const counts = { breakfast: 0, lunch: 0, dinner: 0, total: 0 };
@@ -284,6 +247,33 @@ export async function fetchMealStats(
     counts.total++;
   }
   return counts;
+}
+
+export async function fetchMealCutoffSettings(messId: string): Promise<MealCutoffSettings | null> {
+  const { data, error } = await supabase
+    .from('meal_cutoff_settings')
+    .select('*')
+    .eq('mess_id', messId)
+    .maybeSingle();
+  if (error) throw error;
+  return data as MealCutoffSettings | null;
+}
+
+/**
+ * Turn a meal ON/OFF. Goes through the edge function so the cut-off is
+ * enforced server-side (managers may override, which is audited).
+ */
+export async function toggleMeal(input: MealToggleInput): Promise<MealRecord> {
+  const json = await callMessAction('set_meal', input as unknown as Record<string, unknown>);
+  return json.record as MealRecord;
+}
+
+export async function updateMealCutoffs(
+  messId: string,
+  cutoffs: { breakfast?: string | null; lunch?: string | null; dinner?: string | null },
+): Promise<MealCutoffSettings> {
+  const json = await callMessAction('update_meal_cutoffs', { mess_id: messId, ...cutoffs });
+  return json.settings as MealCutoffSettings;
 }
 
 // ── Bazar Duties ─────────────────────────────────────────────────────────────
@@ -302,81 +292,94 @@ export async function fetchBazarDuties(messId: string, monthStart: string, month
 }
 
 export async function fetchMyNextDuty(messId: string): Promise<BazarDuty | null> {
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) return null;
+  const userId = await requireSessionUserId();
+  const today = dhakaToday();
 
-  const today = new Date().toISOString().split('T')[0];
   const { data, error } = await supabase
     .from('bazar_duties')
     .select('*, user:profiles!bazar_duties_user_id_fkey(full_name)')
     .eq('mess_id', messId)
-    .eq('user_id', session.user.id)
+    .eq('user_id', userId)
     .gte('duty_date', today)
     .order('duty_date', { ascending: true })
     .limit(1)
-    .single();
+    .maybeSingle();
 
-  if (error && error.code !== 'PGRST116') throw error;
+  if (error) throw error;
   return data ?? null;
 }
 
-export async function requestExchange(input: ExchangeRequestInput): Promise<BazarExchangeRequest> {
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) throw new Error('Not authenticated');
-
-  const res = await fetch(`${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/mess-actions`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${session.access_token}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ action: 'request_exchange', ...input }),
+export async function upsertBazarDuty(
+  messId: string,
+  memberUserId: string,
+  dutyDate: string,
+  dutyId?: string,
+): Promise<BazarDuty> {
+  const json = await callMessAction('upsert_bazar_duty', {
+    mess_id: messId,
+    member_user_id: memberUserId,
+    duty_date: dutyDate,
+    duty_id: dutyId,
   });
+  return json.duty as BazarDuty;
+}
 
-  const json = await res.json();
-  if (!res.ok) throw new Error(json.error || 'Failed to request exchange');
-  return json.exchange;
+export async function deleteBazarDuty(dutyId: string): Promise<void> {
+  await callMessAction('delete_bazar_duty', { duty_id: dutyId });
+}
+
+export async function requestExchange(input: ExchangeRequestInput): Promise<void> {
+  await callMessAction('request_exchange', input as unknown as Record<string, unknown>);
 }
 
 export async function respondExchange(
   exchangeId: string,
   action: 'accept' | 'reject',
-  note?: string
+  note?: string,
 ): Promise<void> {
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) throw new Error('Not authenticated');
-
-  const res = await fetch(`${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/mess-actions`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${session.access_token}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ action: 'respond_exchange', exchange_id: exchangeId, accept_action: action, note }),
-  });
-
-  const json = await res.json();
-  if (!res.ok) throw new Error(json.error || 'Failed to respond to exchange');
+  await callMessAction('respond_exchange', { exchange_id: exchangeId, accept_action: action, note });
 }
 
-export async function fetchPendingExchanges(messId: string): Promise<ExchangeRequestDetail[]> {
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) return [];
-
+export async function fetchPendingExchanges(messId: string): Promise<ExchangeDetailRow[]> {
+  const userId = await requireSessionUserId();
   const { data, error } = await supabase
     .from('bazar_exchange_requests')
     .select(`
       *,
       requester:profiles!bazar_exchange_requests_requester_id_fkey(full_name),
-      target:profiles!bazar_exchange_requests_target_id_fkey(full_name),
-      requester_duty:bazar_duties!bazar_exchange_requests_requester_duty_id_fkey(*),
-      target_duty:bazar_duties!bazar_exchange_requests_target_duty_id_fkey(*)
+      target:profiles!bazar_exchange_requests_target_id_fkey(full_name)
     `)
     .eq('mess_id', messId)
-    .eq('status', 'pending');
+    .eq('status', 'pending')
+    .order('created_at', { ascending: false });
 
   if (error) throw error;
-  return data as ExchangeRequestDetail[];
+  return ((data ?? []) as ExchangeDetailRow[]).map((r) => ({
+    ...r,
+    requester_name: r.requester?.full_name ?? undefined,
+    target_name: r.target?.full_name ?? undefined,
+    // Flags so any member can see which requests are theirs to answer.
+    is_requester: r.requester_id === userId,
+    is_target: r.target_id === userId,
+  }));
+}
+
+// Local shape: exchange row + resolved names + viewer flags.
+export interface ExchangeDetailRow {
+  id: string;
+  mess_id: string;
+  requester_id: string;
+  requester_duty_date: string;
+  target_id: string;
+  target_duty_date: string;
+  status: string;
+  created_at: string;
+  requester?: { full_name?: string } | null;
+  target?: { full_name?: string } | null;
+  requester_name?: string;
+  target_name?: string;
+  is_requester?: boolean;
+  is_target?: boolean;
 }
 
 // ── Bazar Purchases ───────────────────────────────────────────────────────────
@@ -384,7 +387,7 @@ export async function fetchPendingExchanges(messId: string): Promise<ExchangeReq
 export async function fetchBazarPurchases(
   messId: string,
   monthStart: string,
-  monthEnd: string
+  monthEnd: string,
 ): Promise<BazarPurchaseDetail[]> {
   const { data, error } = await supabase
     .from('bazar_purchases')
@@ -396,7 +399,8 @@ export async function fetchBazarPurchases(
     .eq('mess_id', messId)
     .gte('purchase_date', monthStart)
     .lte('purchase_date', monthEnd)
-    .order('purchase_date', { ascending: false });
+    .order('purchase_date', { ascending: false })
+    .limit(100);
 
   if (error) throw error;
   return (data ?? []).map((r: Record<string, unknown>) => ({
@@ -406,32 +410,21 @@ export async function fetchBazarPurchases(
 }
 
 export async function addBazarPurchase(input: BazarPurchaseInput): Promise<BazarPurchase> {
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) throw new Error('Not authenticated');
+  const json = await callMessAction('add_bazar_purchase', input as unknown as Record<string, unknown>);
+  return json.purchase as BazarPurchase;
+}
 
-  const res = await fetch(`${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/mess-actions`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${session.access_token}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ action: 'add_bazar_purchase', ...input }),
-  });
-
-  const json = await res.json();
-  if (!res.ok) throw new Error(json.error || 'Failed to add bazar purchase');
-  return json.purchase;
+export async function deleteBazarPurchase(purchaseId: string, messId: string): Promise<void> {
+  await callMessAction('delete_bazar_purchase', { purchase_id: purchaseId, mess_id: messId });
 }
 
 export async function fetchMyBazarContribution(messId: string, monthStart: string, monthEnd: string): Promise<number> {
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) return 0;
-
+  const userId = await requireSessionUserId();
   const { data, error } = await supabase
     .from('bazar_purchases')
     .select('total_amount')
     .eq('mess_id', messId)
-    .eq('buyer_id', session.user.id)
+    .eq('buyer_id', userId)
     .gte('purchase_date', monthStart)
     .lte('purchase_date', monthEnd);
 
@@ -444,7 +437,7 @@ export async function fetchMyBazarContribution(messId: string, monthStart: strin
 export async function fetchMessExpenses(
   messId: string,
   monthStart: string,
-  monthEnd: string
+  monthEnd: string,
 ): Promise<MessExpense[]> {
   const { data, error } = await supabase
     .from('mess_expenses')
@@ -459,52 +452,46 @@ export async function fetchMessExpenses(
 }
 
 export async function addExpense(input: ExpenseInput): Promise<MessExpense> {
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) throw new Error('Not authenticated');
+  const json = await callMessAction('add_expense', input as unknown as Record<string, unknown>);
+  return json.expense as MessExpense;
+}
 
-  const res = await fetch(`${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/mess-actions`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${session.access_token}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ action: 'add_expense', ...input }),
-  });
-
-  const json = await res.json();
-  if (!res.ok) throw new Error(json.error || 'Failed to add expense');
-  return json.expense;
+export async function deleteExpense(expenseId: string): Promise<void> {
+  await callMessAction('delete_expense', { expense_id: expenseId });
 }
 
 // ── Payments ──────────────────────────────────────────────────────────────────
 
-export async function fetchMessPayments(messId: string): Promise<MessPayment[]> {
-  const { data, error } = await supabase
+/** Payments for the mess; filter to one member when `memberId` is given. */
+export async function fetchMessPayments(messId: string, memberId?: string): Promise<MessPayment[]> {
+  let query = supabase
     .from('mess_payments')
     .select('*, member:profiles!mess_payments_member_id_fkey(full_name)')
     .eq('mess_id', messId)
-    .order('payment_date', { ascending: false });
+    .order('payment_date', { ascending: false })
+    .limit(200);
+  if (memberId) query = query.eq('member_id', memberId);
 
+  const { data, error } = await query;
   if (error) throw error;
   return data as MessPayment[];
 }
 
 export async function recordPayment(input: PaymentInput): Promise<MessPayment> {
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) throw new Error('Not authenticated');
+  const json = await callMessAction('record_payment', input as unknown as Record<string, unknown>);
+  return json.payment as MessPayment;
+}
 
-  const res = await fetch(`${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/mess-actions`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${session.access_token}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ action: 'record_payment', ...input }),
-  });
+// ── Balance ───────────────────────────────────────────────────────────────────
 
-  const json = await res.json();
-  if (!res.ok) throw new Error(json.error || 'Failed to record payment');
-  return json.payment;
+/** Live balance for the current Dhaka month, computed by the DB RPC. */
+export async function fetchMyRunningBalance(messId: string): Promise<RunningBalance | null> {
+  const userId = await requireSessionUserId();
+  const { data, error } = await supabase
+    .rpc('get_member_running_balance', { p_mess_id: messId, p_user_id: userId })
+    .maybeSingle();
+  if (error) throw error;
+  return (data as RunningBalance) ?? null;
 }
 
 // ── Settlements ───────────────────────────────────────────────────────────────
@@ -515,9 +502,9 @@ export async function fetchSettlement(messId: string, monthStart: string): Promi
     .select('*')
     .eq('mess_id', messId)
     .eq('month_start', monthStart)
-    .single();
+    .maybeSingle();
 
-  if (error && error.code !== 'PGRST116') throw error;
+  if (error) throw error;
   if (!data) return null;
 
   const { data: items, error: itemsError } = await supabase
@@ -527,29 +514,24 @@ export async function fetchSettlement(messId: string, monthStart: string): Promi
 
   if (itemsError) throw itemsError;
 
-  return { ...data, items: items as SettlementItem[] } as SettlementDetail;
+  return { ...data, items: items as SettlementDetail['items'] } as SettlementDetail;
 }
 
 export async function generateSettlement(
   messId: string,
   monthStart: string,
-  monthEnd: string
+  monthEnd: string,
 ): Promise<MonthlySettlement> {
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) throw new Error('Not authenticated');
+  const json = await callMessAction('generate_settlement', { mess_id: messId, month_start: monthStart, month_end: monthEnd });
+  return json.settlement as MonthlySettlement;
+}
 
-  const res = await fetch(`${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/mess-actions`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${session.access_token}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ action: 'generate_settlement', mess_id: messId, month_start: monthStart, month_end: monthEnd }),
-  });
+export async function publishSettlement(settlementId: string): Promise<void> {
+  await callMessAction('publish_settlement', { settlement_id: settlementId });
+}
 
-  const json = await res.json();
-  if (!res.ok) throw new Error(json.error || 'Failed to generate settlement');
-  return json.settlement;
+export async function lockSettlement(settlementId: string): Promise<void> {
+  await callMessAction('lock_settlement', { settlement_id: settlementId });
 }
 
 // ── Announcements ──────────────────────────────────────────────────────────────
@@ -561,51 +543,33 @@ export async function fetchMessAnnouncements(messId: string): Promise<MessAnnoun
     .eq('mess_id', messId)
     .eq('is_active', true)
     .or(`expires_at.is.null,expires_at.gt.${new Date().toISOString()}`)
-    .order('created_at', { ascending: false });
+    .order('created_at', { ascending: false })
+    .limit(10);
 
   if (error) throw error;
   return data as MessAnnouncement[];
 }
 
 export async function createAnnouncement(input: AnnouncementInput): Promise<MessAnnouncement> {
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) throw new Error('Not authenticated');
-
-  const res = await fetch(`${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/mess-actions`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${session.access_token}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ action: 'create_announcement', ...input }),
-  });
-
-  const json = await res.json();
-  if (!res.ok) throw new Error(json.error || 'Failed to create announcement');
-  return json.announcement;
+  const json = await callMessAction('create_announcement', input as unknown as Record<string, unknown>);
+  return json.announcement as MessAnnouncement;
 }
 
 // ── Dashboard ─────────────────────────────────────────────────────────────────
 
 export async function fetchMemberDashboard(messId: string): Promise<MemberDashboard | null> {
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) return null;
+  const userId = await requireSessionUserId();
 
-  // Fetch all data in parallel
-  const today = new Date().toISOString().split('T')[0];
-  const monthStart = today.slice(0, 7) + '-01';
-  const monthEnd = new Date(today.slice(0, 7) + '-01');
-  monthEnd.setMonth(monthEnd.getMonth() + 1);
-  monthEnd.setDate(monthEnd.getDate() - 1);
-  const monthEndStr = monthEnd.toISOString().split('T')[0];
+  const { start: monthStart, end: monthEnd } = monthRangeFrom(0);
 
-  const [mess, todayMeals, mealStats, nextDuty, bazarContrib, mealRate, announcements] = await Promise.all([
+  const [mess, todayMeals, myMealStats, nextDuty, bazarContrib, mealRate, balance, announcements] = await Promise.all([
     fetchMessDetail(messId),
-    fetchTodayMeals(messId, today),
-    fetchMealStats(messId, monthStart, monthEndStr),
+    fetchTodayMeals(messId, dhakaToday()),
+    fetchMealStats(messId, monthStart, monthEnd, userId),
     fetchMyNextDuty(messId),
-    fetchMyBazarContribution(messId, monthStart, monthEndStr),
-    supabase.rpc('get_current_meal_rate', { p_mess_id: messId }).then(r => r.data ?? 0),
+    fetchMyBazarContribution(messId, monthStart, monthEnd),
+    supabase.rpc('get_current_meal_rate', { p_mess_id: messId }).then(r => Number(r.data ?? 0)),
+    fetchMyRunningBalance(messId),
     fetchMessAnnouncements(messId),
   ]);
 
@@ -614,16 +578,17 @@ export async function fetchMemberDashboard(messId: string): Promise<MemberDashbo
   return {
     mess,
     today_meals: {
-      breakfast: (todayMeals.breakfast) as 'on' | 'off',
+      breakfast: todayMeals.breakfast as 'on' | 'off',
       lunch: todayMeals.lunch as 'on' | 'off',
       dinner: todayMeals.dinner as 'on' | 'off',
     },
-    current_month_meals: mealStats.total,
+    // The member's OWN meal count this month (was previously mess-wide).
+    current_month_meals: myMealStats.total,
     my_next_duty: nextDuty,
     my_bazar_contribution: bazarContrib,
     current_meal_rate: mealRate,
-    my_balance: 0, // TODO: calculate from settlement
-    my_balance_type: 'settled',
+    my_balance: balance?.balance ?? 0,
+    my_balance_type: balance?.balance_type ?? 'settled',
     announcements,
   };
 }

@@ -1,233 +1,229 @@
 /**
- * Meals Calendar Screen
- * Shows monthly meal calendar with ON/OFF toggles
+ * Meals — today's meal management + monthly calendar (spec §4–§6).
+ * The date header shows the selected day; the three big toggle cards act
+ * on it. Past days are locked; today's cards disable themselves after the
+ * cut-off with a clear "closed" explanation.
  */
 
-import { use, useState, useCallback } from 'react';
-import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  ActivityIndicator,
-  RefreshControl,
-  Alert,
-} from 'react-native';
+import { useState } from 'react';
+import { StyleSheet, View } from 'react-native';
+
+import { alertInfo } from '@/lib/dialogs';
+
+import { ThemedText } from '@/components/themed-text';
+import { FontFamilies, Spacing } from '@/constants/theme';
+import { useTheme } from '@/hooks/use-theme';
 import { useLocalSearchParams } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-
-import { Screen } from '@/components/ui/screen';
-import { Card } from '@/components/ui/card';
-import { useMealCalendar, useMealStats, useToggleMeal } from '@/features/mess/queries';
-import type { MealType, MealState } from '@kse/types';
-
-const MEAL_TYPES: MealType[] = ['breakfast', 'lunch', 'dinner'];
-const MEAL_ICONS: Record<MealType, string> = {
-  breakfast: 'sunny-outline',
-  lunch: 'partly-sunny-outline',
-  dinner: 'moon-outline',
-};
-const MEAL_LABELS: Record<MealType, string> = {
-  breakfast: 'Breakfast',
-  lunch: 'Lunch',
-  dinner: 'Dinner',
-};
+import {
+  useMealCalendar,
+  useMealCutoffSettings,
+  useMealStats,
+  useToggleMeal,
+} from '@/features/mess/queries';
+import { MessScreen } from '@/features/mess/components/mess-screen';
+import { MealToggleCard } from '@/features/mess/components/meal-toggle-card';
+import { MealCalendar } from '@/features/mess/components/meal-calendar';
+import { MonthSwitcher } from '@/features/mess/components/month-switcher';
+import { SectionLabel } from '@/features/mess/components/section-label';
+import { ErrorBox, InlineLoading } from '@/features/mess/components/list-state';
+import { mealCutoff, isPastDay } from '@/features/mess/lib/cutoff';
+import { dhakaToday, formatWeekday, monthRangeFrom } from '@/features/mess/lib/dates';
+import type { MealType } from '@kse/types';
 
 export default function MealsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const colors = useTheme();
+  const messId = String(id ?? '');
+
+  const today = dhakaToday();
+  const [selectedDate, setSelectedDate] = useState(today);
   const [monthOffset, setMonthOffset] = useState(0);
+  const month = monthRangeFrom(monthOffset);
 
-  const baseDate = new Date();
-  baseDate.setMonth(baseDate.getMonth() + monthOffset);
-  const year = baseDate.getFullYear();
-  const month = baseDate.getMonth();
-
-  const monthStart = `${year}-${String(month + 1).padStart(2, '0')}-01`;
-  const lastDay = new Date(year, month + 1, 0).getDate();
-  const monthEnd = `${year}-${String(month + 1).padStart(2, '0')}-${lastDay}`;
-
-  const today = new Date().toISOString().split('T')[0];
-
-  const { data: calendar, isLoading, refetch, isRefetching } = useMealCalendar(id, monthStart, monthEnd);
-  const { data: stats } = useMealStats(id, monthStart, monthEnd);
+  const { data: cutoffSettings } = useMealCutoffSettings(messId);
+  const { data: calendar, isLoading, isError, error, refetch } = useMealCalendar(messId, month.start, month.end);
+  const { data: stats } = useMealStats(messId, month.start, month.end, 'me');
   const toggleMeal = useToggleMeal();
 
-  const calendarMap = new Map(calendar?.map(c => [c.date, c]) ?? []);
+  const entry = calendar?.find((e) => e.date === selectedDate) ?? null;
+  const isCurrentMonth = monthOffset === 0;
 
-  const handleToggle = async (date: string, mealType: MealType, currentState: MealState | null) => {
-    const newState: MealState = currentState === 'on' ? 'off' : 'on';
-    try {
-      await toggleMeal.mutateAsync({
-        mess_id: id,
-        meal_date: date,
-        meal_type: mealType,
-        state: newState,
-      });
-    } catch (e) {
-      Alert.alert('Error', 'Failed to update meal preference');
-    }
+  const monthName = month.label.split(' ')[0];
+  const selDay = String(Number(selectedDate.split('-')[2]));
+
+  const handleToggle = (mealType: MealType, next: 'on' | 'off') => {
+    toggleMeal.mutate(
+      { mess_id: messId, meal_date: selectedDate, meal_type: mealType, state: next },
+      {
+        onError: (e) =>
+          alertInfo(
+          'Meal not changed',
+          (e as Error).message.includes('closed')
+            ? 'The change window for this meal has closed.'
+            : (e as Error).message,
+        ),
+      },
+    );
   };
 
-  const isPastDate = (dateStr: string) => dateStr < today;
-  const isToday = (dateStr: string) => dateStr === today;
-
-  const monthName = baseDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-
-  // Build weeks for the month
-  const firstDayOfWeek = new Date(year, month, 1).getDay();
-  const daysInMonth = lastDay;
-  const weeks: (number | null)[][] = [];
-  let week: (number | null)[] = [];
-
-  // Pad start of first week
-  for (let i = 0; i < firstDayOfWeek; i++) week.push(null);
-  for (let d = 1; d <= daysInMonth; d++) {
-    week.push(d);
-    if (week.length === 7) {
-      weeks.push(week);
-      week = [];
-    }
-  }
-  if (week.length > 0) {
-    while (week.length < 7) week.push(null);
-    weeks.push(week);
-  }
-
   return (
-    <Screen>
-      <ScrollView
-        style={{ flex: 1 }}
-        contentContainerStyle={{ padding: 16, gap: 16 }}
-        refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} />}
-      >
-        {/* Month Navigation */}
-        <View className="flex-row items-center justify-between">
-          <TouchableOpacity onPress={() => setMonthOffset(m => m - 1)} className="p-2">
-            <Ionicons name="chevron-back" size={24} />
-          </TouchableOpacity>
-          <Text className="text-lg font-semibold">{monthName}</Text>
-          <TouchableOpacity onPress={() => setMonthOffset(m => m + 1)} className="p-2">
-            <Ionicons name="chevron-forward" size={24} />
-          </TouchableOpacity>
+    <MessScreen messId={messId} active="meals" onRefresh={() => refetch()}>
+      {/* Selected day header (spec §4) */}
+      <View style={styles.dayHeader}>
+        <View>
+          <ThemedText style={styles.dayBig}>
+            {monthName} {selDay}
+          </ThemedText>
+          <ThemedText type="small" themeColor="textSecondary">
+            {formatWeekday(selectedDate)}
+            {selectedDate !== today ? ' · viewing another day' : ''}
+          </ThemedText>
         </View>
+        {selectedDate !== today ? (
+          <ThemedText
+            type="small"
+            themeColor="primary"
+            onPress={() => {
+              setSelectedDate(today);
+              setMonthOffset(0);
+            }}
+            style={styles.backToToday}
+          >
+            Back to today
+          </ThemedText>
+        ) : null}
+      </View>
 
-        {/* Month Stats */}
-        {stats && (
-          <Card>
-            <View className="flex-row justify-around">
-              <View className="items-center">
-                <Text className="text-2xl font-bold text-green-600">{stats.breakfast}</Text>
-                <Text className="text-xs text-gray-500">Breakfast</Text>
-              </View>
-              <View className="items-center">
-                <Text className="text-2xl font-bold text-blue-600">{stats.lunch}</Text>
-                <Text className="text-xs text-gray-500">Lunch</Text>
-              </View>
-              <View className="items-center">
-                <Text className="text-2xl font-bold text-purple-600">{stats.dinner}</Text>
-                <Text className="text-xs text-gray-500">Dinner</Text>
-              </View>
-              <View className="items-center">
-                <Text className="text-2xl font-bold">{stats.total}</Text>
-                <Text className="text-xs text-gray-500">Total</Text>
-              </View>
-            </View>
-          </Card>
-        )}
+      {/* Three large interactive meal cards (spec §4–5) */}
+      <View style={styles.cards}>
+        {(['breakfast', 'lunch', 'dinner'] as MealType[]).map((mt) => {
+          const state = entry?.[mt] ?? 'off';
+          const info = mealCutoff(selectedDate, mt, cutoffSettings);
+          return (
+            <MealToggleCard
+              key={mt}
+              mealType={mt}
+              state={state}
+              cutoffLabel={info.label}
+              canToggle={info.canModify && !isPastDay(selectedDate)}
+              disabled={toggleMeal.isPending}
+              onToggle={(next) => handleToggle(mt, next)}
+            />
+          );
+        })}
+      </View>
 
-        {/* Calendar Grid */}
-        <Card>
-          {/* Weekday headers */}
-          <View className="flex-row mb-2">
-            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
-              <View key={d} className="flex-1 items-center">
-                <Text className="text-xs font-medium text-gray-500">{d}</Text>
-              </View>
-            ))}
-          </View>
-
-          {/* Weeks */}
+      {/* Calendar (spec §6) */}
+      <SectionLabel>CALENDAR</SectionLabel>
+      <View style={[styles.calendarCard, { backgroundColor: colors.background, borderColor: colors.border }]}>
+        <MonthSwitcher
+          label={month.label}
+          onPrev={() => setMonthOffset((m) => m - 1)}
+          onNext={() => setMonthOffset((m) => Math.min(m + 1, 0))}
+          nextDisabled={isCurrentMonth}
+        />
+        <View style={styles.calendarWrap}>
           {isLoading ? (
-            <ActivityIndicator className="py-8" />
+            <InlineLoading />
+          ) : isError ? (
+            <ErrorBox message={error?.message ?? 'Could not load the calendar.'} onRetry={() => refetch()} />
           ) : (
-            weeks.map((weekDays, wi) => (
-              <View key={wi} className="flex-row mb-1">
-                {weekDays.map((day, di) => {
-                  if (day === null) {
-                    return <View key={di} className="flex-1 h-12" />;
-                  }
-                  const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-                  const entry = calendarMap.get(dateStr);
-                  const past = isPastDate(dateStr);
-                  const today = isToday(dateStr);
-
-                  return (
-                    <TouchableOpacity
-                      key={di}
-                      className={`flex-1 h-12 items-center justify-center rounded-lg mx-0.5 ${
-                        today ? 'bg-primary/10 border border-primary/30' : ''
-                      }`}
-                      disabled={past}
-                    >
-                      <Text
-                        className={`text-sm font-medium ${
-                          past ? 'text-gray-300' : today ? 'text-primary' : 'text-gray-700'
-                        }`}
-                      >
-                        {day}
-                      </Text>
-                      {entry && (
-                        <View className="flex-row gap-0.5 mt-0.5">
-                          {MEAL_TYPES.map(mt => (
-                            <View
-                              key={mt}
-                              className={`w-1.5 h-1.5 rounded-full ${
-                                entry[mt] === 'on' ? 'bg-green-500' : 'bg-gray-300'
-                              }`}
-                            />
-                          ))}
-                        </View>
-                      )}
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-            ))
+            <MealCalendar
+              monthStart={month.start}
+              entries={calendar ?? []}
+              selectedDate={selectedDate}
+              onSelect={setSelectedDate}
+              today={today}
+            />
           )}
-        </Card>
-
-        {/* Legend */}
-        <View className="flex-row items-center justify-center gap-4">
-          <View className="flex-row items-center gap-1.5">
-            <View className="w-3 h-3 rounded-full bg-green-500" />
-            <Text className="text-xs text-gray-500">Meal ON</Text>
-          </View>
-          <View className="flex-row items-center gap-1.5">
-            <View className="w-3 h-3 rounded-full bg-gray-300" />
-            <Text className="text-xs text-gray-500">Meal OFF</Text>
-          </View>
         </View>
+      </View>
 
-        {/* Day Detail - Tap to toggle */}
-        <Card>
-          <Text className="font-semibold mb-3">Tap to toggle meals</Text>
-          <View className="gap-2">
-            {MEAL_TYPES.map(mealType => (
-              <View key={mealType} className="flex-row items-center gap-2">
-                <Ionicons
-                  name={MEAL_ICONS[mealType] as any}
-                  size={20}
-                  className="text-gray-500"
-                />
-                <Text className="flex-1">{MEAL_LABELS[mealType]}</Text>
-                <Text className="text-xs text-gray-500">
-                  {isPastDate(today) ? 'Past' : 'Today'}
-                </Text>
-              </View>
-            ))}
-          </View>
-        </Card>
-      </ScrollView>
-    </Screen>
+      {/* Monthly summary (spec §6) */}
+      <SectionLabel>THIS MONTH · MY MEALS</SectionLabel>
+      <View style={[styles.summaryCard, { backgroundColor: colors.background, borderColor: colors.border }]}>
+        <SummaryStat label="Breakfast" value={stats?.breakfast ?? 0} color={colors.warning} />
+        <Divider />
+        <SummaryStat label="Lunch" value={stats?.lunch ?? 0} color={colors.primary} />
+        <Divider />
+        <SummaryStat label="Dinner" value={stats?.dinner ?? 0} color={colors.primaryDark} />
+        <Divider />
+        <SummaryStat label="Total" value={stats?.total ?? 0} color={colors.success} bold />
+      </View>
+    </MessScreen>
   );
 }
+
+function SummaryStat({ label, value, color, bold }: { label: string; value: number; color: string; bold?: boolean }) {
+  return (
+    <View style={styles.summaryStat}>
+      <ThemedText style={[bold ? styles.summaryValueBold : styles.summaryValue, { color }]}>
+        {value}
+      </ThemedText>
+      <ThemedText type="small" themeColor="textSecondary">
+        {label}
+      </ThemedText>
+    </View>
+  );
+}
+
+function Divider() {
+  const colors = useTheme();
+  return <View style={[styles.summaryDivider, { backgroundColor: colors.border }]} />;
+}
+
+const styles = StyleSheet.create({
+  dayHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
+  dayBig: {
+    fontFamily: FontFamilies.bold,
+    fontSize: 26,
+    lineHeight: 32,
+  },
+  backToToday: {
+    marginTop: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  cards: {
+    gap: Spacing.three - 6,
+  },
+  calendarCard: {
+    borderRadius: 18,
+    borderWidth: StyleSheet.hairlineWidth,
+    padding: Spacing.three,
+    gap: Spacing.three,
+  },
+  calendarWrap: {
+    // keeps the calendar compact inside the card
+  },
+  summaryCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 18,
+    borderWidth: StyleSheet.hairlineWidth,
+    padding: Spacing.three,
+  },
+  summaryStat: {
+    flex: 1,
+    alignItems: 'center',
+    gap: 2,
+  },
+  summaryValue: {
+    fontFamily: FontFamilies.semiBold,
+    fontSize: 20,
+    lineHeight: 26,
+  },
+  summaryValueBold: {
+    fontFamily: FontFamilies.bold,
+    fontSize: 22,
+    lineHeight: 28,
+  },
+  summaryDivider: {
+    width: StyleSheet.hairlineWidth,
+    alignSelf: 'stretch',
+  },
+});

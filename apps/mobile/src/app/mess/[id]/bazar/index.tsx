@@ -1,156 +1,294 @@
 /**
- * Bazar Screen — View bazar purchases and add new entries
+ * Bazar — the mess grocery hub (spec §7): month total, my next duty with
+ * exchange, incoming/outgoing exchange requests, and the purchases list.
  */
 
-import { use, useState } from 'react';
-import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  ActivityIndicator,
-  RefreshControl,
-  Alert,
-} from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useState } from 'react';
+import { StyleSheet, View } from 'react-native';
 
-import { Screen } from '@/components/ui/screen';
-import { Card } from '@/components/ui/card';
+import { alertConfirm, alertInfo } from '@/lib/dialogs';
+import { useRouter, useLocalSearchParams } from 'expo-router';
+
+import { ThemedText } from '@/components/themed-text';
 import { PrimaryButton } from '@/components/ui/primary-button';
 import { EmptyState } from '@/components/ui/empty-state';
-import { useBazarPurchases, useAddBazarPurchase } from '@/features/mess/queries';
-import { paisaToBdt } from '@kse/types';
+import { FontFamilies, Spacing } from '@/constants/theme';
+import { useTheme } from '@/hooks/use-theme';
+import {
+  useBazarPurchases,
+  useDeleteBazarPurchase,
+  useMessDetail,
+  useMyNextDuty,
+  usePendingExchanges,
+  useRespondExchange,
+} from '@/features/mess/queries';
+import { MessScreen } from '@/features/mess/components/mess-screen';
+import { MonthSwitcher } from '@/features/mess/components/month-switcher';
+import { SectionLabel } from '@/features/mess/components/section-label';
+import { BazarEntryCard } from '@/features/mess/components/bazar-entry-card';
+import { BazarDutyCard } from '@/features/mess/components/bazar-duty-card';
+import { ExchangeSheet } from '@/features/mess/components/exchange-sheet';
+import { ErrorBox, InlineLoading } from '@/features/mess/components/list-state';
+import { formatDayMonth, monthRangeFrom } from '@/features/mess/lib/dates';
+import { useAuthStore } from '@/store/auth-store';
+import { paisaToBdtCompact } from '@kse/types';
 
 export default function BazarScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const router = useRouter();
+  const colors = useTheme();
+  const messId = String(id ?? '');
+  const currentUserId = useAuthStore((s) => s.session?.user?.id ?? null);
+
   const [monthOffset, setMonthOffset] = useState(0);
-  const [showAddForm, setShowAddForm] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+  const [exchangeOpen, setExchangeOpen] = useState(false);
+  const month = monthRangeFrom(monthOffset);
 
-  const baseDate = new Date();
-  baseDate.setMonth(baseDate.getMonth() + monthOffset);
-  const year = baseDate.getFullYear();
-  const month = baseDate.getMonth();
-  const monthStart = `${year}-${String(month + 1).padStart(2, '0')}-01`;
-  const lastDay = new Date(year, month + 1, 0).getDate();
-  const monthEnd = `${year}-${String(month + 1).padStart(2, '0')}-${lastDay}`;
-
-  const { data: purchases, isLoading, refetch, isRefetching } = useBazarPurchases(id, monthStart, monthEnd);
-  const addPurchase = useAddBazarPurchase();
+  const { data: mess } = useMessDetail(messId);
+  const { data: purchases, isLoading, isError, error, refetch, isRefetching } = useBazarPurchases(messId, month.start, month.end);
+  const { data: nextDuty } = useMyNextDuty(messId);
+  const { data: exchanges } = usePendingExchanges(messId);
+  const respondExchange = useRespondExchange();
+  const deletePurchase = useDeleteBazarPurchase();
 
   const totalBazar = purchases?.reduce((sum, p) => sum + p.total_amount, 0) ?? 0;
-  const monthName = baseDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  const visible = expanded ? (purchases ?? []) : (purchases ?? []).slice(0, 5);
+  const isManager = mess?.manager_id === currentUserId;
+  const incoming = (exchanges ?? []).filter((x) => x.is_target);
+  const outgoing = (exchanges ?? []).filter((x) => x.is_requester);
 
-  // Group purchases by date
-  const byDate = new Map<string, typeof purchases>();
-  for (const p of purchases ?? []) {
-    if (!byDate.has(p.purchase_date)) byDate.set(p.purchase_date, []);
-    byDate.get(p.purchase_date)!.push(p);
-  }
+  const handleDelete = (purchaseId: string, buyer: string) => {
+    alertConfirm(
+      'Delete bazar entry?',
+      `This permanently removes ${buyer}'s entry and its items.`,
+      () =>
+        deletePurchase.mutate(
+          { purchaseId, messId },
+          { onError: (e) => alertInfo('Could not delete', (e as Error).message) },
+        ),
+      { confirmLabel: 'Delete', destructive: true },
+    );
+  };
 
   return (
-    <Screen>
-      <ScrollView
-        style={{ flex: 1 }}
-        contentContainerStyle={{ padding: 16, gap: 16 }}
-        refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} />}
-      >
-        {/* Header */}
-        <View className="flex-row items-center justify-between">
-          <TouchableOpacity onPress={() => setMonthOffset(m => m - 1)} className="p-2 -ml-2">
-            <Ionicons name="chevron-back" size={24} />
-          </TouchableOpacity>
-          <Text className="text-lg font-semibold">{monthName}</Text>
-          <TouchableOpacity onPress={() => setMonthOffset(m => m + 1)} className="p-2 -ml-2">
-            <Ionicons name="chevron-forward" size={24} />
-          </TouchableOpacity>
+    <MessScreen messId={messId} active="bazar" refreshing={isRefetching} onRefresh={() => refetch()}>
+      <MonthSwitcher
+        label={month.label}
+        onPrev={() => setMonthOffset((m) => m - 1)}
+        onNext={() => setMonthOffset((m) => Math.min(m + 1, 0))}
+        nextDisabled={monthOffset === 0}
+      />
+
+      {/* Total bazar (spec §7) */}
+      <View style={[styles.totalCard, { backgroundColor: `${colors.success}12`, borderColor: `${colors.success}44` }]}>
+        <View style={styles.totalHead}>
+          <Ionicons name="cart-outline" size={16} color={colors.success} />
+          <ThemedText type="small" themeColor="textSecondary">
+            Total bazar · {month.label.split(' ')[0]}
+          </ThemedText>
         </View>
+        <ThemedText style={[styles.totalValue, { color: colors.success }]}>
+          {paisaToBdtCompact(totalBazar)}
+        </ThemedText>
+      </View>
 
-        {/* Total Bazar Card */}
-        <Card className="bg-green-50">
-          <Text className="text-sm text-gray-500">Total Bazar This Month</Text>
-          <Text className="text-3xl font-bold text-green-700 mt-1">
-            {paisaToBdt(totalBazar)}
-          </Text>
-        </Card>
-
-        {/* Add Purchase Button */}
-        <PrimaryButton
-          label="Add Bazar Entry"
-          onPress={() => setShowAddForm(true)}
+      {/* My next duty (spec §7) */}
+      <SectionLabel>MY NEXT DUTY</SectionLabel>
+      {nextDuty ? (
+        <BazarDutyCard
+          dutyDate={nextDuty.duty_date}
+          disabled={outgoing.length > 0}
+          onExchange={() => setExchangeOpen(true)}
         />
+      ) : (
+        <View style={[styles.noDuty, { backgroundColor: colors.surfaceMuted }]}>
+          <Ionicons name="calendar-clear-outline" size={16} color={colors.textMuted} />
+          <ThemedText type="small" themeColor="textSecondary">
+            No upcoming bazar duty assigned to you
+          </ThemedText>
+        </View>
+      )}
+      <PrimaryButton
+        label="View Duty Calendar"
+        variant="outline"
+        size="compact"
+        onPress={() => router.push({ pathname: '/mess/[id]/bazar/duty', params: { id: messId } } as never)}
+        style={styles.dutyLink}
+      />
 
-        {/* Purchases List */}
-        {isLoading ? (
-          <ActivityIndicator className="py-8" />
-        ) : purchases?.length === 0 ? (
-          <EmptyState
-            icon="cart-outline"
-            title="No Bazar Entries"
-            message="Add your first bazar purchase for this month"
-          />
-        ) : (
-          Array.from(byDate.entries())
-            .sort(([a], [b]) => b.localeCompare(a))
-            .map(([date, dayPurchases]) => (
-              <View key={date}>
-                <Text className="font-medium text-sm text-gray-500 mb-2">
-                  {new Date(date + 'T00:00:00').toLocaleDateString('en-GB', {
-                    weekday: 'short',
-                    day: 'numeric',
-                    month: 'short',
-                  })}
-                </Text>
-                {(dayPurchases ?? []).map(purchase => (
-                  <TouchableOpacity key={purchase.id}>
-                    <Card className="mb-2">
-                      <View className="flex-row items-start justify-between">
-                        <View className="flex-row items-center gap-3">
-                          <View className="w-10 h-10 rounded-full bg-blue-100 items-center justify-center">
-                            <Ionicons name="person-outline" size={20} className="text-blue-600" />
-                          </View>
-                          <View>
-                            <Text className="font-medium">
-                              {purchase.buyer_name ?? 'Unknown'}
-                            </Text>
-                            <Text className="text-sm text-gray-500">
-                              {purchase.items?.length ?? 0} items
-                            </Text>
-                          </View>
-                        </View>
-                        <Text className="font-semibold text-green-700">
-                          {paisaToBdt(purchase.total_amount)}
-                        </Text>
-                      </View>
-                      {purchase.items && purchase.items.length > 0 && (
-                        <View className="mt-3 pt-3 border-t border-gray-100">
-                          {purchase.items.slice(0, 3).map(item => (
-                            <View key={item.id} className="flex-row justify-between text-sm mb-1">
-                              <Text className="text-gray-600">{item.item_name}</Text>
-                              <Text className="text-gray-500">
-                                {item.quantity} {item.unit} × {paisaToBdt(item.unit_price)}
-                              </Text>
-                            </View>
-                          ))}
-                          {purchase.items.length > 3 && (
-                            <Text className="text-xs text-gray-400 mt-1">
-                              +{purchase.items.length - 3} more items
-                            </Text>
-                          )}
-                        </View>
-                      )}
-                      {purchase.notes && (
-                        <Text className="text-xs text-gray-400 mt-2 italic">
-                          {purchase.notes}
-                        </Text>
-                      )}
-                    </Card>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            ))
-        )}
-      </ScrollView>
-    </Screen>
+      {/* Incoming exchange requests (spec §9) */}
+      {incoming.map((x) => (
+        <View key={x.id} style={[styles.exchangeCard, { backgroundColor: `${colors.warning}12`, borderColor: `${colors.warning}55` }]}>
+          <View style={styles.exchangeMeta}>
+            <Ionicons name="swap-horizontal-outline" size={18} color={colors.warning} />
+            <View style={styles.exchangeText}>
+              <ThemedText type="smallBold" numberOfLines={1}>
+                {x.requester_name ?? 'A member'} wants to exchange duty
+              </ThemedText>
+              <ThemedText type="small" themeColor="textSecondary">
+                Their {formatDayMonth(x.requester_duty_date)} ↔ your {formatDayMonth(x.target_duty_date)}
+              </ThemedText>
+            </View>
+          </View>
+          <View style={styles.exchangeActions}>
+            <PrimaryButton
+              label="Accept"
+              size="compact"
+              loading={respondExchange.isPending}
+              onPress={() =>
+                respondExchange.mutate(
+                  { exchangeId: x.id, action: 'accept' },
+                  {
+                    onSuccess: () => alertInfo('Exchange accepted', 'Duty dates have been swapped.'),
+                    onError: (e) => alertInfo('Could not accept', (e as Error).message),
+                  },
+                )
+              }
+              style={styles.exchangeBtn}
+            />
+            <PrimaryButton
+              label="Reject"
+              size="compact"
+              variant="outline"
+              loading={respondExchange.isPending}
+              onPress={() => alertConfirm(
+                'Reject exchange?',
+                'The other member will be notified.',
+                () =>
+                  respondExchange.mutate(
+                    { exchangeId: x.id, action: 'reject' },
+                    { onError: (e) => alertInfo('Could not reject', (e as Error).message) },
+                  ),
+                { confirmLabel: 'Reject', destructive: true },
+              )}
+              style={styles.exchangeBtn}
+            />
+          </View>
+        </View>
+      ))}
+
+      {/* Outgoing requests — status chips */}
+      {outgoing.map((x) => (
+        <View key={x.id} style={[styles.outgoing, { backgroundColor: colors.surfaceMuted }]}>
+          <Ionicons name="time-outline" size={14} color={colors.warning} />
+          <ThemedText type="small" themeColor="textSecondary" numberOfLines={1} style={styles.outgoingText}>
+            Waiting for {x.target_name ?? 'member'}: your {formatDayMonth(x.requester_duty_date)} ↔ their {formatDayMonth(x.target_duty_date)}
+          </ThemedText>
+        </View>
+      ))}
+
+      {/* Add entry */}
+      <PrimaryButton
+        label="Add Bazar Entry"
+        onPress={() => router.push({ pathname: '/mess/[id]/bazar/add', params: { id: messId } } as never)}
+      />
+
+      {/* Recent bazar (spec §7) */}
+      <SectionLabel>BAZAR ENTRIES</SectionLabel>
+      {isLoading ? (
+        <InlineLoading />
+      ) : isError ? (
+        <ErrorBox message={error?.message ?? 'Could not load bazar entries.'} onRetry={() => refetch()} />
+      ) : (purchases ?? []).length === 0 ? (
+        <EmptyState
+          icon="cart-outline"
+          title="No bazar recorded yet"
+          message="Entries added by members appear here."
+        />
+      ) : (
+        <View style={styles.list}>
+          {visible.map((p) => (
+            <BazarEntryCard
+              key={p.id}
+              purchase={p}
+              canDelete={isManager || p.buyer_id === currentUserId}
+              onDelete={(purchase) => handleDelete(purchase.id, purchase.buyer_name ?? 'this')}
+            />
+          ))}
+          {(purchases?.length ?? 0) > 5 ? (
+            <PrimaryButton
+              label={expanded ? 'Show less' : `View all ${purchases?.length} entries`}
+              variant="outline"
+              size="compact"
+              onPress={() => setExpanded((v) => !v)}
+            />
+          ) : null}
+        </View>
+      )}
+
+      <ExchangeSheet
+        messId={messId}
+        myDutyId={nextDuty?.id ?? null}
+        myDutyDate={nextDuty?.duty_date ?? null}
+        visible={exchangeOpen}
+        onClose={() => setExchangeOpen(false)}
+      />
+    </MessScreen>
   );
 }
+
+const styles = StyleSheet.create({
+  totalCard: {
+    borderRadius: 18,
+    borderWidth: 1,
+    padding: Spacing.three,
+    gap: 4,
+  },
+  totalHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  totalValue: {
+    fontFamily: FontFamilies.bold,
+    fontSize: 32,
+    lineHeight: 40,
+  },
+  noDuty: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.three - 6,
+    borderRadius: 14,
+    padding: Spacing.three,
+  },
+  dutyLink: {
+    alignSelf: 'flex-start',
+  },
+  exchangeCard: {
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: Spacing.three,
+    gap: Spacing.three - 6,
+  },
+  exchangeMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.three - 6,
+  },
+  exchangeText: {
+    flex: 1,
+    gap: 1,
+  },
+  exchangeActions: {
+    flexDirection: 'row',
+    gap: Spacing.two,
+  },
+  exchangeBtn: {
+    flex: 1,
+  },
+  outgoing: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    borderRadius: 12,
+    padding: Spacing.three - 4,
+  },
+  outgoingText: {
+    flex: 1,
+  },
+  list: {
+    gap: Spacing.three - 6,
+  },
+});

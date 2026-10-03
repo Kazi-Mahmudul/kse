@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { ScrollView, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import { RefreshControl, ScrollView, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedView } from '@/components/themed-view';
@@ -11,13 +11,16 @@ interface ScreenProps {
   /** Wrap content in a ScrollView (default) — disable for fixed layouts. */
   scroll?: boolean;
   style?: StyleProp<ViewStyle>;
+  /** Pull-to-refresh, wired into the built-in ScrollView. */
+  refreshing?: boolean;
+  onRefresh?: () => void;
 }
 
 /**
  * Standard screen chrome: safe areas, themed background, centered content
  * column with room for the bottom tab bar. Every tab screen starts with it.
  */
-export function Screen({ children, scroll = true, style }: ScreenProps) {
+export function Screen({ children, scroll = true, style, refreshing, onRefresh }: ScreenProps) {
   const colors = useTheme();
 
   const content = (
@@ -32,6 +35,9 @@ export function Screen({ children, scroll = true, style }: ScreenProps) {
             style={{ backgroundColor: colors.background }}
             contentContainerStyle={styles.scrollContainer}
             keyboardShouldPersistTaps="handled"
+            refreshControl={
+              onRefresh ? <RefreshControl refreshing={!!refreshing} onRefresh={onRefresh} /> : undefined
+            }
           >
             {content}
           </ScrollView>

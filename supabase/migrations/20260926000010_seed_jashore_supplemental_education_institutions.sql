@@ -145,7 +145,8 @@ values
   ('Sorkhola High School', 'school', 'private', 'Jashore', 'Abhaynagar'),
   ('Sundali Girls High School', 'school', 'private', 'Jashore', 'Abhaynagar'),
   ('Ziadanga Ahmadia Dakhil Madrasa', 'madrasa', 'private', 'Jashore', 'Abhaynagar'),
-  ('Afsar Meherun Modern Collegiate School', 'school', 'private', 'Jashore', 'Abhaynagar');
+  ('Afsar Meherun Modern Collegiate School', 'school', 'private', 'Jashore', 'Abhaynagar')
+on conflict do nothing;
 
 -- ── Bagherpara Upazila (supplement) ──────────────────────────────────────────
 insert into public.education_institutions (name, type, ownership_type, city, area)
@@ -230,7 +231,8 @@ values
   ('Vittaballah High School', 'school', 'private', 'Jashore', 'Bagherpara'),
   ('Wadipur Alim Madrasah', 'madrasa', 'private', 'Jashore', 'Bagherpara'),
   ('Rostompur Debinagor Kaikhali Ayapur Junior Secondary School', 'school', 'private', 'Jashore', 'Bagherpara'),
-  ('Sholua Norsinghpur Junior Secondary School', 'school', 'private', 'Jashore', 'Bagherpara');
+  ('Sholua Norsinghpur Junior Secondary School', 'school', 'private', 'Jashore', 'Bagherpara')
+on conflict do nothing;
 
 -- ── Chaugachha Upazila (supplement) ──────────────────────────────────────────
 insert into public.education_institutions (name, type, ownership_type, city, area)
@@ -306,7 +308,8 @@ values
   ('Sukhpukuria High School', 'school', 'private', 'Jashore', 'Chaugachha'),
   ('Swarupdaha Secondary School', 'school', 'private', 'Jashore', 'Chaugachha'),
   ('Uzirpur M.P.J.B Secondary Girls School', 'school', 'private', 'Jashore', 'Chaugachha'),
-  ('Chowgacha Marks Institute and Technology', 'technical_school', 'private', 'Jashore', 'Chaugachha');
+  ('Chowgacha Marks Institute and Technology', 'technical_school', 'private', 'Jashore', 'Chaugachha')
+on conflict do nothing;
 
 -- ── Jhikargachha Upazila (supplement) ────────────────────────────────────────
 insert into public.education_institutions (name, type, ownership_type, city, area)
@@ -393,7 +396,8 @@ values
   ('Suratjan Secondary School', 'school', 'private', 'Jashore', 'Jhikargachha'),
   ('Swopner Shiri Computer Academy', 'technical_school', 'private', 'Jashore', 'Jhikargachha'),
   ('Taora Azizur Rahman Secondary School', 'school', 'private', 'Jashore', 'Jhikargachha'),
-  ('Ujjalpur Shahid Muktizodda Dakhil Madrasa', 'madrasa', 'private', 'Jashore', 'Jhikargachha');
+  ('Ujjalpur Shahid Muktizodda Dakhil Madrasa', 'madrasa', 'private', 'Jashore', 'Jhikargachha')
+on conflict do nothing;
 
 -- ── Keshabpur Upazila (supplement) ───────────────────────────────────────────
 insert into public.education_institutions (name, type, ownership_type, city, area)
@@ -519,7 +523,8 @@ values
   ('Trimohine Girl''s High School', 'school', 'private', 'Jashore', 'Keshabpur'),
   ('Trimohine High School', 'school', 'private', 'Jashore', 'Keshabpur'),
   ('Trimohini Darul Islam Fazil Madrasa', 'madrasa', 'private', 'Jashore', 'Keshabpur'),
-  ('Verchi Secondary School', 'school', 'private', 'Jashore', 'Keshabpur');
+  ('Verchi Secondary School', 'school', 'private', 'Jashore', 'Keshabpur')
+on conflict do nothing;
 
 -- ── Jashore Sadar (Kotwali) (supplement) ─────────────────────────────────────
 insert into public.education_institutions (name, type, ownership_type, city, area)
@@ -692,7 +697,8 @@ values
   ('Zirat Alim Madrasah', 'madrasa', 'private', 'Jashore', 'Jashore Sadar'),
   ('Naba Kishalay School, Jashore', 'school', 'private', 'Jashore', 'Jashore Sadar'),
   ('Daitala Junior Secondary Girls School', 'school', 'private', 'Jashore', 'Jashore Sadar'),
-  ('Mukto Bangla Science and Agriculture Technical Institute', 'technical_school', 'private', 'Jashore', 'Jashore Sadar');
+  ('Mukto Bangla Science and Agriculture Technical Institute', 'technical_school', 'private', 'Jashore', 'Jashore Sadar')
+on conflict do nothing;
 
 -- ── Monirampur Upazila (supplement) ──────────────────────────────────────────
 insert into public.education_institutions (name, type, ownership_type, city, area)
@@ -885,7 +891,8 @@ values
   ('Tripurapur Junior High School', 'school', 'private', 'Jashore', 'Monirampur'),
   ('Prottasha Computer Training Centre', 'technical_school', 'private', 'Jashore', 'Monirampur'),
   ('Dr Momtazul Islam Technical School', 'technical_school', 'private', 'Jashore', 'Monirampur'),
-  ('Jashore Govt Survey Institute', 'technical_school', 'public', 'Jashore', 'Monirampur');
+  ('Jashore Govt Survey Institute', 'technical_school', 'public', 'Jashore', 'Monirampur')
+on conflict do nothing;
 
 -- ── Sharsha Upazila (supplement) ─────────────────────────────────────────────
 insert into public.education_institutions (name, type, ownership_type, city, area)
@@ -964,7 +971,8 @@ values
   ('Tangra Mohila Alim Madrasa', 'madrasa', 'private', 'Jashore', 'Sharsha'),
   ('Ulashi Secondary School', 'school', 'private', 'Jashore', 'Sharsha'),
   ('United Adarsha Girl''s School', 'school', 'private', 'Jashore', 'Sharsha'),
-  ('Goyra Meherun Habib Dakhil Madrasa', 'madrasa', 'private', 'Jashore', 'Sharsha');
+  ('Goyra Meherun Habib Dakhil Madrasa', 'madrasa', 'private', 'Jashore', 'Sharsha')
+on conflict do nothing;
 
 
 

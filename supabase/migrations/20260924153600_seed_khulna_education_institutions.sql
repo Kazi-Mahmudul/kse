@@ -16,7 +16,8 @@ values
   ('Khulna University', 'university', 'public', 'Khulna', 'Gollamari, Khulna'),
   ('Khulna University of Engineering and Technology', 'university', 'public', 'Khulna', 'Fulbari Gate, Khulna'),
   ('Khulna Agricultural University', 'university', 'public', 'Khulna', 'Daulatpur, Khulna'),
-  ('Khulna Medical University', 'university', 'public', 'Khulna', 'Nirala, Khulna');
+  ('Khulna Medical University', 'university', 'public', 'Khulna', 'Nirala, Khulna')
+on conflict do nothing;
 
 -- ── Private Universities ────────────────────────────────────────────────────
 insert into public.education_institutions (name, type, ownership_type, city, area)
@@ -24,13 +25,15 @@ values
   ('Bangladesh Army University of Science and Technology Khulna', 'university', 'private', 'Khulna', 'Shiromoni, Khulna'),
   ('North Western University', 'university', 'private', 'Khulna', 'Labanchara, Khulna'),
   ('Northern University of Business and Technology Khulna', 'university', 'private', 'Khulna', 'Mostofar More, Khulna'),
-  ('Khan Bahadur Ahsanullah University, Khulna', 'university', 'private', 'Khulna', null);
+  ('Khan Bahadur Ahsanullah University, Khulna', 'university', 'private', 'Khulna', null)
+on conflict do nothing;
 
 -- ── Public Medical Colleges ─────────────────────────────────────────────────
 insert into public.education_institutions (name, type, ownership_type, city, area)
 values
   ('Khulna Medical College', 'medical_college', 'public', 'Khulna', 'Choto Boyra, Khulna'),
-  ('Khulna Nursing College', 'medical_college', 'public', 'Khulna', 'Choto Boyra, Khulna');
+  ('Khulna Nursing College', 'medical_college', 'public', 'Khulna', 'Choto Boyra, Khulna')
+on conflict do nothing;
 
 -- ── Private Medical Colleges ────────────────────────────────────────────────
 insert into public.education_institutions (name, type, ownership_type, city, area)
@@ -39,7 +42,8 @@ values
   ('Khulna City Medical College', 'medical_college', 'private', 'Khulna', 'Moylapota, Khulna'),
   ('Khulna Homoeopathic Medical College', 'medical_college', 'private', 'Khulna', 'Moylapota, Khulna'),
   ('Gazi Medical College', 'medical_college', 'private', 'Khulna', 'Sonadanga, Khulna'),
-  ('Khulna Mamota Nursing College', 'medical_college', 'private', 'Khulna', 'Fulbari Gate, Khulna');
+  ('Khulna Mamota Nursing College', 'medical_college', 'private', 'Khulna', 'Fulbari Gate, Khulna')
+on conflict do nothing;
 
 -- ── Public Colleges ─────────────────────────────────────────────────────────
 insert into public.education_institutions (name, type, ownership_type, city, area)
@@ -53,7 +57,8 @@ values
   ('Khulna Government College', 'college', 'public', 'Khulna', 'Sonadanga, Khulna'),
   ('Govt. Sundarban Adarsha College, Khulna', 'college', 'public', 'Khulna', null),
   ('Govt. Bangabandhu College, Rupsha, Khulna', 'college', 'public', 'Khulna', 'Rupsha, Khulna'),
-  ('Govt. Haji Mohammad Mohasin College', 'college', 'public', 'Khulna', 'Khalishpur, Khulna');
+  ('Govt. Haji Mohammad Mohasin College', 'college', 'public', 'Khulna', 'Khalishpur, Khulna')
+on conflict do nothing;
 
 -- ── Private Colleges ────────────────────────────────────────────────────────
 insert into public.education_institutions (name, type, ownership_type, city, area)
@@ -71,7 +76,8 @@ values
   ('Sarowar Khan Degree College', 'college', 'private', 'Khulna', 'Senhati, Khulna'),
   ('Rayermohal Degree College', 'college', 'private', 'Khulna', 'Rayarmohol, Khulna'),
   ('Khan Jahan Ali Ideal College', 'college', 'private', 'Khulna', 'Shiromoni, Khulna'),
-  ('Metropolitan College, Khulna', 'college', 'private', 'Khulna', 'Sonadanga Khulna');
+  ('Metropolitan College, Khulna', 'college', 'private', 'Khulna', 'Sonadanga Khulna')
+on conflict do nothing;
 
 -- ── Government Schools ──────────────────────────────────────────────────────
 insert into public.education_institutions (name, type, ownership_type, city, area)
@@ -87,7 +93,8 @@ values
   ('Deldar Ahmed Govt. High School', 'school', 'public', 'Khulna', 'Khulna'),
   ('Salauddin Yusuf Govt High School', 'school', 'public', 'Khulna', 'Khulna'),
   ('Khulna Govt. Model School and College', 'school', 'public', 'Khulna', null),
-  ('Khulna Power Station High school', 'school', 'public', 'Khulna', 'Khalispur, Khulna');
+  ('Khulna Power Station High school', 'school', 'public', 'Khulna', 'Khalispur, Khulna')
+on conflict do nothing;
 
 -- ── Non-government Schools ──────────────────────────────────────────────────
 insert into public.education_institutions (name, type, ownership_type, city, area)
@@ -108,7 +115,8 @@ values
   ('Crescent Secondary high school', 'school', 'private', 'Khulna', 'Khalishpur, Khulna'),
   ('Navy Anchorage School and College', 'school', 'private', 'Khulna', 'Khulna'),
   ('Teligati High School', 'school', 'private', 'Khulna', 'Khulna'),
-  ('S S R School', 'school', 'private', 'Khulna', 'Khulna');
+  ('S S R School', 'school', 'private', 'Khulna', 'Khulna')
+on conflict do nothing;
 
 -- ── Madrasah ────────────────────────────────────────────────────────────────
 insert into public.education_institutions (name, type, ownership_type, city, area)
@@ -117,7 +125,8 @@ values
   ('Khulna Nesaria Kamil Madrasah', 'madrasa', 'public', 'Khulna', null),
   ('Darul Quran Siddiquia Kamil Madrasah', 'madrasa', 'public', 'Khulna', null),
   ('Shahid Sheikh Abu Naser Dakhil Madrasah', 'madrasa', 'public', 'Khulna', null),
-  ('Darul Ulum Mosque and Madrasa', 'madrasa', 'public', 'Khulna', null);
+  ('Darul Ulum Mosque and Madrasa', 'madrasa', 'public', 'Khulna', null)
+on conflict do nothing;
 
 -- ── IGV Schools ─────────────────────────────────────────────────────────────
 insert into public.education_institutions (name, type, ownership_type, city, area)
@@ -127,7 +136,8 @@ values
   ('UCEP-M A Majid School', 'igv_school', 'private', 'Khulna', 'Fulbarigate'),
   ('UCEP-Khalishpur School', 'igv_school', 'private', 'Khulna', 'Khalishpur'),
   ('UCEP-Zohra Samad School', 'igv_school', 'private', 'Khulna', 'Tootpara'),
-  ('UCEP-Wazed Ali School', 'igv_school', 'private', 'Khulna', 'Banorgati');
+  ('UCEP-Wazed Ali School', 'igv_school', 'private', 'Khulna', 'Banorgati')
+on conflict do nothing;
 
 -- ── Technical Schools ───────────────────────────────────────────────────────
 insert into public.education_institutions (name, type, ownership_type, city, area)
@@ -135,7 +145,8 @@ values
   ('Technical Training Center Khulna', 'technical_school', 'public', 'Khulna', 'Fulbarigate, Khulna'),
   ('Khulna Shipyard Technical Training Center', 'technical_school', 'public', 'Khulna', 'Shipyard Main Road, Rupsha, Khulna'),
   ('Dumuria Govt. Technical School and College', 'technical_school', 'public', 'Khulna', null),
-  ('UCEP-Mohsin Khulna Technical School', 'technical_school', 'private', 'Khulna', '7, Junction Road, Baikali, Khulna');
+  ('UCEP-Mohsin Khulna Technical School', 'technical_school', 'private', 'Khulna', '7, Junction Road, Baikali, Khulna')
+on conflict do nothing;
 
 -- ── English Medium Schools ──────────────────────────────────────────────────
 insert into public.education_institutions (name, type, ownership_type, city, area)
@@ -146,12 +157,14 @@ values
   ('Tulip English School', 'english_medium', 'private', 'Khulna', null),
   ('Sunflower Tutorial', 'english_medium', 'private', 'Khulna', null),
   ('Elizabeth Primary School', 'english_medium', 'private', 'Khulna', null),
-  ('Jahan International School', 'english_medium', 'private', 'Khulna', null);
+  ('Jahan International School', 'english_medium', 'private', 'Khulna', null)
+on conflict do nothing;
 
 -- ── Art College ─────────────────────────────────────────────────────────────
 insert into public.education_institutions (name, type, ownership_type, city, area)
 values
-  ('Khulna Art College', 'arts_college', 'public', 'Khulna', 'Khulna University');
+  ('Khulna Art College', 'arts_college', 'public', 'Khulna', 'Khulna University')
+on conflict do nothing;
 
 -- ── Polytechnic Institutions ────────────────────────────────────────────────
 insert into public.education_institutions (name, type, ownership_type, city, area)
@@ -168,9 +181,11 @@ values
   ('Hope Polytechnic Institute', 'polytechnic', 'private', 'Khulna', 'Gollamari, Khulna'),
   ('Squire Polytechnic Institute', 'polytechnic', 'private', 'Khulna', 'Khulna'),
   ('Squire Medical Institute', 'polytechnic', 'private', 'Khulna', 'Khulna'),
-  ('PSTI (Public Science & Technology Institute) Polytechnic Institute', 'polytechnic', 'private', 'Khulna', 'Khulna');
+  ('PSTI (Public Science & Technology Institute) Polytechnic Institute', 'polytechnic', 'private', 'Khulna', 'Khulna')
+on conflict do nothing;
 
 -- ── Military Schools ────────────────────────────────────────────────────────
 insert into public.education_institutions (name, type, ownership_type, city, area)
 values
-  ('Military Collegiate School Khulna (Patherbazar)', 'military_school', 'public', 'Khulna', 'Patherbazar, Phooltala, Khulna');
+  ('Military Collegiate School Khulna (Patherbazar)', 'military_school', 'public', 'Khulna', 'Patherbazar, Phooltala, Khulna')
+on conflict do nothing;

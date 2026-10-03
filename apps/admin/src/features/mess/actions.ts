@@ -1,15 +1,30 @@
 /**
  * Mess Management — Admin Actions
- * Server-side operations for mess management using service role client.
+ *
+ * Reads and writes go through the service-role client (mess tables are
+ * member-RLS'd, so the staff session would see nothing). The staff
+ * session is still verified first — these actions only run behind the
+ * (dashboard) layout's staff gate, and actor ids come from that session.
+ * Settlement *generation* stays in the mess-actions edge function, which
+ * enforces the manager-only business rule.
  */
 
 'use server';
 
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
+
+/** Verified staff user id (throws if the session is missing). */
+async function staffUserId(): Promise<string> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Not authenticated');
+  return user.id;
+}
 
 export async function getAllMesses() {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { data, error } = await supabase
     .from('messes')
     .select(`
@@ -23,7 +38,7 @@ export async function getAllMesses() {
 }
 
 export async function getMessById(messId: string) {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { data, error } = await supabase
     .from('messes')
     .select(`
@@ -38,7 +53,7 @@ export async function getMessById(messId: string) {
 }
 
 export async function getMessMembers(messId: string) {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { data, error } = await supabase
     .from('mess_members')
     .select(`
@@ -53,7 +68,7 @@ export async function getMessMembers(messId: string) {
 }
 
 export async function getMessMeals(messId: string, monthStart: string, monthEnd: string) {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { data, error } = await supabase
     .from('meal_records')
     .select(`
@@ -70,7 +85,7 @@ export async function getMessMeals(messId: string, monthStart: string, monthEnd:
 }
 
 export async function getMessBazar(messId: string, monthStart: string, monthEnd: string) {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { data, error } = await supabase
     .from('bazar_purchases')
     .select(`
@@ -88,7 +103,7 @@ export async function getMessBazar(messId: string, monthStart: string, monthEnd:
 }
 
 export async function getMessExpenses(messId: string, monthStart: string, monthEnd: string) {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { data, error } = await supabase
     .from('mess_expenses')
     .select(`
@@ -105,7 +120,7 @@ export async function getMessExpenses(messId: string, monthStart: string, monthE
 }
 
 export async function getMessPayments(messId: string) {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { data, error } = await supabase
     .from('mess_payments')
     .select(`
@@ -121,7 +136,7 @@ export async function getMessPayments(messId: string) {
 }
 
 export async function getPendingExchanges(messId: string) {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { data, error } = await supabase
     .from('bazar_exchange_requests')
     .select(`
@@ -139,7 +154,7 @@ export async function getPendingExchanges(messId: string) {
 }
 
 export async function getSettlement(messId: string, monthStart: string) {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { data, error } = await supabase
     .from('monthly_settlements')
     .select(`
@@ -152,14 +167,14 @@ export async function getSettlement(messId: string, monthStart: string) {
     `)
     .eq('mess_id', messId)
     .eq('month_start', monthStart)
-    .single();
+    .maybeSingle();
 
-  if (error && error.code !== 'PGRST116') throw error;
+  if (error) throw error;
   return data;
 }
 
 export async function getMessAnnouncements(messId: string) {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { data, error } = await supabase
     .from('mess_announcements')
     .select('*')
@@ -171,7 +186,7 @@ export async function getMessAnnouncements(messId: string) {
 }
 
 export async function getAuditLogs(messId: string, limit = 100) {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { data, error } = await supabase
     .from('mess_audit_logs')
     .select('*')
@@ -188,7 +203,7 @@ export async function respondMemberRequest(
   messId: string,
   action: 'accept' | 'reject'
 ) {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const { error } = await supabase
     .from('mess_members')
@@ -204,7 +219,7 @@ export async function respondMemberRequest(
 }
 
 export async function removeMember(memberId: string, messId: string) {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const { error } = await supabase
     .from('mess_members')
@@ -220,7 +235,7 @@ export async function removeMember(memberId: string, messId: string) {
 }
 
 export async function addExpenseAction(formData: FormData) {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const messId = formData.get('mess_id') as string;
   const paidBy = formData.get('paid_by') as string;
@@ -238,7 +253,7 @@ export async function addExpenseAction(formData: FormData) {
     expense_date: expenseDate,
     description: description || null,
     is_shared: isShared,
-    created_by: (await supabase.auth.getUser()).data.user?.id,
+    created_by: await staffUserId(),
   });
 
   if (error) throw error;
@@ -246,7 +261,7 @@ export async function addExpenseAction(formData: FormData) {
 }
 
 export async function addPaymentAction(formData: FormData) {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const messId = formData.get('mess_id') as string;
   const memberId = formData.get('member_id') as string;
@@ -256,6 +271,7 @@ export async function addPaymentAction(formData: FormData) {
   const reference = formData.get('reference') as string;
   const note = formData.get('note') as string;
 
+  const actor = await staffUserId();
   const { error } = await supabase.from('mess_payments').insert({
     mess_id: messId,
     member_id: memberId,
@@ -265,8 +281,8 @@ export async function addPaymentAction(formData: FormData) {
     reference: reference || null,
     note: note || null,
     status: 'confirmed',
-    recorded_by: (await supabase.auth.getUser()).data.user?.id,
-    confirmed_by: (await supabase.auth.getUser()).data.user?.id,
+    recorded_by: actor,
+    confirmed_by: actor,
     confirmed_at: new Date().toISOString(),
   });
 
@@ -275,9 +291,10 @@ export async function addPaymentAction(formData: FormData) {
 }
 
 export async function generateSettlementAction(messId: string, monthStart: string, monthEnd: string) {
+  // Generation runs the canonical business logic in the edge function,
+  // which requires the caller to be the mess MANAGER — a platform admin
+  // without that role gets that message verbatim.
   const supabase = await createClient();
-
-  // Call the Edge Function
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) throw new Error('Not authenticated');
 
@@ -303,7 +320,7 @@ export async function generateSettlementAction(messId: string, monthStart: strin
 }
 
 export async function publishSettlementAction(settlementId: string, messId: string) {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const { error } = await supabase
     .from('monthly_settlements')
@@ -318,14 +335,14 @@ export async function publishSettlementAction(settlementId: string, messId: stri
 }
 
 export async function lockSettlementAction(settlementId: string, messId: string) {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const { error } = await supabase
     .from('monthly_settlements')
     .update({
       status: 'locked',
       locked_at: new Date().toISOString(),
-      locked_by: (await supabase.auth.getUser()).data.user?.id,
+      locked_by: await staffUserId(),
     })
     .eq('id', settlementId);
 
@@ -334,7 +351,7 @@ export async function lockSettlementAction(settlementId: string, messId: string)
 }
 
 export async function createAnnouncementAction(formData: FormData) {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const messId = formData.get('mess_id') as string;
   const title = formData.get('title') as string;
@@ -346,7 +363,7 @@ export async function createAnnouncementAction(formData: FormData) {
     title,
     content,
     is_active: isActive,
-    created_by: (await supabase.auth.getUser()).data.user?.id,
+    created_by: await staffUserId(),
   });
 
   if (error) throw error;

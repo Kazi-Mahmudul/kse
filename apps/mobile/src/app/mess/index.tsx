@@ -1,291 +1,332 @@
 /**
- * Mess Management — Main Mess Hub Screen
- * Shows user's messes, create new, or join existing
+ * Mess Hub — the user's mess list, create and join (spec §3 entry point).
+ * Join resolves the human mess code to the mess record first — the edge
+ * action needs the mess UUID.
  */
 
-import { useState } from 'react';
-import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  ActivityIndicator,
-  RefreshControl,
-} from 'react-native';
-import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import { useState } from 'react';
+import { Pressable, StyleSheet, View } from 'react-native';
 
-import { Screen } from '@/components/ui/screen';
-import { Card } from '@/components/ui/card';
-import { PrimaryButton } from '@/components/ui/primary-button';
-import { EmptyState } from '@/components/ui/empty-state';
-import { useMyMesses, useCreateMess, useJoinMess } from '@/features/mess/queries';
-
-// ── Create Mess Form ─────────────────────────────────────────────────────────
-
+import { alertInfo } from '@/lib/dialogs';
 import { useForm } from 'react-hook-form';
+
+import { ThemedText } from '@/components/themed-text';
+import { Screen } from '@/components/ui/screen';
+import { EmptyState } from '@/components/ui/empty-state';
+import { PrimaryButton } from '@/components/ui/primary-button';
 import { TextField } from '@/components/ui/text-field';
+import { FontFamilies, Spacing } from '@/constants/theme';
+import { useTheme } from '@/hooks/use-theme';
+import { useSmartBack } from '@/hooks/use-smart-back';
+import { useCreateMess, useJoinMess, useMyMesses } from '@/features/mess/queries';
+import { Sheet } from '@/features/mess/components/sheet';
+import { InlineLoading, ErrorBox } from '@/features/mess/components/list-state';
+import { supabase } from '@/lib/supabase';
 
 export default function MessHubScreen() {
-  const { data: messes, isLoading, refetch, isRefetching, error } = useMyMesses();
+  const colors = useTheme();
+  const goBack = useSmartBack('/');
+  const router = useRouter();
+  const { data: messes, isLoading, isError, error, refetch } = useMyMesses();
   const [showCreate, setShowCreate] = useState(false);
   const [showJoin, setShowJoin] = useState(false);
 
-  const activeMesses = messes?.filter(m => m.status === 'active') ?? [];
-  const pendingMesses = messes?.filter(m => m.status === 'pending') ?? [];
-
-  if (isLoading) {
-    return (
-      <Screen>
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" />
-        </View>
-      </Screen>
-    );
-  }
-
-  if (error) {
-    return (
-      <Screen>
-        <View className="flex-1 items-center justify-center p-4">
-          <Text className="text-red-500 text-center mb-4">
-            Failed to load messes: {(error as Error).message}
-          </Text>
-          <PrimaryButton label="Retry" onPress={() => refetch()} />
-        </View>
-      </Screen>
-    );
-  }
+  const active = messes?.filter((m) => m.status === 'active') ?? [];
+  const pending = messes?.filter((m) => m.status === 'pending') ?? [];
 
   return (
-    <Screen>
-      <ScrollView
-        style={{ flex: 1 }}
-        contentContainerStyle={{ padding: 16, gap: 16 }}
-        refreshControl={
-          <RefreshControl refreshing={isRefetching} onRefresh={refetch} />
-        }
-      >
-        {/* Header */}
-        <View className="flex-row items-center justify-between mb-2">
-          <View>
-            <Text className="text-2xl font-bold">Mess Management</Text>
-            <Text className="text-gray-500 mt-1">
-              Manage your mess operations
-            </Text>
-          </View>
+    <Screen scroll={false}>
+      <View style={styles.header}>
+        <Pressable onPress={goBack} accessibilityRole="button" accessibilityLabel="Go back" hitSlop={8}>
+          <Ionicons name="chevron-back" size={24} color={colors.text} />
+        </Pressable>
+        <View style={styles.titleWrap}>
+          <ThemedText type="subtitle">Mess Management</ThemedText>
+          <ThemedText type="small" themeColor="textSecondary">
+            Meals, bazar and settlement for your mess
+          </ThemedText>
         </View>
+      </View>
 
-        {/* Pending Requests */}
-        {pendingMesses.length > 0 && (
-          <View>
-            <Text className="text-lg font-semibold mb-2">Pending Requests</Text>
-            {pendingMesses.map(mess => (
-              <Card key={mess.id} className="mb-2 border-l-4 border-l-yellow-500">
-                <Text className="font-medium">{mess.name}</Text>
-                <Text className="text-sm text-gray-500">Waiting for manager approval</Text>
-              </Card>
-            ))}
-          </View>
-        )}
-
-        {/* Active Messes */}
-        {activeMesses.length === 0 && !showCreate && !showJoin ? (
+      <View style={styles.body}>
+        {isLoading ? (
+          <InlineLoading label="Loading your messes…" />
+        ) : isError ? (
+          <ErrorBox message={error?.message ?? 'Please try again.'} onRetry={() => refetch()} />
+        ) : active.length === 0 && pending.length === 0 ? (
           <EmptyState
             icon="restaurant-outline"
-            title="No Mess Yet"
-            message="Create a new mess or join an existing one to get started"
-            actionLabel="Create Mess"
+            title="No mess yet"
+            message="Create a mess for your friends, or join one with its code."
+            actionLabel="Create a Mess"
             onAction={() => setShowCreate(true)}
           />
         ) : (
-          <View>
-            <View className="flex-row items-center justify-between mb-3">
-              <Text className="text-lg font-semibold">My Messes</Text>
-              <View className="flex-row gap-2">
-                <TouchableOpacity
-                  onPress={() => setShowJoin(true)}
-                  className="p-2"
-                >
-                  <Ionicons name="link" size={22} />
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={() => setShowCreate(true)}
-                  className="p-2"
-                >
-                  <Ionicons name="add-circle-outline" size={22} />
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            {activeMesses.map(mess => (
-              <TouchableOpacity
+          <View style={styles.list}>
+            {pending.map((mess) => (
+              <View
                 key={mess.id}
-                onPress={() => router.push({ pathname: '/mess/[id]', params: { id: mess.id } } as any)}
+                style={[styles.card, { backgroundColor: `${colors.warning}14`, borderColor: `${colors.warning}55` }]}
               >
-                <Card className="mb-3">
-                  <View className="flex-row items-center justify-between">
-                    <View className="flex-1">
-                      <Text className="font-semibold text-lg">{mess.name}</Text>
-                      {mess.location && (
-                        <Text className="text-sm text-gray-500 mt-1">{mess.location}</Text>
-                      )}
-                      <View className="flex-row items-center gap-2 mt-2">
-                        <View className="flex-row items-center gap-1">
-                          <Ionicons name="people-outline" size={14} />
-                          <Text className="text-sm text-gray-500">
-                            {mess.member_count ?? 0} members
-                          </Text>
-                        </View>
-                        <View className="px-2 py-0.5 bg-green-100 rounded-full">
-                          <Text className="text-xs text-green-700">Active</Text>
-                        </View>
-                      </View>
-                    </View>
-                    <Ionicons name="chevron-forward" size={20} className="text-gray-400" />
-                  </View>
-                </Card>
-              </TouchableOpacity>
+                <View style={[styles.cardIcon, { backgroundColor: `${colors.warning}26` }]}>
+                  <Ionicons name="time-outline" size={18} color={colors.warning} />
+                </View>
+                <View style={styles.cardMeta}>
+                  <ThemedText type="smallBold">{mess.name}</ThemedText>
+                  <ThemedText type="small" themeColor="textSecondary">
+                    Waiting for manager approval
+                  </ThemedText>
+                </View>
+              </View>
+            ))}
+
+            {active.map((mess) => (
+              <Pressable
+                key={mess.id}
+                onPress={() => router.push({ pathname: '/mess/[id]', params: { id: mess.id } } as never)}
+                accessibilityRole="button"
+                accessibilityLabel={`Open ${mess.name}`}
+                style={({ pressed }) => [
+                  styles.card,
+                  { backgroundColor: colors.background, borderColor: colors.border },
+                  pressed && styles.pressed,
+                ]}
+              >
+                <View style={[styles.cardIcon, { backgroundColor: `${colors.primary}1A` }]}>
+                  <Ionicons name="home-outline" size={18} color={colors.primary} />
+                </View>
+                <View style={styles.cardMeta}>
+                  <ThemedText type="smallBold" style={styles.cardTitle}>
+                    {mess.name}
+                  </ThemedText>
+                  <ThemedText type="small" themeColor="textSecondary" numberOfLines={1}>
+                    {[mess.location, mess.role === 'manager' ? 'You manage this mess' : null]
+                      .filter(Boolean)
+                      .join(' · ')}
+                  </ThemedText>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+              </Pressable>
             ))}
           </View>
         )}
+      </View>
 
-        {/* Create Mess Form */}
-        {showCreate && (
-          <CreateMessForm onClose={() => setShowCreate(false)} />
-        )}
+      <View style={styles.footer}>
+        <PrimaryButton
+          label="Join with Code"
+          variant="outline"
+          onPress={() => setShowJoin(true)}
+          style={styles.footerBtn}
+        />
+        <PrimaryButton label="Create Mess" onPress={() => setShowCreate(true)} style={styles.footerBtn} />
+      </View>
 
-        {/* Join Mess Form */}
-        {showJoin && (
-          <JoinMessForm onClose={() => setShowJoin(false)} />
-        )}
-      </ScrollView>
+      <CreateMessSheet visible={showCreate} onClose={() => setShowCreate(false)} />
+      <JoinMessSheet visible={showJoin} onClose={() => setShowJoin(false)} />
     </Screen>
   );
 }
 
-function CreateMessForm({ onClose }: { onClose: () => void }) {
-  const { control, handleSubmit, formState: { errors } } = useForm({
-    defaultValues: { name: '', location: '', address: '', max_members: '10' },
-  });
+// ── Create ───────────────────────────────────────────────────────────────────
+
+function CreateMessSheet({ visible, onClose }: { visible: boolean; onClose: () => void }) {
   const createMess = useCreateMess();
+  const router = useRouter();
 
   const onSubmit = async (data: Record<string, string>) => {
     try {
-      const result = await createMess.mutateAsync({
+      const mess = await createMess.mutateAsync({
         name: data.name,
         location: data.location || undefined,
         address: data.address || undefined,
-        max_members: parseInt(data.max_members, 10),
+        max_members: parseInt(data.max_members || '10', 10) || 10,
       });
       onClose();
-      if (result?.id) {
-        router.push({ pathname: '/mess/[id]', params: { id: result.id } } as any);
-      }
+      if (mess?.id) router.push({ pathname: '/mess/[id]', params: { id: mess.id } } as never);
     } catch (e) {
-      // Error handled in mutation
+      alertInfo('Could not create mess', (e as Error).message);
     }
   };
 
   return (
-    <Card className="mt-2">
-      <Text className="font-semibold text-lg mb-4">Create New Mess</Text>
-      <View className="gap-3">
-        <TextField
-          control={control}
-          name="name"
-          label="Mess Name *"
-          placeholder="e.g., 12 No. Bachelor Mess"
-        />
-        <TextField
-          control={control}
-          name="location"
-          label="Location"
-          placeholder="e.g., Boyra, Khulna"
-        />
-        <TextField
-          control={control}
-          name="address"
-          label="Address"
-          placeholder="Full address"
-        />
-        <TextField
-          control={control}
-          name="max_members"
-          label="Max Members"
-          placeholder="10"
-          keyboardType="number-pad"
-        />
-        <View className="flex-row gap-3 mt-2">
-          <PrimaryButton
-            label="Cancel"
-            variant="outline"
-            onPress={onClose}
-            className="flex-1"
-          />
-          <PrimaryButton
-            label="Create"
-            onPress={handleSubmit(onSubmit)}
-            loading={createMess.isPending}
-            className="flex-1"
-          />
-        </View>
-      </View>
-    </Card>
+    <FormSheet
+      visible={visible}
+      onClose={onClose}
+      title="Create a Mess"
+      submitLabel="Create"
+      loading={createMess.isPending}
+      fields={[
+        { name: 'name', label: 'Mess name', placeholder: 'e.g. 12 No. Bachelor Mess', required: true },
+        { name: 'location', label: 'Location', placeholder: 'e.g. Boyra, Khulna' },
+        { name: 'max_members', label: 'Max members', placeholder: '10', keyboard: 'number-pad' },
+      ]}
+      onSubmit={onSubmit}
+    />
   );
 }
 
-// ── Join Mess Form ────────────────────────────────────────────────────────────
+// ── Join ─────────────────────────────────────────────────────────────────────
 
-function JoinMessForm({ onClose }: { onClose: () => void }) {
-  const { control, handleSubmit } = useForm({
-    defaultValues: { mess_id: '', invite_code: '' },
-  });
+function JoinMessSheet({ visible, onClose }: { visible: boolean; onClose: () => void }) {
   const joinMess = useJoinMess();
+  const [resolving, setResolving] = useState(false);
 
   const onSubmit = async (data: Record<string, string>) => {
+    const code = data.code.trim();
+    if (!code) return;
+    setResolving(true);
     try {
-      await joinMess.mutateAsync({
-        messId: data.mess_id,
-        inviteCode: data.invite_code || undefined,
-      });
+      // Resolve the human code to the mess record — messes are publicly
+      // readable while active; the edge action needs the UUID.
+      const { data: mess, error: lookupError } = await supabase
+        .from('messes')
+        .select('id, name')
+        .eq('code', code)
+        .eq('is_active', true)
+        .maybeSingle();
+
+      if (lookupError) throw lookupError;
+      if (!mess) throw new Error('No active mess found with that code. Check the code with your manager.');
+
+      await joinMess.mutateAsync({ messId: mess.id, inviteCode: data.invite_code || undefined });
+      alertInfo('Request sent', `Waiting for the manager of "${mess.name}" to approve you.`);
       onClose();
     } catch (e) {
-      // Error handled in mutation
+      alertInfo('Could not join', (e as Error).message);
+    } finally {
+      setResolving(false);
     }
   };
 
   return (
-    <Card className="mt-2">
-      <Text className="font-semibold text-lg mb-4">Join Existing Mess</Text>
-      <View className="gap-3">
-        <TextField
-          control={control}
-          name="mess_id"
-          label="Mess Code *"
-          placeholder="e.g., KSE-MESS-8F42"
-        />
-        <TextField
-          control={control}
-          name="invite_code"
-          label="Invite Code (Optional)"
-          placeholder="If you have an invite code"
-        />
-        <View className="flex-row gap-3 mt-2">
-          <PrimaryButton
-            label="Cancel"
-            variant="outline"
-            onPress={onClose}
-            className="flex-1"
-          />
-          <PrimaryButton
-            label="Join"
-            onPress={handleSubmit(onSubmit)}
-            loading={joinMess.isPending}
-            className="flex-1"
-          />
-        </View>
-      </View>
-    </Card>
+    <FormSheet
+      visible={visible}
+      onClose={onClose}
+      title="Join a Mess"
+      submitLabel="Send Join Request"
+      loading={joinMess.isPending || resolving}
+      fields={[
+        { name: 'code', label: 'Mess code', placeholder: 'e.g. MESS-8F42', required: true, autoCap: 'characters' },
+        { name: 'invite_code', label: 'Invite code (optional)', placeholder: 'If you have one' },
+      ]}
+      onSubmit={onSubmit}
+    />
   );
 }
+
+// ── Shared sheet form ────────────────────────────────────────────────────────
+
+interface FieldDef {
+  name: string;
+  label: string;
+  placeholder?: string;
+  required?: boolean;
+  keyboard?: 'default' | 'number-pad';
+  autoCap?: 'none' | 'characters';
+}
+
+function FormSheet({
+  visible,
+  onClose,
+  title,
+  submitLabel,
+  loading,
+  fields,
+  onSubmit,
+}: {
+  visible: boolean;
+  onClose: () => void;
+  title: string;
+  submitLabel: string;
+  loading: boolean;
+  fields: FieldDef[];
+  onSubmit: (data: Record<string, string>) => Promise<void> | void;
+}) {
+  const { control, handleSubmit } = useFormLite(fields);
+  return (
+    <Sheet visible={visible} onClose={onClose} title={title}>
+      <View style={styles.form}>
+        {fields.map((f) => (
+          <TextField
+            key={f.name}
+            control={control}
+            name={f.name}
+            label={f.label}
+            placeholder={f.placeholder}
+            keyboardType={f.keyboard}
+            autoCapitalize={f.autoCap ?? 'sentences'}
+          />
+        ))}
+        <PrimaryButton label={submitLabel} loading={loading} onPress={handleSubmit(onSubmit)} />
+      </View>
+    </Sheet>
+  );
+}
+
+/** Minimal react-hook-form wiring (validation is server-side; keep it light). */
+function useFormLite(fields: FieldDef[]) {
+  const { control, handleSubmit } = useForm({
+    defaultValues: Object.fromEntries(fields.map((f) => [f.name, ''])),
+  });
+  return { control, handleSubmit };
+}
+
+const styles = StyleSheet.create({
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.two,
+  },
+  titleWrap: {
+    flexShrink: 1,
+    gap: 2,
+  },
+  body: {
+    flex: 1,
+  },
+  list: {
+    gap: Spacing.three - 6,
+  },
+  card: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.three - 6,
+    borderRadius: 18,
+    borderWidth: StyleSheet.hairlineWidth,
+    padding: Spacing.three,
+  },
+  cardIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cardMeta: {
+    flex: 1,
+    gap: 2,
+  },
+  cardTitle: {
+    fontFamily: FontFamilies.semiBold,
+    fontSize: 16,
+    lineHeight: 22,
+  },
+  pressed: {
+    opacity: 0.75,
+  },
+  footer: {
+    flexDirection: 'row',
+    gap: Spacing.three - 6,
+    paddingBottom: Spacing.two,
+  },
+  footerBtn: {
+    flex: 1,
+  },
+  form: {
+    gap: Spacing.three,
+    paddingBottom: Spacing.two,
+  },
+});
