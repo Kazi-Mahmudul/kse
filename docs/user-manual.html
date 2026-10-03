@@ -1,0 +1,1107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>KSE — User Manual</title>
+<style>
+  /* ── Brand fonts (shipped with the app) ─────────────────────────── */
+  @font-face { font-family:'Poppins'; src:url('fonts/Poppins_400Regular.ttf'); font-weight:400; font-style:normal; }
+  @font-face { font-family:'Poppins'; src:url('fonts/Poppins_500Medium.ttf'); font-weight:500; font-style:normal; }
+  @font-face { font-family:'Poppins'; src:url('fonts/Poppins_600SemiBold.ttf'); font-weight:600; font-style:normal; }
+  @font-face { font-family:'Poppins'; src:url('fonts/Poppins_700Bold.ttf'); font-weight:700; font-style:normal; }
+
+  /* ── Palette (docs/design/tokens.md) ────────────────────────────── */
+  :root{
+    --ink:#0F172A; --body:#334155; --muted:#64748B; --faint:#94A3B8;
+    --indigo:#4F46E5; --purple:#7C3AED; --indigo-soft:#EEF2FF; --indigo-line:#E0E7FF;
+    --bg:#FFFFFF; --surface:#F8FAFC; --border:#E2E8F0;
+    --success:#10B981; --success-soft:#ECFDF5; --success-line:#D1FAE5;
+    --warning:#F59E0B; --warning-soft:#FFFBEB; --warning-line:#FEF3C7;
+    --danger:#F43F5E;  --danger-soft:#FFF1F2;  --danger-line:#FFE4E6;
+    --bengali:'Nirmala UI','Vrinda',sans-serif;
+  }
+
+  @page{ size:A4 portrait; margin:16mm 15mm 18mm 15mm; }
+
+  *{ margin:0; padding:0; box-sizing:border-box; }
+  html{ -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  body{
+    font-family:'Poppins',system-ui,sans-serif; color:var(--body);
+    font-size:10.2pt; line-height:1.62; background:var(--bg);
+  }
+  strong{ color:var(--ink); font-weight:600; }
+  a{ color:var(--indigo); text-decoration:none; }
+
+  /* Repeating footer on every printed page */
+  .pgfoot{
+    position:fixed; bottom:6mm; left:15mm; right:15mm;
+    display:flex; justify-content:space-between; align-items:center;
+    font-size:7.4pt; color:var(--faint); letter-spacing:.06em; text-transform:uppercase;
+    border-top:1px solid var(--border); padding-top:2.2mm;
+  }
+  .pgfoot .dot{ color:var(--indigo); }
+
+  /* ── Cover ──────────────────────────────────────────────────────── */
+  .cover{ height:257mm; display:flex; flex-direction:column; align-items:center; text-align:center; }
+  .cover .band{ width:34mm; height:2.6mm; border-radius:99px;
+    background:linear-gradient(90deg,var(--indigo),var(--purple)); margin-top:26mm; }
+  .cover img{ width:34mm; height:34mm; border-radius:9mm; margin-top:14mm; }
+  .cover h1{ font-size:34pt; font-weight:700; color:var(--ink); letter-spacing:-.01em; margin-top:10mm; }
+  .cover .sub{ font-size:12pt; font-weight:500; color:var(--purple); margin-top:1mm; }
+  .cover .man{
+    margin-top:16mm; font-size:10pt; font-weight:600; letter-spacing:.34em;
+    text-transform:uppercase; color:var(--muted);
+  }
+  .cover .rule{ width:18mm; height:.5mm; background:var(--border); margin:7mm 0; }
+  .cover .tag{ font-size:9.6pt; color:var(--muted); max-width:118mm; }
+  .cover .meta{
+    margin-top:auto; display:flex; gap:14mm; font-size:8.6pt; color:var(--faint);
+  }
+  .cover .meta b{ display:block; font-size:7.2pt; letter-spacing:.22em; text-transform:uppercase;
+    color:var(--indigo); font-weight:600; margin-bottom:.6mm; }
+  .cover .meta div{ min-width:30mm; }
+
+  /* ── Table of contents ──────────────────────────────────────────── */
+  .chapter{ break-before:page; }
+  .toc h2, .chap-head .kicker{
+    font-size:8pt; font-weight:600; letter-spacing:.3em; text-transform:uppercase; color:var(--indigo);
+  }
+  .toc h2.big{ font-size:23pt; letter-spacing:-.01em; text-transform:none; color:var(--ink); margin:2mm 0 8mm; }
+  .toc ol{ list-style:none; }
+  .toc li{ display:flex; align-items:baseline; gap:4mm; padding:2.6mm 0; border-bottom:1px solid var(--border); }
+  .toc li:last-child{ border-bottom:none; }
+  .toc .n{
+    font-size:9pt; font-weight:700; color:var(--indigo); background:var(--indigo-soft);
+    border-radius:2.4mm; min-width:8mm; height:8mm; display:flex; align-items:center; justify-content:center;
+    align-self:center;
+  }
+  .toc .t{ font-weight:600; color:var(--ink); font-size:10.6pt; }
+  .toc .d{ color:var(--muted); font-size:8.8pt; margin-left:auto; text-align:right; max-width:88mm; }
+
+  /* ── Chapter header ─────────────────────────────────────────────── */
+  .chap-head{ display:flex; gap:5mm; align-items:flex-start; margin-bottom:7mm; }
+  .chap-num{
+    width:13mm; height:13mm; border-radius:4mm; flex-shrink:0;
+    background:linear-gradient(135deg,var(--indigo),var(--purple)); color:#fff;
+    display:flex; align-items:center; justify-content:center; font-size:14pt; font-weight:700;
+  }
+  .chap-head h2{ font-size:19pt; font-weight:700; color:var(--ink); letter-spacing:-.01em; line-height:1.2; }
+  .chap-head .kicker{ display:block; margin-bottom:1.6mm; }
+  .chap-head .glance{ color:var(--muted); font-size:9.4pt; margin-top:.6mm; }
+  .chap-head::after{
+    content:''; flex:1; height:.6mm; border-radius:99px; margin-top:5mm; margin-left:2mm;
+    background:linear-gradient(90deg,var(--indigo-line),transparent); min-width:6mm;
+  }
+
+  .lead{ font-size:10.8pt; color:var(--body); margin-bottom:5mm; }
+  h3.sec{
+    font-size:12.2pt; font-weight:600; color:var(--ink); margin:7mm 0 2.6mm;
+    display:flex; align-items:center; gap:2.6mm; break-after:avoid;
+  }
+  h3.sec .idx{ color:var(--purple); font-weight:700; font-size:10.4pt; }
+  h4{ font-size:10.4pt; font-weight:600; color:var(--ink); margin:4.5mm 0 1.6mm; break-after:avoid; }
+
+  p{ margin-bottom:2.6mm; }
+  ul.list{ margin:0 0 3mm 5mm; }
+  ul.list li{ margin-bottom:1.4mm; }
+  ul.list li::marker{ color:var(--indigo); }
+
+  /* Steps */
+  ol.steps{ list-style:none; margin:2.5mm 0 4mm; }
+  ol.steps li{ position:relative; padding-left:9.5mm; margin-bottom:2.8mm; break-inside:avoid; }
+  ol.steps li::before{
+    content:counter(st); counter-increment:st;
+    position:absolute; left:0; top:.4mm; width:6.4mm; height:6.4mm; border-radius:99px;
+    background:var(--indigo-soft); color:var(--indigo); border:.4mm solid var(--indigo-line);
+    font-size:8.6pt; font-weight:700; display:flex; align-items:center; justify-content:center;
+  }
+  ol.steps{ counter-reset:st; }
+  ol.steps.cont{ counter-reset:none; }
+
+  /* Cards & grids */
+  .card{
+    background:var(--surface); border:1px solid var(--border); border-radius:3.6mm;
+    padding:4mm 4.6mm; break-inside:avoid; margin-bottom:3mm;
+  }
+  .card.blue{ background:var(--indigo-soft); border-color:var(--indigo-line); }
+  .card h5{ font-size:10pt; font-weight:600; color:var(--ink); margin-bottom:1.2mm; }
+  .grid2{ display:grid; grid-template-columns:1fr 1fr; gap:3mm; margin:2.5mm 0 3mm; }
+  .grid3{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:3mm; margin:2.5mm 0 3mm; }
+  .grid2 .card,.grid3 .card{ margin-bottom:0; }
+  .feat{ border-left:.9mm solid var(--indigo); }
+  .feat.amber{ border-color:var(--warning); } .feat.green{ border-color:var(--success); }
+  .feat.rose{ border-color:var(--danger); } .feat.violet{ border-left-color:var(--purple); }
+
+  /* Tables */
+  table.tbl{ width:100%; border-collapse:collapse; font-size:9.2pt; margin:2.5mm 0 4mm; break-inside:avoid; }
+  .tbl th{
+    text-align:left; font-weight:600; color:var(--indigo); font-size:8.2pt;
+    letter-spacing:.08em; text-transform:uppercase; padding:2.2mm 3mm;
+    background:var(--indigo-soft); border-bottom:.5mm solid var(--indigo-line);
+  }
+  .tbl td{ padding:2.2mm 3mm; border-bottom:1px solid var(--border); vertical-align:top; }
+  .tbl tr:last-child td{ border-bottom:none; }
+  .tbl td b{ color:var(--ink); font-weight:600; }
+
+  /* Pills / chips */
+  .pill{
+    display:inline-block; font-size:8pt; font-weight:600; border-radius:99px;
+    padding:.6mm 2.6mm; margin:.4mm .6mm .4mm 0; border:.35mm solid transparent;
+  }
+  .pill.i{ background:var(--indigo-soft); color:var(--indigo); border-color:var(--indigo-line); }
+  .pill.g{ background:var(--success-soft); color:#047857; border-color:var(--success-line); }
+  .pill.a{ background:var(--warning-soft); color:#B45309; border-color:var(--warning-line); }
+  .pill.r{ background:var(--danger-soft); color:#BE123C; border-color:var(--danger-line); }
+  .pill.n{ background:var(--surface); color:var(--muted); border-color:var(--border); }
+  .kbd{
+    display:inline-block; font-size:8.4pt; font-weight:600; color:var(--ink);
+    background:var(--surface); border:1px solid var(--border); border-bottom-width:.7mm;
+    border-radius:1.8mm; padding:0 2mm;
+  }
+
+  /* Callouts */
+  .tip,.note{
+    border-radius:3mm; padding:3mm 4mm 3mm 4mm; margin:3mm 0; font-size:9.4pt;
+    break-inside:avoid; position:relative; padding-left:11mm;
+  }
+  .tip::before,.note::before{
+    position:absolute; left:3.4mm; top:2.9mm; font-weight:700; font-size:9.5pt;
+  }
+  .tip{ background:var(--indigo-soft); } .tip::before{ content:'💡'; }
+  .note{ background:var(--warning-soft); } .note::before{ content:'⚠️'; }
+  .tip b,.note b{ color:var(--ink); }
+
+  /* Tab-bar anatomy diagram */
+  .navbar{
+    display:flex; border:1px solid var(--border); border-radius:4mm; overflow:hidden;
+    margin:3mm 0; break-inside:avoid; background:#fff;
+  }
+  .navbar .nb{
+    flex:1; text-align:center; padding:3.4mm 1mm 3mm; border-right:1px solid var(--border);
+  }
+  .navbar .nb:last-child{ border-right:none; }
+  .navbar .ic{ font-size:13pt; }
+  .navbar .lb{ font-size:8pt; font-weight:600; color:var(--ink); margin-top:.8mm; }
+  .navbar .nb.plus{ background:var(--indigo-soft); }
+  .navbar .nb.plus .ic{ color:var(--indigo); }
+  .navbar .ds{ font-size:7.2pt; color:var(--muted); margin-top:.4mm; line-height:1.4; }
+
+  .mini-toc{ background:var(--surface); border:1px solid var(--border); border-radius:3.6mm; padding:3.4mm 5mm; margin-bottom:5mm; break-inside:avoid; }
+  .mini-toc b{ color:var(--ink); font-size:9pt; letter-spacing:.12em; text-transform:uppercase; }
+  .mini-toc ul{ columns:2; margin:2mm 0 0 4.5mm; font-size:9.2pt; }
+  .mini-toc li{ margin-bottom:1mm; break-inside:avoid; }
+  .mini-toc li::marker{ color:var(--purple); }
+
+  .bn{ font-family:var(--bengali); }
+  .keep{ break-inside:avoid; }
+  .mt0{ margin-top:0 !important; }
+</style>
+</head>
+<body>
+
+<div class="pgfoot"><span>KSE <span class="dot">·</span> User Manual</span><span>Khulna Student Ecosystem</span></div>
+
+<!-- ═══════════════ COVER ═══════════════ -->
+<section class="cover">
+  <div class="band"></div>
+  <img src="fonts/kse-icon.png" alt="KSE app icon">
+  <h1>KSE</h1>
+  <div class="sub">Khulna Student Ecosystem</div>
+  <div class="man">User&nbsp;Manual</div>
+  <div class="rule"></div>
+  <p class="tag">Internships, scholarships, events, tuition, housing, mess management,
+  student hub and communities — everything a student needs, in one app.</p>
+  <div class="meta">
+    <div><b>Version</b>1.0.0</div>
+    <div><b>Platform</b>Android · iOS · Web</div>
+    <div><b>Updated</b>October 2026</div>
+  </div>
+</section>
+
+<!-- ═══════════════ CONTENTS ═══════════════ -->
+<section class="chapter toc">
+  <span class="kicker">KSE · User Manual</span>
+  <h2 class="big">Contents</h2>
+  <ol>
+    <li><span class="n">1</span><span class="t"><a href="#c1">Welcome to KSE</a></span><span class="d">What KSE is and what you can do with it</span></li>
+    <li><span class="n">2</span><span class="t"><a href="#c2">Getting Started</a></span><span class="d">Install, create an account, sign in, onboarding</span></li>
+    <li><span class="n">3</span><span class="t"><a href="#c3">The Home Screen</a></span><span class="d">Your daily starting point and quick access tiles</span></li>
+    <li><span class="n">4</span><span class="t"><a href="#c4">Exploring Opportunities</a></span><span class="d">Internships, events, workshops, filters and applying</span></li>
+    <li><span class="n">5</span><span class="t"><a href="#c5">Scholarships &amp; the Application Tracker</a></span><span class="d">Find funding and track every application</span></li>
+    <li><span class="n">6</span><span class="t"><a href="#c6">Bachelor To-Let — Student Housing</a></span><span class="d">Find rooms, sublets and mess seats near campus</span></li>
+    <li><span class="n">7</span><span class="t"><a href="#c7">Tuition — Find a Tutor or Become One</a></span><span class="d">Tutor discovery, requests and tutor applications</span></li>
+    <li><span class="n">8</span><span class="t"><a href="#c8">Student Hub</a></span><span class="d">Local services, shops and student deals</span></li>
+    <li><span class="n">9</span><span class="t"><a href="#c9">Book Exchange</a></span><span class="d">Sell, swap or give away used books</span></li>
+    <li><span class="n">10</span><span class="t"><a href="#c10">Research Partners</a></span><span class="d">Find a collaborator for your next project</span></li>
+    <li><span class="n">11</span><span class="t"><a href="#c11">Mess Management</a></span><span class="d">Meals, bazar duty, expenses, finance and settlement</span></li>
+    <li><span class="n">12</span><span class="t"><a href="#c12">Communities</a></span><span class="d">Clubs, discussions, polls and community events</span></li>
+    <li><span class="n">13</span><span class="t"><a href="#c13">Your Profile &amp; Portfolio</a></span><span class="d">Education, projects, certificates, resume and more</span></li>
+    <li><span class="n">14</span><span class="t"><a href="#c14">Dashboard, Saved &amp; Search</a></span><span class="d">Deadlines, bookmarks and global search</span></li>
+    <li><span class="n">15</span><span class="t"><a href="#c15">Notifications</a></span><span class="d">Your in-app inbox and deadlines that matter</span></li>
+    <li><span class="n">16</span><span class="t"><a href="#c16">Settings, Help &amp; Quick Reference</a></span><span class="d">Appearance, account, FAQ and where everything lives</span></li>
+  </ol>
+</section>
+
+<!-- ═══════════════ 1 · WELCOME ═══════════════ -->
+<section class="chapter" id="c1">
+  <div class="chap-head">
+    <div class="chap-num">1</div>
+    <div>
+      <span class="kicker">Introduction</span>
+      <h2>Welcome to KSE</h2>
+      <div class="glance">One app for your whole student life in Khulna.</div>
+    </div>
+  </div>
+
+  <p class="lead">KSE — the <strong>Khulna Student Ecosystem</strong> — brings every opportunity and
+  daily need of student life together in one place. Instead of scrolling random Facebook groups
+  and missing deadlines, you get a clean, verified, searchable app made for students.</p>
+
+  <h3 class="sec"><span class="idx">1.1</span> What you can do with KSE</h3>
+  <div class="grid2">
+    <div class="card feat"><h5>🎓 Discover opportunities</h5>Internships, scholarships, events and workshops — manually curated and verified before publishing.</div>
+    <div class="card feat green"><h5>🏠 Find housing</h5>Bachelor To-Let listings: rooms, sublets, host families and mess seats near campus.</div>
+    <div class="card feat amber"><h5>📚 Get a tutor</h5>Search verified tutors by subject, university, location and fee — or apply to become one.</div>
+    <div class="card feat violet"><h5>🍜 Run your mess</h5>Meals, bazar duty, shared expenses, balances and monthly settlement — built for real messes.</div>
+    <div class="card feat"><h5>🛍️ Student Hub</h5>Local services, shops and student deals around your campus, suggested by students.</div>
+    <div class="card feat green"><h5>🤝 Communities</h5>Follow clubs and study groups, take part in discussions, polls and community events.</div>
+    <div class="card feat amber"><h5>📖 Book Exchange</h5>Sell, swap or give away used textbooks to students who need them next.</div>
+    <div class="card feat rose"><h5>🔬 Research Partners</h5>Publish your research profile and find a collaborator for your next project.</div>
+  </div>
+
+  <h3 class="sec"><span class="idx">1.2</span> Who this manual is for</h3>
+  <p>This manual covers the <strong>KSE mobile app</strong> end to end — every screen and every
+  action, written in plain English. You don't need any technical knowledge. Read it from the
+  start, or jump straight to the chapter you need from the contents page.</p>
+
+  <div class="tip"><b>Quality promise:</b> every internship, scholarship, event and tutor on KSE is
+  reviewed by the KSE team before it becomes visible. Items marked <strong>“Manually curated”</strong>
+  were checked by a human, not scraped by a bot.</div>
+
+  <h3 class="sec"><span class="idx">1.3</span> A quick word on words</h3>
+  <table class="tbl">
+    <tr><th style="width:34mm">Term</th><th>Meaning on KSE</th></tr>
+    <tr><td><b>Bazar</b></td><td>The grocery shopping trip for your mess — who buys, what was bought, and what it cost.</td></tr>
+    <tr><td><b>Settlement</b></td><td>The end-of-month calculation that shows exactly who owes what in your mess.</td></tr>
+    <tr><td><b>To-Let</b></td><td>A room, sublet or seat advertised for rent — listed by students, for students.</td></tr>
+    <tr><td><b>Bookmarked</b></td><td>An opportunity you saved for later — it appears on your Saved list and Dashboard.</td></tr>
+    <tr><td><b>Manager</b></td><td>The member of a mess who approves joins, records expenses and locks the monthly settlement.</td></tr>
+  </table>
+</section>
+
+<!-- ═══════════════ 2 · GETTING STARTED ═══════════════ -->
+<section class="chapter" id="c2">
+  <div class="chap-head">
+    <div class="chap-num">2</div>
+    <div>
+      <span class="kicker">Setup</span>
+      <h2>Getting Started</h2>
+      <div class="glance">Install the app, create your account and finish the welcome tour.</div>
+    </div>
+  </div>
+
+  <h3 class="sec"><span class="idx">2.1</span> Install KSE on your phone</h3>
+  <ul class="list">
+    <li><strong>Android:</strong> install the <span class="kbd">KSE.apk</span> file (allow “Install from unknown sources” when asked), or get KSE from the Play Store when published.</li>
+    <li><strong>iPhone:</strong> install through TestFlight or the App Store when published.</li>
+    <li><strong>Web:</strong> open the KSE web app in any modern browser — your account works everywhere.</li>
+  </ul>
+
+  <h3 class="sec"><span class="idx">2.2</span> Create an account</h3>
+  <ol class="steps">
+    <li>Open KSE. On the <strong>Login</strong> screen tap <span class="kbd">Create an account</span>.</li>
+    <li>Enter your <strong>Full name</strong>, <strong>Email</strong> and a <strong>Password (8+ characters)</strong>.</li>
+    <li>Tap <span class="kbd">Create account</span>.</li>
+    <li>If email confirmation is enabled for your region, check your inbox for the verification email first — then sign in.</li>
+  </ol>
+
+  <h4>Prefer Google?</h4>
+  <p>On the Login screen tap <span class="kbd">Continue with Google</span> and pick the account you
+  want to use. No password to remember — the same profile is created for you automatically.</p>
+
+  <h3 class="sec"><span class="idx">2.3</span> Sign in and reset your password</h3>
+  <ul class="list">
+    <li>Signing in: enter your <strong>Email</strong> and <strong>Password</strong> and tap <span class="kbd">Sign in</span>.</li>
+    <li>Forgot your password? Tap <span class="kbd">Forgot password?</span>, enter your email, and follow the reset link sent to you.</li>
+  </ul>
+
+  <h3 class="sec"><span class="idx">2.4</span> The welcome tour (onboarding)</h3>
+  <p>The first time you sign in, KSE walks you through three short screens:</p>
+  <table class="tbl">
+    <tr><th style="width:44mm">Screen</th><th>What it shows</th></tr>
+    <tr><td><b>Welcome</b></td><td>A one-line introduction to the Khulna Student Ecosystem. Tap <span class="kbd">Start</span>.</td></tr>
+    <tr><td><b>Opportunities</b></td><td>The kinds of opportunities waiting for you — internships, scholarships and more. Tap <span class="kbd">Next</span>.</td></tr>
+    <tr><td><b>Student Community</b></td><td>Clubs, discussions and the wider student network. Tap to finish and land on Home.</td></tr>
+  </table>
+  <div class="tip"><b>Tip:</b> the richer your profile (university, department, skills), the better
+  KSE can recommend opportunities for you. Chapter&nbsp;13 shows you how.</div>
+
+  <h3 class="sec"><span class="idx">2.5</span> Moving around the app</h3>
+  <p>Four tabs live in the bottom bar on every main screen, with a <strong>＋</strong> button in the middle for quick actions:</p>
+  <div class="navbar">
+    <div class="nb"><div class="ic">🏠</div><div class="lb">Home</div><div class="ds">Your daily overview</div></div>
+    <div class="nb"><div class="ic">🧭</div><div class="lb">Explore</div><div class="ds">Everything to discover</div></div>
+    <div class="nb plus"><div class="ic">＋</div><div class="lb">Quick actions</div><div class="ds">Post, find, create</div></div>
+    <div class="nb"><div class="ic">👥</div><div class="lb">Community</div><div class="ds">Clubs &amp; discussions</div></div>
+    <div class="nb"><div class="ic">👤</div><div class="lb">Profile</div><div class="ds">You, portfolio &amp; settings</div></div>
+  </div>
+  <p>Screens like <strong>Dashboard</strong>, <strong>Notifications</strong>, <strong>Saved</strong> and
+  <strong>Search</strong> open from buttons inside these tabs — each is explained in its own chapter.
+  Wherever you are, the <span class="kbd">‹</span> back arrow in the top-left takes you back.</p>
+</section>
+
+<!-- ═══════════════ 3 · HOME ═══════════════ -->
+<section class="chapter" id="c3">
+  <div class="chap-head">
+    <div class="chap-num">3</div>
+    <div>
+      <span class="kicker">The app · main screen</span>
+      <h2>The Home Screen</h2>
+      <div class="glance">Greeting, search, banners, recommendations and the latest drops.</div>
+    </div>
+  </div>
+
+  <p class="lead">Home is your dashboard for the day: it greets you by name, lets you search
+  anything, and collects the freshest opportunities in one scroll.</p>
+
+  <h3 class="sec"><span class="idx">3.1</span> What you'll see</h3>
+  <table class="tbl">
+    <tr><th style="width:42mm">Element</th><th>What it does</th></tr>
+    <tr><td><b>Greeting</b></td><td>“Hi, <em>your first name</em> 👋” — proof you're signed in as you.</td></tr>
+    <tr><td><b>Search bar</b></td><td>Type anything and press enter to search the whole app (Chapter&nbsp;14).</td></tr>
+    <tr><td><b>🔔 Bell</b></td><td>Opens your notification inbox. A dot means you have unread items.</td></tr>
+    <tr><td><b>▦ Grid</b></td><td>Opens your Dashboard with deadlines and profile score (Chapter&nbsp;14).</td></tr>
+    <tr><td><b>Promo carousel</b></td><td>Rotating banners — including KSE's Bangla motto <span class="bn">“পড়াও, শেখো, আয় করো”</span> (teach, learn, earn).</td></tr>
+    <tr><td><b>Quick Access</b></td><td>Ten tiles to jump straight into any area — see below.</td></tr>
+    <tr><td><b>Recommended for You</b></td><td>Opportunities matched to your profile and interests.</td></tr>
+    <tr><td><b>Latest Opportunities</b></td><td>The newest published items, with <span class="kbd">See All</span> to open the full lists.</td></tr>
+    <tr><td><b>Hot To-Lets</b></td><td>Fresh student housing listings near campus (Chapter&nbsp;6).</td></tr>
+  </table>
+
+  <h3 class="sec"><span class="idx">3.2</span> Quick Access tiles</h3>
+  <p>Ten one-tap shortcuts cover the whole app:</p>
+  <p>
+    <span class="pill i">Internship</span><span class="pill g">Scholarship</span><span class="pill a">Tuition</span>
+    <span class="pill n">Workshops</span><span class="pill n">Events</span><span class="pill n">Community</span>
+    <span class="pill n">Mentor</span><span class="pill i">To-Let</span><span class="pill g">Student Hub</span>
+    <span class="pill a">Mess</span>
+  </p>
+
+  <h3 class="sec"><span class="idx">3.3</span> The ＋ quick actions sheet</h3>
+  <p>Tap the <strong>＋</strong> in the bottom bar for the things you're most likely to want to <em>do</em> (not just browse):</p>
+  <ul class="list">
+    <li><strong>My dashboard</strong> — profile score, saved opportunities, upcoming deadlines</li>
+    <li><strong>Browse internships / Find scholarships / Find a tutor</strong> — straight into discovery</li>
+    <li><strong>Open Student Hub</strong> — local services, shops and student deals</li>
+    <li><strong>Suggest a place</strong> — add a local service for review (Chapter&nbsp;8)</li>
+    <li><strong>Post a To-Let</strong> — list a room, sublet or mess seat (Chapter&nbsp;6)</li>
+    <li><strong>Sell or exchange a book</strong> — reach students looking for your used books (Chapter&nbsp;9)</li>
+    <li><strong>Join a community</strong> — student clubs and study groups (Chapter&nbsp;12)</li>
+  </ul>
+
+  <div class="tip"><b>Missed something?</b> If a section shows “Nothing published yet”, that simply
+  means no verified content is live right now — new listings are added regularly, so check back soon.</div>
+</section>
+
+<!-- ═══════════════ 4 · EXPLORE ═══════════════ -->
+<section class="chapter" id="c4">
+  <div class="chap-head">
+    <div class="chap-num">4</div>
+    <div>
+      <span class="kicker">Discovery</span>
+      <h2>Exploring Opportunities</h2>
+      <div class="glance">Internships, events, workshops — browse, filter, save and apply.</div>
+    </div>
+  </div>
+
+  <p class="lead">The <strong>Explore</strong> tab is the front door to everything KSE offers.
+  Each category card shows a live count of what's waiting inside.</p>
+
+  <h3 class="sec"><span class="idx">4.1</span> The ten Explore categories</h3>
+  <table class="tbl">
+    <tr><th style="width:46mm">Category</th><th>What's inside</th></tr>
+    <tr><td><b>Internships</b> — <em>Launch your career</em></td><td>Internships from verified organizations, local and remote.</td></tr>
+    <tr><td><b>Scholarships</b> — <em>Fund your studies</em></td><td>Local and international funding (Chapter&nbsp;5).</td></tr>
+    <tr><td><b>Bachelor To-Let</b> — <em>Rooms &amp; sublets</em></td><td>Student housing near campus (Chapter&nbsp;6).</td></tr>
+    <tr><td><b>Events</b> — <em>Meetups &amp; seminars</em></td><td>Events you can register for in one tap.</td></tr>
+    <tr><td><b>Workshops</b> — <em>Learn new skills</em></td><td>Hands-on workshops with registration.</td></tr>
+    <tr><td><b>Tuition</b> — <em>Find a tutor</em></td><td>Verified tutor profiles (Chapter&nbsp;7).</td></tr>
+    <tr><td><b>Mentorship</b> — <em>Grow with a mentor</em></td><td>Coming soon — KSE will announce when mentor matching opens.</td></tr>
+    <tr><td><b>Student Hub</b></td><td>Local services, shops, deals (Chapter&nbsp;8).</td></tr>
+    <tr><td><b>Book Exchange</b></td><td>Used books to swap or buy (Chapter&nbsp;9).</td></tr>
+    <tr><td><b>Research Partners</b></td><td>Collaborators for projects (Chapter&nbsp;10).</td></tr>
+  </table>
+  <p>The search field at the top of Explore filters the categories themselves — type “book” to
+  jump straight to Book Exchange.</p>
+
+  <h3 class="sec"><span class="idx">4.2</span> Browsing and filtering a list</h3>
+  <p>Open any category (say, <strong>Internships</strong>) and you get a card list: title, organization,
+  location, mode and deadline. Buttons at the top of the list:</p>
+  <ul class="list">
+    <li><span class="kbd">Filters</span> — a sheet slides up with the filters available for that category.</li>
+    <li><span class="kbd">Load more</span> — appends the next page of results; lists are paginated to stay fast.</li>
+  </ul>
+  <h4>Typical filters</h4>
+  <p><span class="pill i">Mode: Remote / On-site / Hybrid</span>
+     <span class="pill i">Deadline: e.g. next 7 days</span>
+     <span class="pill i">Category or type</span>
+     <span class="pill i">Sort: most recent / rent high → low (To-Let)</span></p>
+  <p>Tap <span class="kbd">Apply</span> to filter, or <span class="kbd">Reset</span> to start over.
+  Scholarship, To-Let and Tutor lists add their own filters (funding type, room type, subject, fee…).</p>
+
+  <h3 class="sec"><span class="idx">4.3</span> The opportunity detail page</h3>
+  <p>Tap any card to open the full detail. What you'll find:</p>
+  <div class="grid2">
+    <div class="card"><h5>📌 The facts</h5>Title, organization, type, location, mode (remote / on-site / hybrid), eligibility and the full description.</div>
+    <div class="card"><h5>🗓 Deadlines</h5><strong>Application deadline</strong> for internships &amp; scholarships; <strong>Registration deadline</strong> for events &amp; workshops.</div>
+    <div class="card feat"><h5>🔖 Save it</h5>The bookmark button adds the item to your <strong>Saved</strong> list so it lands on your Dashboard deadline tracker.</div>
+    <div class="card feat green"><h5>🚀 Apply / Register</h5><strong>Apply now</strong> opens the official application page in your browser. Events and workshops show <strong>Register</strong> instead.</div>
+  </div>
+  <p>Two states change the buttons: once the deadline passes you'll see
+  <span class="pill n">Deadline passed</span> (disabled), and events that closed show
+  <span class="pill n">Registration closed</span>. Items reviewed by the KSE team carry the
+  <span class="pill i">Manually curated</span> badge.</p>
+
+  <div class="tip"><b>Why we send you to the official link:</b> KSE shows you the opportunity and
+  reminds you of the deadline — the application itself happens on the organizer's official page,
+  so nothing gets lost in translation.</div>
+
+  <h3 class="sec"><span class="idx">4.4</span> Events &amp; workshops registration</h3>
+  <ol class="steps">
+    <li>Open <strong>Explore → Events</strong> (or <strong>Workshops</strong>).</li>
+    <li>Filter if you like — by date, organizer, location or online/offline.</li>
+    <li>Tap an event and press <span class="kbd">Register</span>.</li>
+    <li>Your registrations appear on your <strong>Dashboard</strong> under registrations.</li>
+  </ol>
+</section>
+
+<!-- ═══════════════ 5 · SCHOLARSHIPS ═══════════════ -->
+<section class="chapter" id="c5">
+  <div class="chap-head">
+    <div class="chap-num">5</div>
+    <div>
+      <span class="kicker">Funding your studies</span>
+      <h2>Scholarships &amp; the Application Tracker</h2>
+      <div class="glance">Find funding, then manage every application from Saved to Selected.</div>
+    </div>
+  </div>
+
+  <p class="lead">Scholarships work like any opportunity list — the magic is the built-in
+  <strong>application tracker</strong> that keeps your whole scholarship campaign organized.</p>
+
+  <h3 class="sec"><span class="idx">5.1</span> Find scholarships</h3>
+  <ol class="steps">
+    <li>Go to <strong>Explore → Scholarships</strong>.</li>
+    <li>Use filters such as <strong>local / international</strong>, university, degree level and funding type to narrow the list.</li>
+    <li>Open a scholarship to read the eligibility, funding details and deadline.</li>
+    <li>Tap <span class="kbd">Apply now</span> to open the official application page.</li>
+  </ol>
+
+  <h3 class="sec"><span class="idx">5.2</span> Track an application</h3>
+  <p>On any scholarship detail page, tap <span class="kbd">Add to application tracker</span>
+  (or <span class="kbd">Update tracker</span> if you already track it) and pick a status:</p>
+  <p>
+    <span class="pill n">Saved</span>
+    <span class="pill i">Interested</span>
+    <span class="pill a">Preparing</span>
+    <span class="pill g">Applied</span>
+    <span class="pill r">Rejected</span>
+    <span class="pill g">Selected</span>
+  </p>
+  <p>Update the status any time as you progress — KSE confirms each change so you always know
+  the tracker took it.</p>
+
+  <h3 class="sec"><span class="idx">5.3</span> My Scholarships</h3>
+  <p>Open <strong>Profile → My Scholarships</strong> to see every tracked scholarship in one list,
+  each with a colored status chip and its deadline. It's your campaign overview — nothing gets
+  forgotten the week it's due, because tracked items also feed your Dashboard deadlines.</p>
+
+  <div class="tip"><b>Workflow suggestion:</b> mark everything plausible as <em>Interested</em> while
+  you browse, promote the real candidates to <em>Preparing</em> a few weeks out, and switch to
+  <em>Applied</em> the moment you submit. Watching the list turn green is weirdly satisfying.</div>
+</section>
+
+<!-- ═══════════════ 6 · TO-LET ═══════════════ -->
+<section class="chapter" id="c6">
+  <div class="chap-head">
+    <div class="chap-num">6</div>
+    <div>
+      <span class="kicker">Student housing</span>
+      <h2>Bachelor To-Let</h2>
+      <div class="glance">Rooms, sublets, host families and mess seats — by students, for students.</div>
+    </div>
+  </div>
+
+  <p class="lead">“Bachelor To-Let” is KSE's housing market: verified listings posted by students
+  and landlords, filtered for exactly what a student in Khulna needs.</p>
+
+  <h3 class="sec"><span class="idx">6.1</span> Find a place</h3>
+  <ol class="steps">
+    <li>Open <strong>Explore → Bachelor To-Let</strong> (or a Hot To-Let card on Home).</li>
+    <li>Search by <em>area, landmark or room type</em> in the search bar.</li>
+    <li>Tap <span class="kbd">Filters</span> to narrow by city (Khulna, Jessore, Rajshahi…), area, room type and gender preference; sort by most recent or rent.</li>
+    <li>Tap a listing for photos, rent, address details and the person to contact.</li>
+  </ol>
+  <h4>Room types you'll see</h4>
+  <p><span class="pill i">Single room</span><span class="pill i">Mess sublet</span>
+     <span class="pill i">Host family</span><span class="pill n">…and other student-friendly types</span></p>
+
+  <h3 class="sec"><span class="idx">6.2</span> Post a listing</h3>
+  <p>Got a room, sublet or mess seat to offer?</p>
+  <ol class="steps">
+    <li>From the To-Let list tap <span class="kbd">Post a listing</span> (or use <strong>＋ → Post a To-Let</strong>).</li>
+    <li>Fill in the details: title, area, room type, rent, gender preference and description.</li>
+    <li>Add photos (up to the per-listing photo limit — grant photos access when asked).</li>
+    <li>Submit. Your listing first goes to <span class="pill a">Pending review</span> — the KSE team checks it before it goes live.</li>
+  </ol>
+
+  <h3 class="sec"><span class="idx">6.3</span> Manage your listings</h3>
+  <p>Tap <span class="kbd">My listings</span> on the To-Let screen to see your posts and their status:</p>
+  <p>
+    <span class="pill a">Pending review</span>
+    <span class="pill g">Published</span>
+    <span class="pill r">Rejected</span>
+    <span class="pill n">Expired</span>
+    <span class="pill n">Archived</span>
+  </p>
+  <p>No longer renting? Open the listing and tap <span class="kbd">Withdraw</span> — after
+  confirming, the listing is no longer visible to other students.</p>
+
+  <div class="note"><b>Safety first:</b> visit the place with a friend before paying anything, and
+  keep conversations inside your normal channels. KSE verifies listings, but you should always
+  verify the person.</div>
+</section>
+
+<!-- ═══════════════ 7 · TUITION ═══════════════ -->
+<section class="chapter" id="c7">
+  <div class="chap-head">
+    <div class="chap-num">7</div>
+    <div>
+      <span class="kicker">Teaching &amp; learning</span>
+      <h2>Tuition — Find a Tutor or Become One</h2>
+      <div class="glance">Verified tutors near your university, and a tutor application for students who teach.</div>
+    </div>
+  </div>
+
+  <p class="lead">The Tuition area is a discovery + request workflow — simple on purpose. Find the
+  right tutor, send a request, and track its status. No marketplace, no middleman fees.</p>
+
+  <h3 class="sec"><span class="idx">7.1</span> Find a tutor</h3>
+  <ol class="steps">
+    <li>Open <strong>Explore → Tuition</strong>.</li>
+    <li>Filter by <strong>subject</strong>, university, location and expected monthly fee.</li>
+    <li>Tutors carrying the <span class="pill g">✓ Verified</span> badge have been checked by the KSE team.</li>
+    <li>Open a tutor to see their full profile: <strong>About</strong>, <strong>Subjects</strong>, <strong>Availability</strong>, <strong>University</strong>, <strong>Location</strong>, fee and <strong>Reviews</strong> from other students.</li>
+  </ol>
+
+  <h3 class="sec"><span class="idx">7.2</span> Send a tuition request</h3>
+  <ol class="steps">
+    <li>On a tutor's profile tap <span class="kbd">Request tuition</span>.</li>
+    <li>Confirm the <strong>subject</strong> (and tutor), write a short message, and optionally add a preferred time.</li>
+    <li>Tap <span class="kbd">Send request</span>.</li>
+  </ol>
+  <h4>Track your requests</h4>
+  <p>Open <strong>My tuition requests</strong> (from the Tuition area or your ＋ sheet). Each request shows:</p>
+  <p><span class="pill a">Pending</span> <span class="pill g">Accepted</span> <span class="pill r">Rejected</span> <span class="pill n">Closed</span></p>
+
+  <h3 class="sec"><span class="idx">7.3</span> Become a tutor</h3>
+  <p>If you teach (or want to), apply once — your tutor card then appears in discovery:</p>
+  <ol class="steps">
+    <li>Go to <strong>Profile → Become a Tutor</strong>.</li>
+    <li>Pick the <strong>subjects</strong> you teach (at least one).</li>
+    <li>Set your <strong>monthly fee range</strong> in taka (whole numbers, e.g. 2500) and your location.</li>
+    <li>Write a short bio — e.g. “CSE undergrad teaching programming fundamentals” — and <span class="kbd">Submit application</span>.</li>
+  </ol>
+  <p>The KSE team reviews applications. Once approved you're listed as a tutor; if an application
+  isn't approved you can simply apply again.</p>
+
+  <div class="tip"><b>Tutor tip:</b> a specific bio beats a general one. “CSE undergrad teaching
+  C and Python to 1st-years” gets better requests than “I teach everything”.</div>
+</section>
+
+<!-- ═══════════════ 8 · STUDENT HUB ═══════════════ -->
+<section class="chapter" id="c8">
+  <div class="chap-head">
+    <div class="chap-num">8</div>
+    <div>
+      <span class="kicker">Around campus</span>
+      <h2>Student Hub</h2>
+      <div class="glance">Local services, shops and student deals — built by students, for students.</div>
+    </div>
+  </div>
+
+  <p class="lead">The Student Hub answers everyday questions: where's the nearest laundromat, which
+  shop gives a student discount, who repairs bicycles near campus. Content is people-powered —
+  suggested by students and reviewed before going live.</p>
+
+  <h3 class="sec"><span class="idx">8.1</span> Browse the Hub</h3>
+  <ol class="steps">
+    <li>Open <strong>Explore → Student Hub</strong> (or the Quick Access tile).</li>
+    <li>Category cards group the Hub — for example <strong>Study &amp; Research</strong>, <strong>Daily Life</strong>, <strong>Mobility</strong> and <strong>Student Deals</strong> — each with a live listing count.</li>
+    <li>Tap a category, then a listing, for details like address, phone, opening hours and what the place is known for.</li>
+    <li>Use the Hub search to find a place by name or keyword directly.</li>
+  </ol>
+
+  <h3 class="sec"><span class="idx">8.2</span> Suggest a place</h3>
+  <p>Know a shop or service other students would love? Add it in a minute:</p>
+  <ol class="steps">
+    <li>Tap <span class="kbd">Suggest a place</span> (Hub screen or the ＋ quick actions).</li>
+    <li>Fill in the <strong>place name</strong> (e.g. “New Star Laundry”), <strong>category</strong> and <strong>service type</strong> (e.g. “Wash, Dry cleaning, Pickup”).</li>
+    <li>Add the <strong>city</strong> (e.g. Khulna), <strong>area</strong> (e.g. Shibbari), street address and a landmark.</li>
+    <li>Add a phone number, opening hours (e.g. “Sat–Thu 9:00–21:00”) and a one-line summary of what the place is known for.</li>
+    <li>Tap <span class="kbd">Send suggestion</span> — the KSE team reviews it, then publishes it to the Hub.</li>
+  </ol>
+
+  <div class="tip"><b>Good suggestions are specific:</b> exact landmarks, real opening hours and the
+  one thing the place is genuinely known for make a listing useful for everyone.</div>
+</section>
+
+<!-- ═══════════════ 9 · BOOK EXCHANGE ═══════════════ -->
+<section class="chapter" id="c9">
+  <div class="chap-head">
+    <div class="chap-num">9</div>
+    <div>
+      <span class="kicker">Reuse · save money</span>
+      <h2>Book Exchange</h2>
+      <div class="glance">Swap, sell or give away the books you're done with.</div>
+    </div>
+  </div>
+
+  <p class="lead">Every semester ends with books you'll never open again — and every semester
+  starts with someone hunting for exactly those books. Book Exchange connects the two.</p>
+
+  <h3 class="sec"><span class="idx">9.1</span> Find a book</h3>
+  <ol class="steps">
+    <li>Open <strong>Explore → Book Exchange</strong>.</li>
+    <li>Search or browse listings — each shows the title, author, edition, subject, condition and asking price.</li>
+    <li>Open a listing for the full description, condition notes and the seller's phone number.</li>
+  </ol>
+
+  <h3 class="sec"><span class="idx">9.2</span> Post a book</h3>
+  <ol class="steps">
+    <li>Tap <span class="kbd">Post a book</span> (or ＋ → <em>Sell or exchange a book</em>).</li>
+    <li>Enter the <strong>book title</strong>, <strong>author</strong>, edition and subject.</li>
+    <li>Choose the <strong>condition</strong> and set your <strong>price in BDT</strong>.</li>
+    <li>Pick what the book is <strong>available for</strong> — sale, exchange or giveaway — and, for exchanges, which book you'd accept in return.</li>
+    <li>Add condition notes (markings, meeting place…) and a <strong>phone number</strong> so buyers can reach you.</li>
+    <li>Attach a cover photo, then submit for review.</li>
+  </ol>
+
+  <h3 class="sec"><span class="idx">9.3</span> Manage your listings</h3>
+  <p><span class="kbd">My listings</span> on the Book Exchange screen shows everything you've posted
+  and its review status — same lifecycle as To-Let: pending review → published.</p>
+
+  <div class="note"><b>Meet smart:</b> arrange handovers on campus or another public place in
+  daylight, and check the book before paying.</div>
+</section>
+
+<!-- ═══════════════ 10 · RESEARCH ═══════════════ -->
+<section class="chapter" id="c10">
+  <div class="chap-head">
+    <div class="chap-num">10</div>
+    <div>
+      <span class="kicker">Collaborate</span>
+      <h2>Research Partners</h2>
+      <div class="glance">Publish your research profile and find your next collaborator.</div>
+    </div>
+  </div>
+
+  <p class="lead">Great projects rarely happen alone. Research Partners is a small, focused
+  directory of students who want to collaborate on research — thesis work, competitions, papers.</p>
+
+  <h3 class="sec"><span class="idx">10.1</span> Publish your research profile</h3>
+  <ol class="steps">
+    <li>Open <strong>Explore → Research Partners</strong> and tap <span class="kbd">My research profile</span>.</li>
+    <li>Enter your <strong>research interest</strong> (e.g. “Computer Vision”) — required.</li>
+    <li>Add your <strong>skills</strong> and your <strong>university / institution</strong> (e.g. KUET).</li>
+    <li>Save — your profile now appears in the directory for other students to find.</li>
+  </ol>
+
+  <h3 class="sec"><span class="idx">10.2</span> Find a collaborator</h3>
+  <ul class="list">
+    <li><strong>Search</strong> by research interest, topic or skill — e.g. “machine learning” or “survey design”.</li>
+    <li>Browse the cards to see each student's interest, skills and institution.</li>
+    <li>Open a profile and use the contact details to start the conversation.</li>
+    <li><span class="kbd">Load more</span> appends further results.</li>
+  </ul>
+
+  <div class="tip"><b>Tip:</b> keep your interest line specific — “Computer Vision — medical
+  imaging” attracts the right partners far faster than “technology”.</div>
+</section>
+
+<!-- ═══════════════ 11 · MESS ═══════════════ -->
+<section class="chapter" id="c11">
+  <div class="chap-head">
+    <div class="chap-num">11</div>
+    <div>
+      <span class="kicker">Daily student life</span>
+      <h2>Mess Management</h2>
+      <div class="glance">Meals, bazar duty, shared expenses, balances and a transparent monthly settlement.</div>
+    </div>
+  </div>
+
+  <div class="mini-toc"><b>In this chapter</b>
+    <ul>
+      <li>Create &amp; join a mess</li>
+      <li>Mess Home (today at a glance)</li>
+      <li>Meals &amp; the monthly calendar</li>
+      <li>Bazar entries &amp; duty calendar</li>
+      <li>Shared expenses</li>
+      <li>Finance — balance &amp; payments</li>
+      <li>Settlement — close the month</li>
+      <li>Members &amp; manager tools</li>
+      <li>Mess settings</li>
+    </ul>
+  </div>
+
+  <p class="lead">KSE's mess module replaces the notebook on the fridge. Everyone sees meals and
+  costs in real time, and the month ends with a settlement everyone can check line by line.
+  Reach it from the Home <strong>Mess</strong> tile or ＋ quick actions.</p>
+
+  <!-- 11.1 -->
+  <h3 class="sec"><span class="idx">11.1</span> Create or join a mess</h3>
+  <div class="grid2">
+    <div class="card feat"><h5>➕ Create a Mess</h5>Set the mess name (e.g. “12 No. Bachelor Mess”), location (e.g. Boyra, Khulna) and max members. You become the mess <strong>manager</strong>.</div>
+    <div class="card feat green"><h5>🔑 Join with Code</h5>Enter the <strong>mess code</strong> (e.g. MESS-8F42) your manager shares, plus the invite code if the mess uses one. Your request waits for approval.</div>
+  </div>
+  <p>The Mess Hub lists every mess you belong to — active messes open with a tap, and
+  <span class="pill a">pending</span> ones show “Waiting for manager approval”. One person can be in
+  several messes.</p>
+
+  <!-- 11.2 -->
+  <h3 class="sec"><span class="idx">11.2</span> Mess Home — today in seconds</h3>
+  <p>Each mess has its own screen with a five-button bar:</p>
+  <div class="navbar">
+    <div class="nb"><div class="ic">🏠</div><div class="lb">Home</div><div class="ds">Today at a glance</div></div>
+    <div class="nb"><div class="ic">🍽️</div><div class="lb">Meals</div><div class="ds">Calendar &amp; on/off</div></div>
+    <div class="nb"><div class="ic">🛒</div><div class="lb">Bazar</div><div class="ds">Groceries &amp; duty</div></div>
+    <div class="nb"><div class="ic">👛</div><div class="lb">Finance</div><div class="ds">Balance &amp; payments</div></div>
+    <div class="nb"><div class="ic">⋯</div><div class="lb">More</div><div class="ds">Members · settings</div></div>
+  </div>
+  <p>Mess Home shows:</p>
+  <ul class="list">
+    <li><strong>Today's meals</strong> — breakfast, lunch, dinner, each with a one-tap <span class="pill g">ON</span>/<span class="pill n">OFF</span> toggle. Meal cut-off times (set by the manager) close each window — after that KSE tells you exactly when it closed.</li>
+    <li><strong>Your balance</strong> for the month and the current <strong>meal rate</strong>.</li>
+    <li><strong>Your next bazar duty</strong> — with a button to request an <strong>exchange</strong> from the member's own screen.</li>
+    <li><strong>Announcements</strong> from the manager, as one subtle banner.</li>
+    <li>Incoming <strong>exchange requests</strong> for your duties — accept or reject them right there.</li>
+  </ul>
+
+  <!-- 11.3 -->
+  <h3 class="sec"><span class="idx">11.3</span> Meals</h3>
+  <p>The <strong>Meals</strong> tab manages today plus the whole month:</p>
+  <ul class="list">
+    <li>Toggle today's meals on/off (respecting cut-offs).</li>
+    <li>A <strong>monthly calendar</strong> shows every member's meals per day — check any past or future date.</li>
+    <li>Switch months to review history before settlement.</li>
+  </ul>
+
+  <!-- 11.4 -->
+  <h3 class="sec"><span class="idx">11.4</span> Bazar — entries and duty</h3>
+  <h4>Record a bazar trip</h4>
+  <ol class="steps">
+    <li>Open the <strong>Bazar</strong> tab and tap <span class="kbd">Add Bazar</span>.</li>
+    <li>For each item, tap <span class="kbd">Add Item</span> and enter the name, quantity, unit and price.</li>
+    <li>Tag items by category: <span class="pill g">Vegetables</span> <span class="pill i">Grocery</span> <span class="pill a">Spices</span> <span class="pill n">Snacks</span> <span class="pill n">Cleaning</span> <span class="pill n">Other</span>.</li>
+    <li>Tap <span class="kbd">Save Bazar</span> — the month total updates instantly and every member sees the entry.</li>
+  </ol>
+  <h4>The duty calendar</h4>
+  <ul class="list">
+    <li><strong>Bazar → Duty</strong> shows who buys on which day — your own duties are highlighted so “when do I have to buy?” is answered at a glance.</li>
+    <li><strong>Managers</strong> assign, reassign and remove duties (<span class="kbd">Assign Duty</span>).</li>
+    <li><strong>Members</strong> request a duty <strong>exchange</strong>; the other member accepts or rejects, and accepted swaps update the calendar automatically.</li>
+  </ul>
+
+  <!-- 11.5 -->
+  <h3 class="sec"><span class="idx">11.5</span> Expenses</h3>
+  <p>Shared fixed costs — rent, utilities, wifi — live in <strong>More → Expenses</strong>:</p>
+  <ul class="list">
+    <li>Everyone sees the month's expense total and transaction list.</li>
+    <li>The <strong>manager</strong> adds expenses (<span class="kbd">Add Expense</span> — amount, date, description) and can delete mistakes.</li>
+    <li>Expenses feed the month's balance alongside bazar and meals.</li>
+  </ul>
+
+  <!-- 11.6 -->
+  <h3 class="sec"><span class="idx">11.6</span> Finance — your balance and payments</h3>
+  <ul class="list">
+    <li><strong>My Balance</strong> breaks the number down: meals eaten, bazar you paid for, shared expenses — every line visible.</li>
+    <li>Record a payment you made with <span class="kbd">Record payment</span> (amount + date). Payments are auto-confirmed; the manager can also record or verify them later.</li>
+    <li>Payment statuses: <span class="pill a">Pending</span> <span class="pill g">Confirmed</span> <span class="pill r">Rejected</span>.</li>
+    <li>Your full payment history stays in the <strong>Payments</strong> screen (also on the More tab).</li>
+  </ul>
+
+  <!-- 11.7 -->
+  <h3 class="sec"><span class="idx">11.7</span> Settlement — closing the month</h3>
+  <p>Settlement turns the month into a final, checkable number. The manager drives it in three steps:</p>
+  <div class="grid3">
+    <div class="card"><h5>1 · Generate</h5><span class="kbd">Generate Settlement</span> builds a draft from the month's meals, bazar and expenses — with the full breakdown shown.</div>
+    <div class="card"><h5>2 · Publish</h5><span class="kbd">Publish</span> shares the settlement with every member, each seeing their own final balance.</div>
+    <div class="card"><h5>3 · Lock</h5><span class="kbd">Lock Month</span> freezes the month for good — no more edits to meals, bazar or expenses.</div>
+  </div>
+  <p>Every member can open <strong>More → Settlement</strong> and inspect exactly how their number
+  was calculated — no more notebook arithmetic arguments.</p>
+
+  <!-- 11.8 -->
+  <h3 class="sec"><span class="idx">11.8</span> Members &amp; manager tools</h3>
+  <p><strong>More → Members</strong> shows who lives in the mess. As manager you can:</p>
+  <ul class="list">
+    <li><strong>Accept / reject</strong> join requests from people who used your mess code.</li>
+    <li><strong>Remove</strong> a member who moved out.</li>
+    <li><strong>Make Manager</strong> — hand the manager role to another member when you leave.</li>
+    <li>See and share the mess <strong>invite code</strong>.</li>
+  </ul>
+
+  <!-- 11.9 -->
+  <h3 class="sec"><span class="idx">11.9</span> Mess settings</h3>
+  <ul class="list">
+    <li><strong>Mess information</strong> — name, location; members see it on the mess home.</li>
+    <li><strong>Meal cut-offs</strong> — breakfast, lunch and dinner cut-off times (HH:MM). Defaults apply until you change them; after a cut-off, meal toggles for that meal close for everyone.</li>
+    <li><strong>Announcements</strong> — post a notice that appears as the banner on every member's mess home.</li>
+  </ul>
+  <p>Settings are <strong>manager-only</strong>; members get a read-only view so the rules are never a mystery.</p>
+</section>
+
+<!-- ═══════════════ 12 · COMMUNITIES ═══════════════ -->
+<section class="chapter" id="c12">
+  <div class="chap-head">
+    <div class="chap-num">12</div>
+    <div>
+      <span class="kicker">Clubs &amp; groups</span>
+      <h2>Communities</h2>
+      <div class="glance">Follow clubs, join discussions, vote in polls and attend community events.</div>
+    </div>
+  </div>
+
+  <p class="lead">The <strong>Community</strong> tab gathers student clubs, study groups and
+  interest circles around Khulna — deliberately simple: posts, polls and events, not a full
+  social network.</p>
+
+  <h3 class="sec"><span class="idx">12.1</span> Find and follow communities</h3>
+  <ul class="list">
+    <li>The tab opens with <strong>Recommended for you</strong> and <strong>Trending discussions</strong> across KSE.</li>
+    <li>Use <em>Search communities…</em> to find a club by name.</li>
+    <li>Open a community to see its description, university and members; tap <span class="kbd">Join community</span> (then <span class="kbd">Joined</span> to leave).</li>
+  </ul>
+
+  <h3 class="sec"><span class="idx">12.2</span> Posts &amp; discussions</h3>
+  <p>Inside a community the feed shows posts from members. As a member you can create four kinds:</p>
+  <p><span class="pill i">Discussion</span> <span class="pill a">Question</span> <span class="pill g">Opportunity</span> <span class="pill n">Announcement</span></p>
+  <ol class="steps">
+    <li>Tap the post composer (or <span class="kbd">＋</span> in the community).</li>
+    <li>Choose the type — e.g. <em>Question</em> asks “What do you want to ask?”; <em>Opportunity</em> asks you to share the opportunity, eligibility and link.</li>
+    <li>Write your text and optionally <strong>add an image</strong>.</li>
+    <li>Post — it appears in the feed immediately. Community moderators can pin posts as announcements.</li>
+  </ol>
+  <p>Open any post to comment. “Be the first to comment” means exactly that — break the ice.
+  Some older discussions are <span class="pill n">locked</span> and read-only.</p>
+
+  <h3 class="sec"><span class="idx">12.3</span> Polls</h3>
+  <ol class="steps">
+    <li>In a community tap <span class="kbd">Create poll</span>.</li>
+    <li>Ask a clear question (at least 5 characters) and add the options.</li>
+    <li>Choose when results are visible: <span class="pill i">Always visible</span> <span class="pill i">After voting</span> <span class="pill i">After poll closes</span>.</li>
+  </ol>
+
+  <h3 class="sec"><span class="idx">12.4</span> Community events</h3>
+  <ol class="steps">
+    <li>In a community tap <span class="kbd">Create event</span>.</li>
+    <li>Set the title, start and end time (format <em>YYYY-MM-DD HH:MM</em>), and the mode: <span class="pill g">Online</span> <span class="pill i">On campus</span> <span class="pill a">Hybrid</span>.</li>
+    <li>Publish — the event appears in the community's <strong>Community events</strong> section.</li>
+  </ol>
+
+  <h3 class="sec"><span class="idx">12.5</span> Request a new community</h3>
+  <p>Want a community that doesn't exist yet? Tap <span class="kbd">Create in community</span> on
+  the Community tab, fill in the details (with an optional image) and submit. Your request goes
+  to the KSE team for review — you'll see it marked “pending admin review” until it's approved.</p>
+
+  <div class="tip"><b>Reporting:</b> see something wrong in a community? Use the report
+  (flag) action on the post — moderators review reports.</div>
+</section>
+
+<!-- ═══════════════ 13 · PROFILE & PORTFOLIO ═══════════════ -->
+<section class="chapter" id="c13">
+  <div class="chap-head">
+    <div class="chap-num">13</div>
+    <div>
+      <span class="kicker">You, on KSE</span>
+      <h2>Your Profile &amp; Portfolio</h2>
+      <div class="glance">Personal info, education, projects, certificates, achievements, research, resume and links.</div>
+    </div>
+  </div>
+
+  <p class="lead">Your profile powers better recommendations; your portfolio is the living CV you'll
+  actually reuse for internship and scholarship applications.</p>
+
+  <h3 class="sec"><span class="idx">13.1</span> The Profile tab</h3>
+  <ul class="list">
+    <li>Your <strong>name and avatar</strong>, with a <strong>profile completion %</strong>.</li>
+    <li><span class="kbd">Improve Profile</span> / <span class="kbd">Edit profile</span> — update your full name, university, department, academic level, phone, bio, interests and skills.</li>
+    <li><strong>My portfolio</strong> — the full portfolio (below).</li>
+    <li><strong>My Scholarships</strong> — your application tracker (Chapter&nbsp;5).</li>
+    <li><strong>Become a Tutor</strong> — tutor application (Chapter&nbsp;7).</li>
+    <li><strong>Quick links</strong> — Dashboard and Saved.</li>
+    <li><strong>Settings</strong> and <strong>Sign out</strong>.</li>
+  </ul>
+  <div class="tip"><b>Why complete your profile?</b> KSE recommends opportunities using your
+  university, department, skills and interests — an empty profile gets generic results, a full
+  one gets <em>yours</em>.</div>
+
+  <h3 class="sec"><span class="idx">13.2</span> Portfolio sections</h3>
+  <p>Open <strong>Profile → My portfolio</strong>. Every section supports add, edit and delete:</p>
+  <table class="tbl">
+    <tr><th style="width:38mm">Section</th><th>What to add</th></tr>
+    <tr><td><b>🎓 Education</b></td><td>Education level, institution (pick from the list — or request a missing one), district (Khulna division and beyond), details and dates.</td></tr>
+    <tr><td><b>📁 Projects</b></td><td>Title, description, tech stack, project link, showcase fields and dates.</td></tr>
+    <tr><td><b>🛡️ Certificates</b></td><td>Title, issuer, issue date and certificate details.</td></tr>
+    <tr><td><b>🏆 Achievements</b></td><td>Title, description and date — competitions, awards, honors.</td></tr>
+    <tr><td><b>🔬 Research</b></td><td>Title, abstract, your role, collaborators, link and date.</td></tr>
+    <tr><td><b>📄 Resume</b></td><td>Your resume file — mark one as primary. The file name is kept for reference.</td></tr>
+    <tr><td><b>🔗 Links</b></td><td>Portfolio and social links with labels (GitHub, LinkedIn, personal site…).</td></tr>
+  </table>
+
+  <h3 class="sec"><span class="idx">13.3</span> Privacy</h3>
+  <p>Portfolio and profile details are yours: public fields are clearly defined, and private items
+  (resume, certificates) stay private to you. KSE asks for the minimum data a student platform
+  needs — and never shares your phone number or email with other students.</p>
+</section>
+
+<!-- ═══════════════ 14 · DASHBOARD, SAVED, SEARCH ═══════════════ -->
+<section class="chapter" id="c14">
+  <div class="chap-head">
+    <div class="chap-num">14</div>
+    <div>
+      <span class="kicker">Your command center</span>
+      <h2>Dashboard, Saved &amp; Search</h2>
+      <div class="glance">Deadlines at a glance, everything you bookmarked, and one search box for the whole app.</div>
+    </div>
+  </div>
+
+  <h3 class="sec"><span class="idx">14.1</span> Dashboard</h3>
+  <p>Open it from the <strong>▦ grid</strong> on Home, the ＋ sheet, or Profile quick links:</p>
+  <div class="grid3">
+    <div class="card feat"><h5>Profile score gauge</h5>A live gauge (indigo hero) showing how complete your profile is — with an <span class="kbd">Improve Profile</span> shortcut.</div>
+    <div class="card feat green"><h5>Opportunity overview</h5>A 2×2 grid of live published counts across opportunity types.</div>
+    <div class="card feat amber"><h5>Upcoming deadlines</h5>Your next three saved deadlines — the reason bookmarking pays off.</div>
+  </div>
+
+  <h3 class="sec"><span class="idx">14.2</span> Saved (bookmarks)</h3>
+  <ul class="list">
+    <li>Tap the <strong>bookmark icon</strong> on any opportunity card or detail to save it.</li>
+    <li>Open <strong>Profile → Saved</strong> to see everything, newest first.</li>
+    <li>Tap the bookmark again (card or detail) to remove it.</li>
+  </ul>
+
+  <h3 class="sec"><span class="idx">14.3</span> Search — one box for everything</h3>
+  <p>Type in the search bar on <strong>Home</strong> or <strong>Explore</strong> and press enter to open
+  the global search screen. It covers opportunities, tutors, communities and hub listings:</p>
+  <ol class="steps">
+    <li>Results update as you type — search titles, organizations and keywords.</li>
+    <li>Narrow with the same filters you know from the lists (type, mode, deadline).</li>
+    <li>Tap <span class="kbd">Clear search</span> / <span class="kbd">Clear all</span> to start over, or <span class="kbd">Load more</span> for more results.</li>
+    <li>Browse by category instead via the <strong>Explore categories</strong> row on the search screen.</li>
+  </ol>
+  <p>If nothing matches, KSE suggests trying a different keyword or loosening the filters —
+  and sometimes content just hasn't been published yet (“Verified listings are on their way”).</p>
+</section>
+
+<!-- ═══════════════ 15 · NOTIFICATIONS ═══════════════ -->
+<section class="chapter" id="c15">
+  <div class="chap-head">
+    <div class="chap-num">15</div>
+    <div>
+      <span class="kicker">Stay in the loop</span>
+      <h2>Notifications</h2>
+      <div class="glance">Your in-app inbox for deadlines, announcements and what matters to you.</div>
+    </div>
+  </div>
+
+  <p class="lead">Tap the <strong>🔔 bell</strong> on Home to open your notification inbox. A red dot
+  on the bell means something new is waiting.</p>
+
+  <h3 class="sec"><span class="idx">15.1</span> Reading and managing</h3>
+  <ul class="list">
+    <li>Unread notifications carry a purple dot; opening one marks it read.</li>
+    <li>Tapping a notification also <strong>jumps to the related item</strong> — a deadline reminder opens that opportunity.</li>
+    <li><span class="kbd">Mark all read</span> clears the unread state in one tap.</li>
+  </ul>
+
+  <h3 class="sec"><span class="idx">15.2</span> What arrives here</h3>
+  <table class="tbl">
+    <tr><th style="width:52mm">Notification</th><th>When</th></tr>
+    <tr><td><b>Scholarship deadline approaching</b></td><td>A tracked or saved scholarship closes soon.</td></tr>
+    <tr><td><b>Saved internship deadline</b></td><td>Something on your Saved list is about to expire.</td></tr>
+    <tr><td><b>New matching opportunity</b></td><td>A published item matches your profile and interests.</td></tr>
+    <tr><td><b>Upcoming event</b></td><td>An event or workshop you registered for is near.</td></tr>
+    <tr><td><b>Community announcement</b></td><td>A community you joined posts an announcement.</td></tr>
+    <tr><td><b>Platform announcement</b></td><td>News from the KSE team — global, university-specific or targeted.</td></tr>
+  </table>
+  <div class="tip"><b>Don't miss deadlines:</b> bookmark (Saved) or track (scholarships) everything
+  you seriously intend to apply for — reminders are built around your saved list.</div>
+</section>
+
+<!-- ═══════════════ 16 · SETTINGS & REFERENCE ═══════════════ -->
+<section class="chapter" id="c16">
+  <div class="chap-head">
+    <div class="chap-num">16</div>
+    <div>
+      <span class="kicker">Wrap-up</span>
+      <h2>Settings, Help &amp; Quick Reference</h2>
+      <div class="glance">Appearance, account basics, frequently asked questions, and where everything lives.</div>
+    </div>
+  </div>
+
+  <h3 class="sec"><span class="idx">16.1</span> Settings</h3>
+  <p>Open <strong>Profile → Settings</strong>:</p>
+  <ul class="list">
+    <li><strong>Appearance</strong> — choose <span class="pill i">Light</span>, <span class="pill n">Dark</span> or <span class="pill n">System</span>; KSE follows your choice everywhere.</li>
+    <li><strong>Sign out</strong> — confirm and you're out; you'll need to sign in again to use KSE.</li>
+  </ul>
+
+  <h3 class="sec"><span class="idx">16.2</span> Frequently asked questions</h3>
+  <table class="tbl">
+    <tr><th style="width:64mm">Question</th><th>Answer</th></tr>
+    <tr><td><b>Is KSE free?</b></td><td>Yes — every student feature in this manual is free to use.</td></tr>
+    <tr><td><b>Why does a listing say “Pending review”?</b></td><td>User-submitted content (To-Lets, books, places, communities) is checked by the KSE team before it becomes public.</td></tr>
+    <tr><td><b>An opportunity says “Deadline passed” — can I still apply?</b></td><td>No. Once the deadline passes the button is disabled; use filters like “next 7 days” to find live ones.</td></tr>
+    <tr><td><b>Can I be in more than one mess?</b></td><td>Yes — the Mess Hub lists all your messes; pending ones wait for manager approval.</td></tr>
+    <tr><td><b>Can I stop being a tutor?</b></td><td>Contact the KSE team and they'll remove your tutor listing.</td></tr>
+    <tr><td><b>Does KSE work offline?</b></td><td>Browsing needs internet. The app is built to be fast on normal mobile networks.</td></tr>
+    <tr><td><b>How do I delete my account?</b></td><td>Request account deletion through the KSE support contact — your data is removed with it.</td></tr>
+  </table>
+
+  <h3 class="sec"><span class="idx">16.3</span> Quick reference — where everything lives</h3>
+  <table class="tbl">
+    <tr><th style="width:52mm">I want to…</th><th>Go to</th></tr>
+    <tr><td>Search everything</td><td>Home search bar → enter</td></tr>
+    <tr><td>Browse internships / events / workshops</td><td>Explore → category</td></tr>
+    <tr><td>Track a scholarship application</td><td>Scholarship detail → Add to application tracker</td></tr>
+    <tr><td>Find / post student housing</td><td>Explore → Bachelor To-Let (→ Post a listing)</td></tr>
+    <tr><td>Find a tutor / send a request</td><td>Explore → Tuition → tutor → Request tuition</td></tr>
+    <tr><td>Apply as a tutor</td><td>Profile → Become a Tutor</td></tr>
+    <tr><td>Find local services / suggest one</td><td>Explore → Student Hub (→ Suggest a place)</td></tr>
+    <tr><td>Sell or swap used books</td><td>Explore → Book Exchange → Post a book</td></tr>
+    <tr><td>Find a research collaborator</td><td>Explore → Research Partners (→ My research profile)</td></tr>
+    <tr><td>Create / join a mess</td><td>Home → Mess tile → Create / Join with Code</td></tr>
+    <tr><td>Record bazar / check duty</td><td>Mess → Bazar (+ Duty calendar)</td></tr>
+    <tr><td>Close the mess month</td><td>Mess → More → Settlement (manager)</td></tr>
+    <tr><td>Post in a community / poll / event</td><td>Community → open a community → create</td></tr>
+    <tr><td>See my deadlines</td><td>Home → ▦ Dashboard</td></tr>
+    <tr><td>See my bookmarks</td><td>Profile → Saved</td></tr>
+    <tr><td>Read notifications</td><td>Home → 🔔 bell</td></tr>
+    <tr><td>Build my portfolio</td><td>Profile → My portfolio</td></tr>
+    <tr><td>Change theme / sign out</td><td>Profile → Settings</td></tr>
+  </table>
+
+  <h3 class="sec"><span class="idx">16.4</span> Coming soon</h3>
+  <p>Mentorship matching is on the roadmap, along with richer recommendations and messaging.
+  The KSE team publishes platform announcements in your notification inbox as new features land.</p>
+
+  <div class="card blue keep" style="margin-top:6mm; text-align:center; padding:6mm;">
+    <h5 style="font-size:12pt;">That's KSE — everything in one place. 🎓</h5>
+    <p class="mt0" style="margin:0;">Questions or feedback? Reach the KSE team through the app's support contact.<br>
+    <span class="bn" style="color:var(--purple); font-weight:600;">পড়াও, শেখো, আয় করো</span> — teach, learn, earn.</p>
+  </div>
+</section>
+
+</body>
+</html>

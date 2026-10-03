@@ -81,15 +81,18 @@ function PromoDot({
  * carousel of Bangla promo banners. Loops infinitely via guard clones, can
  * be swiped manually (autoplay pauses on touch and resumes afterwards), and
  * paginates with stretching dots. Slide content lives in `promo-banners.ts`.
+ *
+ * Every loop slot stays mounted — a slide is ~12 lightweight native views
+ * (gradients + one image + text), so pre-mounting all of them is cheap, and
+ * it is what guarantees the track never exposes an unthemed gap. An earlier
+ * version virtualised to "current ± 1" and the destination slide could fail
+ * to mount before a fast snap arrived, which users saw as a blank white
+ * banner flashing mid-swipe.
  */
 export function PromoCarousel() {
   const colors = useTheme();
   const [width, setWidth] = useState(0);
   const [activeIndex, setActiveIndex] = useState(0);
-  /** Display slot (including guard clones) whose index is currently
-   *  `activeIndex`. Drives slide virtualisation — we only render the
-   *  slide at this slot + its two neighbours. */
-  const [currentDisplay, setCurrentDisplay] = useState(FIRST_DISPLAY);
   const [interacting, setInteracting] = useState(false);
   const [appActive, setAppActive] = useState(true);
 
@@ -123,9 +126,7 @@ export function PromoCarousel() {
       // release builds).
       const w = widthSv.value;
       if (!(w > 0)) return;
-      const real = realIndex(display);
-      setActiveIndex(real);
-      setCurrentDisplay(display);
+      setActiveIndex(realIndex(display));
       if (display === 0) {
         translateX.value = -COUNT * w;
         position.value = COUNT;
@@ -140,7 +141,6 @@ export function PromoCarousel() {
   const goTo = useCallback(
     (display: number) => {
       cancelAnimation(translateX);
-      setCurrentDisplay(display);
       position.value = display;
       translateX.value = withTiming(
         -display * widthSv.value,
@@ -150,7 +150,7 @@ export function PromoCarousel() {
         },
       );
     },
-    [position, setCurrentDisplay, settle, translateX, widthSv],
+    [position, settle, translateX, widthSv],
   );
 
   const pan = useMemo(
@@ -188,15 +188,6 @@ export function PromoCarousel() {
                 ? Math.floor(base)
                 : Math.round(base);
           const target = Math.min(Math.max(chosen, 0), LAST_DISPLAY);
-          // Update the virtualisation window eagerly so the destination slide
-          // mounts BEFORE the snap-spring fires (prevents ~400ms of an empty
-          // background visible mid-spring while we wait for `settle` to run).
-          // Must wrap in runOnJS — calling a React state setter from a
-          // gesture worklet synchronously hits a "Remote Function" error in
-          // Reanimated 4 / Worklets and crashes the entire app (FATAL:
-          // "Tried to synchronously call a Remote Function. Called 'anonymous'
-          // on the UI Runtime").
-          runOnJS(setCurrentDisplay)(target);
           position.value = target;
           translateX.value = withSpring(
             -target * w,
@@ -209,7 +200,7 @@ export function PromoCarousel() {
         .onFinalize(() => {
           runOnJS(setInteracting)(false);
         }),
-    [dragStartX, position, settle, setCurrentDisplay, translateX, widthSv],
+    [dragStartX, position, settle, translateX, widthSv],
   );
 
   // Pause autoplay while the app is backgrounded.
@@ -224,7 +215,7 @@ export function PromoCarousel() {
   // `activeIndex` in the deps resets the countdown after each slide change
   // (so a manual swipe buys a full interval before the next auto-advance).
   // Reads from `positionRef` (JS-side mirror) instead of `position.value`
-  // — the latter crosses threads and races with worklets writing the same
+  //  — the latter crosses threads and races with worklets writing the same
   // value, which has been seen to terminate the app on Android release.
   useEffect(() => {
     if (!width || interacting || !appActive) return;
@@ -247,27 +238,24 @@ export function PromoCarousel() {
   }));
 
   return (
-    <View style={[styles.shadow, { boxShadow: `0px 6px 12px ${colors.primary}2E` }]}>
+    <View
+      style={[
+        styles.shadow,
+        // Deterministic brand background: even before the first layout (or
+        // while a photo is still loading) the hero reads as a colored card,
+        // never as a white hole on the page.
+        { backgroundColor: PROMO_BANNERS[0].gradient.light[0], boxShadow: `0px 8px 20px ${colors.shadow}` },
+      ]}
+    >
       <GestureDetector gesture={pan}>
         <View style={styles.frame} onLayout={onLayout}>
           {width > 0 && (
             <Animated.View style={[styles.track, trackStyle]}>
-              {LOOP_BANNERS.map((banner, display) => {
-                // Virtualise: only render the slide at the current display
-                // position + its neighbours. The other 5 slots become empty
-                // Views of the same width so the row geometry is preserved
-                // for the looping math but no native views are kept alive.
-                // Each banner contains a LinearGradient + ~30 react-native-svg
-                // elements (~200 native views); keeping all 8 alive was
-                // pushing the native view tree past a budget device's limit
-                // and crashing during gesture updates on Android.
-                const visible = Math.abs(display - currentDisplay) <= 1;
-                return (
-                  <View key={`${banner.key}-${display}`} style={{ width }}>
-                    {visible ? <PromoSlide banner={banner} /> : null}
-                  </View>
-                );
-              })}
+              {LOOP_BANNERS.map((banner, display) => (
+                <View key={`${banner.key}-${display}`} style={{ width }}>
+                  <PromoSlide banner={banner} />
+                </View>
+              ))}
             </Animated.View>
           )}
           <View style={styles.dots}>

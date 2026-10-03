@@ -10,14 +10,14 @@ import { useTheme } from '@/hooks/use-theme';
 import { useTints } from '@/hooks/use-tints';
 
 /**
- * How many tiles show in the collapsed state. Mirrors the bKash "See more"
- * pattern (collapsed = first row of 4, expanded = all 8 tiles).
+ * How many tiles show in the collapsed state: two full rows of four (the
+ * eight primary destinations). Events and Mentor reveal via "See more".
  */
-const COLLAPSED_VISIBLE = 4;
+const COLLAPSED_VISIBLE = 8;
 
 /**
  * Home "Quick Access" grid (design 03._home_kse): a 4-column wrap of pastel
- * 48×48 tiles, each routing into an Explore section. The first row is
+ * 48×48 tiles, each routing into an Explore section. The first two rows are
  * always visible; remaining tiles reveal when the user taps "See more" —
  * mirroring the bKash home screen's expandable services grid (English copy).
  */

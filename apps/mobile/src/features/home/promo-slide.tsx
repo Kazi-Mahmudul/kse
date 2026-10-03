@@ -1,10 +1,11 @@
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
-import { BanglaFontFamilies } from '@/constants/theme';
+import { BanglaFontFamilies, FontFamilies } from '@/constants/theme';
 import type { PromoBanner } from '@/features/home/promo-banners';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useTheme } from '@/hooks/use-theme';
@@ -14,11 +15,12 @@ import { useTheme } from '@/hooks/use-theme';
  * banner in both color schemes, like the photo blend itself.
  */
 const ART = {
-  glow: 'rgba(255,255,255,0.05)',
   subtitle: 'rgba(255,255,255,0.85)',
+  kickerChip: 'rgba(255,255,255,0.16)',
+  kickerBorder: 'rgba(255,255,255,0.35)',
 } as const;
 
-/** Append an alpha channel to a `#RRGGBB` accent (used by the decor circle). */
+/** Append an alpha channel to a `#RRGGBB` accent. */
 function withAlpha(hex: string, alpha: number): string {
   return `#${hex.slice(1)}${Math.round(alpha * 255)
     .toString(16)
@@ -26,8 +28,8 @@ function withAlpha(hex: string, alpha: number): string {
 }
 
 /**
- * One hero carousel slide, composed like a bKash promo banner: the slide's
- * brand gradient carries the Bangla copy + CTA on the left, while a real
+ * One hero carousel slide: the slide's brand gradient carries a small
+ * category chip, the Bangla headline + CTA on the left, while a real
  * photograph is anchored to the right and blended into the colour with a
  * horizontal gradient overlay — the person/scene emerges from the brand
  * colour instead of being hard-cropped against it.
@@ -71,11 +73,12 @@ export function PromoSlide({ banner }: { banner: PromoBanner }) {
         style={styles.bottomScrim}
       />
 
-      {/* Decorative background circles (clipped by the slide's overflow) */}
-      <View style={styles.glowCircle} />
-      <View style={[styles.accentCircle, { backgroundColor: withAlpha(banner.accent, 0.28) }]} />
-
       <View style={styles.copy}>
+        <View style={styles.kickerChip}>
+          <ThemedText themeColor="onPrimary" style={styles.kicker}>
+            {banner.kicker.toUpperCase()}
+          </ThemedText>
+        </View>
         <ThemedText themeColor="onPrimary" style={styles.title} numberOfLines={2}>
           {banner.title}
         </ThemedText>
@@ -95,6 +98,7 @@ export function PromoSlide({ banner }: { banner: PromoBanner }) {
           <ThemedText themeColor="primary" style={styles.ctaLabel}>
             {banner.cta}
           </ThemedText>
+          <Ionicons name="arrow-forward" size={12} color={colors.primary} />
         </Pressable>
       </View>
     </LinearGradient>
@@ -106,7 +110,7 @@ const styles = StyleSheet.create({
     flex: 1,
     borderRadius: 24,
     overflow: 'hidden',
-    padding: 14,
+    padding: 16,
     flexDirection: 'row',
     alignItems: 'center',
   },
@@ -135,33 +139,30 @@ const styles = StyleSheet.create({
     height: 56,
     pointerEvents: 'none',
   },
-  glowCircle: {
-    position: 'absolute',
-    right: -28,
-    bottom: -36,
-    width: 176,
-    height: 176,
-    borderRadius: 999,
-    backgroundColor: ART.glow,
-    pointerEvents: 'none',
-  },
-  accentCircle: {
-    position: 'absolute',
-    right: 96,
-    top: -28,
-    width: 96,
-    height: 96,
-    borderRadius: 999,
-    pointerEvents: 'none',
-  },
   copy: {
     flex: 1,
     maxWidth: '58%',
+  },
+  kickerChip: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 999,
+    backgroundColor: ART.kickerChip,
+    borderWidth: 1,
+    borderColor: ART.kickerBorder,
+  },
+  kicker: {
+    fontSize: 9,
+    lineHeight: 12,
+    letterSpacing: 1.2,
+    fontFamily: FontFamilies.semiBold,
   },
   title: {
     fontFamily: BanglaFontFamilies.bold,
     fontSize: 15,
     lineHeight: 23,
+    marginTop: 8,
   },
   subtitle: {
     fontFamily: BanglaFontFamilies.regular,
@@ -171,9 +172,12 @@ const styles = StyleSheet.create({
     color: ART.subtitle,
   },
   cta: {
-    marginTop: 8,
+    marginTop: 10,
     alignSelf: 'flex-start',
-    paddingHorizontal: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 14,
     paddingVertical: 6,
     borderRadius: 999,
     elevation: 2,

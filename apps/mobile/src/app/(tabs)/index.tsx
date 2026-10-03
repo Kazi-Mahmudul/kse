@@ -6,7 +6,6 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { Screen } from '@/components/ui/screen';
 import { SearchBar } from '@/components/ui/search-bar';
 import { SectionHeader } from '@/components/ui/section-header';
-import { HomeGreeting } from '@/features/home/greeting';
 import { LatestOpportunityCard } from '@/features/home/latest-opportunity-card';
 import { ProfileCompletionCard } from '@/features/home/profile-completion-card';
 import { PromoCarousel } from '@/features/home/promo-carousel';
@@ -17,30 +16,21 @@ import { useUnreadNotificationCount } from '@/features/notifications/queries';
 import { useLatestOpportunities } from '@/features/opportunities/queries';
 import { useMyProfile } from '@/features/profile/queries';
 import { useTheme } from '@/hooks/use-theme';
-import { useAuthStore } from '@/store/auth-store';
 
 /**
  * Home screen — matches design `03._home_kse`: location + notification top
- * bar, time-aware greeting, search with filter, auto-playing Bangla promo
- * carousel, the eight-tile Quick Access grid, profile-completion
- * recommendation, and the latest published opportunities (spec §6).
+ * bar, search with filter, auto-playing Bangla promo carousel, the
+ * Quick Access grid, profile-completion recommendation, and the latest
+ * published opportunities (spec §6).
  */
 export default function HomeScreen() {
   const colors = useTheme();
-  const session = useAuthStore((s) => s.session);
   const [query, setQuery] = useState('');
 
   const profileQuery = useMyProfile();
   const unreadQuery = useUnreadNotificationCount();
   const latestQuery = useLatestOpportunities(4);
   const latest = latestQuery.data ?? [];
-
-  const metadataName = (session?.user.user_metadata?.full_name as string | undefined) ?? '';
-  const displayName =
-    profileQuery.data?.full_name?.trim() ||
-    metadataName.trim() ||
-    session?.user.email?.split('@')[0] ||
-    'there';
 
   const openSearch = () =>
     router.push({
@@ -51,13 +41,9 @@ export default function HomeScreen() {
   return (
     <Screen style={styles.screen}>
       <HomeTopBar
-        location={profileQuery.data?.university?.location}
+        location={profileQuery.data?.district ?? null}
         unreadCount={unreadQuery.data ?? 0}
       />
-
-      <View style={styles.greeting}>
-        <HomeGreeting name={displayName} />
-      </View>
 
       <View style={styles.search}>
         <SearchBar
@@ -164,9 +150,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 12,
     gap: 0,
-  },
-  greeting: {
-    marginTop: 12,
   },
   search: {
     marginTop: 12,

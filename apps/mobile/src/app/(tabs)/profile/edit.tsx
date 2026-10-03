@@ -151,6 +151,10 @@ function ProfileEditForm({
 
   const interests = useWatch({ control, name: 'interests' }) ?? [];
   const fullName = useWatch({ control, name: 'full_name' });
+  // The district picker must render the live form value, not the loaded
+  // profile row — otherwise a freshly picked district never shows in the
+  // field and the user thinks the selection was dropped.
+  const district = useWatch({ control, name: 'district' });
 
   const toggleSkill = (id: string) => {
     setSelectedSkills((prev) =>
@@ -334,7 +338,7 @@ function ProfileEditForm({
             <LockedRow label="Division" value={profile.division} />
             <SelectField
               label="District (Khulna Division)"
-              value={profile.district}
+              value={district ?? null}
               options={KHULNA_DISTRICT_OPTIONS}
               onSelect={(value) =>
                 setValue('district', (value ?? null) as ProfileFormValues['district'], {

@@ -6,35 +6,39 @@ import { ThemedText } from '@/components/themed-text';
 import { FontFamilies } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
-const FALLBACK_LOCATION = 'Khulna, Bangladesh';
-
 interface HomeTopBarProps {
-  /** Student's university location; falls back to the platform's home city. */
+  /** Student's district; the location chip hides until one is set. */
   location?: string | null;
   unreadCount: number;
 }
 
 /**
- * Home top bar (design 03._home_kse): location selector on the left, ringed
- * notification bell with an unread dot on the right.
+ * Home top bar (design 03._home_kse): location chip on the left, ringed
+ * notification bell with an unread dot on the right. The chip renders the
+ * student's own district — students who haven't picked one yet see no
+ * location at all rather than a city they may not live in.
  */
 export function HomeTopBar({ location, unreadCount }: HomeTopBarProps) {
   const colors = useTheme();
 
   return (
     <View style={styles.row}>
-      <Pressable
-        onPress={() => router.push('/(tabs)/profile/settings')}
-        accessibilityRole="button"
-        accessibilityLabel={`Location: ${location ?? FALLBACK_LOCATION}. Open settings`}
-        style={({ pressed }) => [styles.location, pressed && styles.pressed]}
-      >
-        <Ionicons name="location" size={16} color={colors.primary} />
-        <ThemedText themeColor="bodyStrong" style={styles.locationText} numberOfLines={1}>
-          {location ?? FALLBACK_LOCATION}
-        </ThemedText>
-        <Ionicons name="chevron-down" size={14} color={colors.textSecondary} />
-      </Pressable>
+      {location ? (
+        <Pressable
+          onPress={() => router.push('/(tabs)/profile/settings')}
+          accessibilityRole="button"
+          accessibilityLabel={`Location: ${location}. Open settings`}
+          style={({ pressed }) => [styles.location, pressed && styles.pressed]}
+        >
+          <Ionicons name="location" size={16} color={colors.primary} />
+          <ThemedText themeColor="bodyStrong" style={styles.locationText} numberOfLines={1}>
+            {location}
+          </ThemedText>
+          <Ionicons name="chevron-down" size={14} color={colors.textSecondary} />
+        </Pressable>
+      ) : (
+        <View />
+      )}
 
       <Pressable
         onPress={() => router.push('/(tabs)/notifications')}

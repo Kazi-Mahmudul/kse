@@ -1,0 +1,1060 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<title>KSE — ব্যবহার নির্দেশিকা</title>
+<style>
+  /* ব্র্যান্ড ফন্ট — অ্যাপেই ব্যবহৃত Hind Siliguri */
+  @font-face { font-family:'Hind Siliguri'; src:url('fonts/HindSiliguri_400Regular.ttf'); font-weight:400; }
+  @font-face { font-family:'Hind Siliguri'; src:url('fonts/HindSiliguri_500Medium.ttf'); font-weight:500; }
+  @font-face { font-family:'Hind Siliguri'; src:url('fonts/HindSiliguri_600SemiBold.ttf'); font-weight:600; }
+  @font-face { font-family:'Hind Siliguri'; src:url('fonts/HindSiliguri_700Bold.ttf'); font-weight:700; }
+
+  :root{
+    --ink:#0F172A; --body:#334155; --muted:#64748B; --faint:#94A3B8;
+    --indigo:#4F46E5; --purple:#7C3AED; --indigo-soft:#EEF2FF; --indigo-line:#E0E7FF;
+    --bg:#FFFFFF; --surface:#F8FAFC; --border:#E2E8F0;
+    --success:#10B981; --success-soft:#ECFDF5; --success-line:#D1FAE5;
+    --warning:#F59E0B; --warning-soft:#FFFBEB; --warning-line:#FEF3C7;
+    --danger:#F43F5E;  --danger-soft:#FFF1F2;  --danger-line:#FFE4E6;
+  }
+
+  @page{ size:A4 portrait; margin:16mm 15mm 18mm 15mm; }
+
+  *{ margin:0; padding:0; box-sizing:border-box; }
+  html{ -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  body{
+    font-family:'Hind Siliguri','Nirmala UI',sans-serif; color:var(--body);
+    font-size:10.6pt; line-height:1.78; background:var(--bg);
+  }
+  strong{ color:var(--ink); font-weight:700; }
+  a{ color:var(--indigo); text-decoration:none; }
+
+  .pgfoot{
+    position:fixed; bottom:6mm; left:15mm; right:15mm;
+    display:flex; justify-content:space-between; align-items:center;
+    font-size:8pt; color:var(--faint);
+    border-top:1px solid var(--border); padding-top:2.2mm;
+  }
+  .pgfoot .dot{ color:var(--indigo); }
+
+  .cover{ height:255mm; display:flex; flex-direction:column; align-items:center; text-align:center; }
+  .cover .band{ width:34mm; height:2.6mm; border-radius:99px;
+    background:linear-gradient(90deg,var(--indigo),var(--purple)); margin-top:24mm; }
+  .cover img{ width:34mm; height:34mm; border-radius:9mm; margin-top:13mm; }
+  .cover h1{ font-size:34pt; font-weight:700; color:var(--ink); margin-top:10mm; }
+  .cover .sub{ font-size:13pt; font-weight:600; color:var(--purple); margin-top:1mm; }
+  .cover .man{ margin-top:15mm; font-size:12pt; font-weight:700; color:var(--muted); }
+  .cover .rule{ width:18mm; height:.5mm; background:var(--border); margin:7mm 0; }
+  .cover .tag{ font-size:10.4pt; color:var(--muted); max-width:125mm; }
+  .cover .meta{ margin-top:auto; display:flex; gap:14mm; font-size:9.4pt; color:var(--faint); }
+  .cover .meta b{ display:block; font-size:8pt; color:var(--indigo); font-weight:700; margin-bottom:.6mm; }
+  .cover .meta div{ min-width:32mm; }
+
+  .chapter{ break-before:page; }
+  .kicker{ font-size:9pt; font-weight:700; color:var(--indigo); }
+  .toc h2.big{ font-size:24pt; color:var(--ink); margin:2mm 0 8mm; font-weight:700; }
+  .toc ol{ list-style:none; }
+  .toc li{ display:flex; align-items:baseline; gap:4mm; padding:2.8mm 0; border-bottom:1px solid var(--border); }
+  .toc li:last-child{ border-bottom:none; }
+  .toc .n{
+    font-size:9.6pt; font-weight:700; color:var(--indigo); background:var(--indigo-soft);
+    border-radius:2.4mm; min-width:8mm; height:8mm; display:flex; align-items:center; justify-content:center;
+    align-self:center;
+  }
+  .toc .t{ font-weight:700; color:var(--ink); font-size:11pt; }
+  .toc .d{ color:var(--muted); font-size:9.2pt; margin-left:auto; text-align:right; max-width:92mm; }
+
+  .chap-head{ display:flex; gap:5mm; align-items:flex-start; margin-bottom:7mm; }
+  .chap-num{
+    width:13mm; height:13mm; border-radius:4mm; flex-shrink:0;
+    background:linear-gradient(135deg,var(--indigo),var(--purple)); color:#fff;
+    display:flex; align-items:center; justify-content:center; font-size:14pt; font-weight:700;
+  }
+  .chap-head h2{ font-size:19pt; font-weight:700; color:var(--ink); line-height:1.45; }
+  .chap-head .kicker{ display:block; margin-bottom:1.4mm; }
+  .chap-head .glance{ color:var(--muted); font-size:9.8pt; margin-top:.4mm; }
+  .chap-head::after{
+    content:''; flex:1; height:.6mm; border-radius:99px; margin-top:6mm; margin-left:2mm;
+    background:linear-gradient(90deg,var(--indigo-line),transparent); min-width:6mm;
+  }
+
+  .lead{ font-size:11.2pt; color:var(--body); margin-bottom:5mm; }
+  h3.sec{ font-size:12.8pt; font-weight:700; color:var(--ink); margin:7mm 0 2.6mm; break-after:avoid; }
+  h3.sec .idx{ color:var(--purple); font-weight:700; font-size:10.8pt; }
+  h4{ font-size:11pt; font-weight:700; color:var(--ink); margin:4.5mm 0 1.6mm; break-after:avoid; }
+
+  p{ margin-bottom:2.8mm; }
+  ul.list{ margin:0 0 3mm 5mm; }
+  ul.list li{ margin-bottom:1.6mm; }
+  ul.list li::marker{ color:var(--indigo); }
+
+  ol.steps{ list-style:none; margin:2.5mm 0 4mm; counter-reset:st; }
+  ol.steps li{ position:relative; padding-left:9.5mm; margin-bottom:3mm; break-inside:avoid; }
+  ol.steps li::before{
+    content:counter(st); counter-increment:st;
+    position:absolute; left:0; top:.6mm; width:6.4mm; height:6.4mm; border-radius:99px;
+    background:var(--indigo-soft); color:var(--indigo); border:.4mm solid var(--indigo-line);
+    font-size:8.8pt; font-weight:700; display:flex; align-items:center; justify-content:center;
+  }
+
+  .card{
+    background:var(--surface); border:1px solid var(--border); border-radius:3.6mm;
+    padding:4mm 4.6mm; break-inside:avoid; margin-bottom:3mm;
+  }
+  .card.blue{ background:var(--indigo-soft); border-color:var(--indigo-line); }
+  .card h5{ font-size:10.6pt; font-weight:700; color:var(--ink); margin-bottom:1.2mm; }
+  .grid2{ display:grid; grid-template-columns:1fr 1fr; gap:3mm; margin:2.5mm 0 3mm; }
+  .grid3{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:3mm; margin:2.5mm 0 3mm; }
+  .grid2 .card,.grid3 .card{ margin-bottom:0; }
+  .feat{ border-left:.9mm solid var(--indigo); }
+  .feat.amber{ border-color:var(--warning); } .feat.green{ border-color:var(--success); }
+  .feat.rose{ border-color:var(--danger); } .feat.violet{ border-left-color:var(--purple); }
+
+  table.tbl{ width:100%; border-collapse:collapse; font-size:9.6pt; margin:2.5mm 0 4mm; break-inside:avoid; }
+  .tbl th{
+    text-align:left; font-weight:700; color:var(--indigo); font-size:9pt;
+    padding:2.2mm 3mm; background:var(--indigo-soft); border-bottom:.5mm solid var(--indigo-line);
+  }
+  .tbl td{ padding:2.2mm 3mm; border-bottom:1px solid var(--border); vertical-align:top; }
+  .tbl tr:last-child td{ border-bottom:none; }
+  .tbl td b{ color:var(--ink); font-weight:700; }
+
+  .pill{
+    display:inline-block; font-size:8.6pt; font-weight:600; border-radius:99px;
+    padding:.6mm 2.8mm; margin:.4mm .6mm .4mm 0; border:.35mm solid transparent;
+  }
+  .pill.i{ background:var(--indigo-soft); color:var(--indigo); border-color:var(--indigo-line); }
+  .pill.g{ background:var(--success-soft); color:#047857; border-color:var(--success-line); }
+  .pill.a{ background:var(--warning-soft); color:#B45309; border-color:var(--warning-line); }
+  .pill.r{ background:var(--danger-soft); color:#BE123C; border-color:var(--danger-line); }
+  .pill.n{ background:var(--surface); color:var(--muted); border-color:var(--border); }
+  .kbd{
+    display:inline-block; font-size:9pt; font-weight:600; color:var(--ink);
+    background:var(--surface); border:1px solid var(--border); border-bottom-width:.7mm;
+    border-radius:1.8mm; padding:0 2mm;
+  }
+
+  .tip,.note{
+    border-radius:3mm; padding:3mm 4mm; margin:3mm 0; font-size:9.8pt;
+    break-inside:avoid; position:relative; padding-left:11mm;
+  }
+  .tip::before,.note::before{ position:absolute; left:3.4mm; top:2.9mm; }
+  .tip{ background:var(--indigo-soft); } .tip::before{ content:'💡'; }
+  .note{ background:var(--warning-soft); } .note::before{ content:'⚠️'; }
+  .tip b,.note b{ color:var(--ink); }
+
+  .navbar{
+    display:flex; border:1px solid var(--border); border-radius:4mm; overflow:hidden;
+    margin:3mm 0; break-inside:avoid; background:#fff;
+  }
+  .navbar .nb{ flex:1; text-align:center; padding:3.4mm 1mm 3mm; border-right:1px solid var(--border); }
+  .navbar .nb:last-child{ border-right:none; }
+  .navbar .ic{ font-size:13pt; }
+  .navbar .lb{ font-size:8.6pt; font-weight:700; color:var(--ink); margin-top:.8mm; }
+  .navbar .nb.plus{ background:var(--indigo-soft); }
+  .navbar .nb.plus .ic{ color:var(--indigo); }
+  .navbar .ds{ font-size:7.8pt; color:var(--muted); margin-top:.4mm; line-height:1.5; }
+
+  .mini-toc{ background:var(--surface); border:1px solid var(--border); border-radius:3.6mm; padding:3.4mm 5mm; margin-bottom:5mm; break-inside:avoid; }
+  .mini-toc b{ color:var(--ink); font-size:9.6pt; }
+  .mini-toc ul{ columns:2; margin:2mm 0 0 4.5mm; font-size:9.6pt; }
+  .mini-toc li{ margin-bottom:1mm; break-inside:avoid; }
+  .mini-toc li::marker{ color:var(--purple); }
+
+  .keep{ break-inside:avoid; }
+  .mt0{ margin-top:0 !important; }
+</style>
+</head>
+<body>
+
+<div class="pgfoot"><span>KSE <span class="dot">·</span> ব্যবহার নির্দেশিকা</span><span>খুলনা স্টুডেন্ট ইকোসিস্টেম</span></div>
+
+<!-- ═══════════ কভার ═══════════ -->
+<section class="cover">
+  <div class="band"></div>
+  <img src="fonts/kse-icon.png" alt="KSE অ্যাপ আইকন">
+  <h1>KSE</h1>
+  <div class="sub">খুলনা স্টুডেন্ট ইকোসিস্টেম</div>
+  <div class="man">ব্যবহার নির্দেশিকা</div>
+  <div class="rule"></div>
+  <p class="tag">ইন্টার্নশিপ, স্কলারশিপ, ইভেন্ট, টিউশন, বাসা, মেস ম্যানেজমেন্ট, স্টুডেন্ট হাব
+  আর কমিউনিটি — একজন ছাত্রছাত্রীর দরকারি সবকিছু, একটাই অ্যাপে।</p>
+  <div class="meta">
+    <div><b>সংস্করণ</b>1.0.0</div>
+    <div><b>প্ল্যাটফর্ম</b>Android · iOS · Web</div>
+    <div><b>হালনাগাদ</b>অক্টোবর ২০২৬</div>
+  </div>
+</section>
+
+<!-- ═══════════ সূচিপত্র ═══════════ -->
+<section class="chapter toc">
+  <span class="kicker">KSE · ব্যবহার নির্দেশিকা</span>
+  <h2 class="big">সূচিপত্র</h2>
+  <ol>
+    <li><span class="n">1</span><span class="t"><a href="#c1">KSE-এ স্বাগতম</a></span><span class="d">KSE কী আর এটা দিয়ে কী কী করা যায়</span></li>
+    <li><span class="n">2</span><span class="t"><a href="#c2">শুরু করা</a></span><span class="d">ইনস্টল, অ্যাকাউন্ট খোলা, সাইন ইন, ওয়েলকাম ট্যুর</span></li>
+    <li><span class="n">3</span><span class="t"><a href="#c3">হোম স্ক্রিন</a></span><span class="d">আপনার দৈনন্দিন শুরুর পয়েন্ট আর কুইক অ্যাক্সেস টাইল</span></li>
+    <li><span class="n">4</span><span class="t"><a href="#c4">সুযোগ ঘুরে দেখা — Explore</a></span><span class="d">ইন্টার্নশিপ, ইভেন্ট, ওয়ার্কশপ, ফিল্টার ও আবেদন</span></li>
+    <li><span class="n">5</span><span class="t"><a href="#c5">স্কলারশিপ ও অ্যাপ্লিকেশন ট্র্যাকার</a></span><span class="d">ফান্ড খুঁজুন, প্রতিটি আবেদনের খোঁজ রাখুন</span></li>
+    <li><span class="n">6</span><span class="t"><a href="#c6">ব্যাচেলর টু-লেট — ছাত্রদের বাসা</a></span><span class="d">ক্যাম্পাসের কাছে রুম, সাবলেট আর মেস সিট</span></li>
+    <li><span class="n">7</span><span class="t"><a href="#c7">টিউশন — টিউটর খুঁজুন বা নিজেই হোন</a></span><span class="d">টিউটর খোঁজা, রিকোয়েস্ট পাঠানো ও টিউটর আবেদন</span></li>
+    <li><span class="n">8</span><span class="t"><a href="#c8">স্টুডেন্ট হাব</a></span><span class="d">লোকাল সার্ভিস, দোকান আর স্টুডেন্ট ডিসকাউন্ট</span></li>
+    <li><span class="n">9</span><span class="t"><a href="#c9">বই বিনিময় — Book Exchange</a></span><span class="d">পুরোনো বই বিক্রি, বিনিময় বা দান করুন</span></li>
+    <li><span class="n">10</span><span class="t"><a href="#c10">রিসার্চ পার্টনার</a></span><span class="d">পরবর্তী প্রজেক্টের সহযোগী খুঁজুন</span></li>
+    <li><span class="n">11</span><span class="t"><a href="#c11">মেস ম্যানেজমেন্ট</a></span><span class="d">খাবার, বাজার ডিউটি, খরচ, ব্যালেন্স ও সেটেলমেন্ট</span></li>
+    <li><span class="n">12</span><span class="t"><a href="#c12">কমিউনিটি</a></span><span class="d">ক্লাব, আলোচনা, পোল আর কমিউনিটি ইভেন্ট</span></li>
+    <li><span class="n">13</span><span class="t"><a href="#c13">আপনার প্রোফাইল ও পোর্টফোলিও</a></span><span class="d">শিক্ষা, প্রজেক্ট, সার্টিফিকেট, রেজুমে ইত্যাদি</span></li>
+    <li><span class="n">14</span><span class="t"><a href="#c14">ড্যাশবোর্ড, সেভড ও সার্চ</a></span><span class="d">ডেডলাইন, বুকমার্ক আর পুরো অ্যাপে সার্চ</span></li>
+    <li><span class="n">15</span><span class="t"><a href="#c15">নোটিফিকেশন</a></span><span class="d">অ্যাপের ভেতরের ইনবক্স আর জরুরি ডেডলাইন</span></li>
+    <li><span class="n">16</span><span class="t"><a href="#c16">সেটিংস, সহায়তা ও কুইক রেফারেন্স</a></span><span class="d">থিম, অ্যাকাউন্ট, প্রশ্নোত্তর আর সবকিছুর ঠিকানা</span></li>
+  </ol>
+</section>
+
+<!-- ═══════════ ১ · স্বাগতম ═══════════ -->
+<section class="chapter" id="c1">
+  <div class="chap-head">
+    <div class="chap-num">1</div>
+    <div>
+      <span class="kicker">ভূমিকা</span>
+      <h2>KSE-এ স্বাগতম</h2>
+      <div class="glance">খুলনার ছাত্রজীবনের পুরো দুনিয়া — একটাই অ্যাপে।</div>
+    </div>
+  </div>
+
+  <p class="lead">KSE — <strong>খুলনা স্টুডেন্ট ইকোসিস্টেম</strong> — ছাত্রছাত্রীদের সব সুযোগ আর
+  দৈনন্দিন প্রয়োজন এক জায়গায় নিয়ে আসে। এলোমেলো ফেসবুক গ্রুপ ঘেঁটে ডেডলাইন মিস করার
+  বদলে আপনি পাচ্ছেন একটা পরিচ্ছন্ন, যাচাইকৃত, সার্চযোগ্য অ্যাপ — শুধু ছাত্রদের জন্য বানানো।</p>
+
+  <h3 class="sec"><span class="idx">১.১</span> KSE দিয়ে কী কী করা যায়</h3>
+  <div class="grid2">
+    <div class="card feat"><h5>🎓 সুযোগ খুঁজুন</h5>ইন্টার্নশিপ, স্কলারশিপ, ইভেন্ট ও ওয়ার্কশপ — প্রকাশের আগে যাচাই করা, ম্যানুয়ালি কিউরেটেড কনটেন্ট।</div>
+    <div class="card feat green"><h5>🏠 বাসা খুঁজুন</h5>ব্যাচেলর টু-লেট লিস্টিং: ক্যাম্পাসের কাছে রুম, সাবলেট, হোস্ট ফ্যামিলি আর মেস সিট।</div>
+    <div class="card feat amber"><h5>📚 টিউটর পান</h5>বিষয়, বিশ্ববিদ্যালয়, এলাকা আর ফি অনুযায়ী ভেরিফায়েড টিউটর খুঁজুন — অথবা নিজেই টিউটর হওয়ার আবেদন করুন।</div>
+    <div class="card feat violet"><h5>🍜 মেস চালান</h5>খাবার, বাজার ডিউটি, শেয়ার্ড খরচ, ব্যালেন্স আর মাস শেষের সেটেলমেন্ট — আসল মেসের জন্যই বানানো।</div>
+    <div class="card feat"><h5>🛍️ স্টুডেন্ট হাব</h5>ক্যাম্পাসের আশপাশের লোকাল সার্ভিস, দোকান আর স্টুডেন্ট ডিসকাউন্ট — ছাত্রদেরই সাজেস্ট করা।</div>
+    <div class="card feat green"><h5>🤝 কমিউনিটি</h5>ক্লাব আর স্টাডি গ্রুপ ফলো করুন, আলোচনায় জড়িত হোন, পোলে ভোট দিন, ইভেন্টে যোগ দিন।</div>
+    <div class="card feat amber"><h5>📖 বই বিনিময়</h5>পড়া শেষ হয়ে যাওয়া বই পরের ব্যাচের ছাত্রদের কাছে পৌঁছে দিন — বিক্রি, বিনিময় বা দান।</div>
+    <div class="card feat rose"><h5>🔬 রিসার্চ পার্টনার</h5>নিজের রিসার্চ প্রোফাইল প্রকাশ করুন, পরবর্তী প্রজেক্টের সহযোগী খুঁজুন।</div>
+  </div>
+
+  <h3 class="sec"><span class="idx">১.২</span> এই নির্দেশিকা কার জন্য</h3>
+  <p>এই নির্দেশিকায় <strong>KSE মোবাইল অ্যাপের</strong> প্রতিটি স্ক্রিন আর প্রতিটি কাজ সহজ
+  বাংলায় ব্যাখ্যা করা হয়েছে। কোনো প্রযুক্তিগত জ্ঞান লাগবে না। শুরু থেকে পড়তে পারেন,
+  অথবা সূচিপত্র থেকে সরাসরি দরকারি অধ্যায়ে চলে যেতে পারেন।</p>
+
+  <div class="tip"><b>মানের প্রতিশ্রুতি:</b> KSE-র প্রতিটি ইন্টার্নশিপ, স্কলারশিপ, ইভেন্ট ও টিউটর
+  প্রকাশের আগে KSE টিম যাচাই করে। <strong>“Manually curated”</strong> ব্যাজের মানে —
+  এটা বট দিয়ে কুড়ানো তথ্য নয়, একজন মানুষ দেখে নিশ্চিত করেছেন।</div>
+
+  <h3 class="sec"><span class="idx">১.৩</span> কিছু শব্দের অর্থ</h3>
+  <table class="tbl">
+    <tr><th style="width:36mm">শব্দ</th><th>KSE-তে এর মানে</th></tr>
+    <tr><td><b>বাজার (Bazar)</b></td><td>মেসের বাজার করা — কে কবে কেনে, কী কিনল আর কত টাকা লাগল।</td></tr>
+    <tr><td><b>সেটেলমেন্ট</b></td><td>মাস শেষের হিসাব — কার কত জমা আর কার কত বাকি, হিসাবের প্রতিটি লাইন দেখানো হয়।</td></tr>
+    <tr><td><b>টু-লেট (To-Let)</b></td><td>ভাড়ার জন্য রুম, সাবলেট বা সিট — ছাত্রদের পোস্ট করা, ছাত্রদের জন্যই।</td></tr>
+    <tr><td><b>বুকমার্ক</b></td><td>পরে দেখার জন্য সেভ করা সুযোগ — সেভড লিস্ট আর ড্যাশবোর্ডে দেখা যায়।</td></tr>
+    <tr><td><b>ম্যানেজার</b></td><td>মেসের যে সদস্য জয়েন রিকোয়েস্ট অনুমোদন করেন, খরচ লেখেন আর মাস শেষে সেটেলমেন্ট লক করেন।</td></tr>
+  </table>
+</section>
+
+<!-- ═══════════ ২ · শুরু করা ═══════════ -->
+<section class="chapter" id="c2">
+  <div class="chap-head">
+    <div class="chap-num">2</div>
+    <div>
+      <span class="kicker">সেটআপ</span>
+      <h2>শুরু করা</h2>
+      <div class="glance">অ্যাপ ইনস্টল, অ্যাকাউন্ট খোলা আর ওয়েলকাম ট্যুর শেষ করা।</div>
+    </div>
+  </div>
+
+  <h3 class="sec"><span class="idx">২.১</span> ফোনে KSE ইনস্টল করুন</h3>
+  <ul class="list">
+    <li><strong>Android:</strong> <span class="kbd">KSE.apk</span> ফাইলটি ইনস্টল করুন (চাইলে “অজানা উৎস থেকে ইনস্টল” অনুমতি দিতে হবে), অথবা প্রকাশ হলে Play Store থেকে নিন।</li>
+    <li><strong>iPhone:</strong> TestFlight বা App Store দিয়ে ইনস্টল করুন (প্রকাশ হলে)।</li>
+    <li><strong>ওয়েব:</strong> যেকোনো আধুনিক ব্রাউজারে KSE ওয়েব অ্যাপ খুলুন — একই অ্যাকাউন্ট সব জায়গায় কাজ করে।</li>
+  </ul>
+
+  <h3 class="sec"><span class="idx">২.২</span> অ্যাকাউন্ট খুলুন</h3>
+  <ol class="steps">
+    <li>KSE খুলুন। <strong>Login</strong> স্ক্রিনে <span class="kbd">Create an account</span> ট্যাপ করুন।</li>
+    <li><strong>Full name</strong> (পুরো নাম), <strong>Email</strong> আর <strong>Password (8+ অক্ষর)</strong> লিখুন।</li>
+    <li><span class="kbd">Create account</span> ট্যাপ করুন।</li>
+    <li>যদি ইমেইল ভেরিফিকেশন চালু থাকে, আগে ইমেইলে পাঠানো ভেরিফিকেশন লিংকে ক্লিক করুন — তারপর সাইন ইন করুন।</li>
+  </ol>
+
+  <h4>Google দিয়েই সুবিধা?</h4>
+  <p>Login স্ক্রিনে <span class="kbd">Continue with Google</span> ট্যাপ করে পছন্দের অ্যাকাউন্ট বেছে
+  নিন। পাসওয়ার্ড মনে রাখার ঝামেলা নেই — আপনার প্রোফাইল একইসাথে তৈরি হয়ে যাবে।</p>
+
+  <h3 class="sec"><span class="idx">২.৩</span> সাইন ইন ও পাসওয়ার্ড রিসেট</h3>
+  <ul class="list">
+    <li>সাইন ইন: <strong>Email</strong> আর <strong>Password</strong> দিয়ে <span class="kbd">Sign in</span> ট্যাপ করুন।</li>
+    <li>পাসওয়ার্ড ভুলে গেছেন? <span class="kbd">Forgot password?</span> ট্যাপ করে ইমেইল দিন — পাঠানো লিংক দিয়ে নতুন পাসওয়ার্ড সেট করুন।</li>
+  </ul>
+
+  <h3 class="sec"><span class="idx">২.৪</span> ওয়েলকাম ট্যুর (অনবোর্ডিং)</h3>
+  <p>প্রথমবার সাইন ইন করলে KSE তিনটি ছোট স্ক্রিনে আপনাকে পরিচয় করিয়ে দেয়:</p>
+  <table class="tbl">
+    <tr><th style="width:44mm">স্ক্রিন</th><th>কী দেখায়</th></tr>
+    <tr><td><b>Welcome</b></td><td>খুলনা স্টুডেন্ট ইকোসিস্টেমের এক লাইনের পরিচয়। <span class="kbd">Start</span> ট্যাপ করুন।</td></tr>
+    <tr><td><b>Opportunities</b></td><td>আপনার অপেক্ষায় থাকা সুযোগের ধরন — ইন্টার্নশিপ, স্কলারশিপসহ। <span class="kbd">Next</span> ট্যাপ করুন।</td></tr>
+    <tr><td><b>Student Community</b></td><td>ক্লাব, আলোচনা আর বড় ছাত্রসমাজ। শেষ করলেই সোজা হোমে চলে যাবেন।</td></tr>
+  </table>
+  <div class="tip"><b>টিপ:</b> প্রোফাইল যত পূর্ণ (বিশ্ববিদ্যালয়, ডিপার্টমেন্ট, স্কিল), KSE-র রেকমেন্ডেশন তত
+  নিখুঁত হয়। কীভাবে করবেন — অধ্যায় ১৩-এ দেখানো আছে।</div>
+
+  <h3 class="sec"><span class="idx">২.৫</span> অ্যাপে চলাফেরা</h3>
+  <p>প্রতিটি মূল স্ক্রিনের নিচে চারটি ট্যাব, আর মাঝখানে কুইক অ্যাকশনের জন্য <strong>＋</strong> বাটন:</p>
+  <div class="navbar">
+    <div class="nb"><div class="ic">🏠</div><div class="lb">Home</div><div class="ds">দিনের সারসংক্ষেপ</div></div>
+    <div class="nb"><div class="ic">🧭</div><div class="lb">Explore</div><div class="ds">ঘুরে দেখার সবকিছু</div></div>
+    <div class="nb plus"><div class="ic">＋</div><div class="lb">কুইক অ্যাকশন</div><div class="ds">পোস্ট, খোঁজা, তৈরি</div></div>
+    <div class="nb"><div class="ic">👥</div><div class="lb">Community</div><div class="ds">ক্লাব ও আলোচনা</div></div>
+    <div class="nb"><div class="ic">👤</div><div class="lb">Profile</div><div class="ds">আপনি, পোর্টফোলিও ও সেটিংস</div></div>
+  </div>
+  <p><strong>Dashboard</strong>, <strong>Notifications</strong>, <strong>Saved</strong>, <strong>Search</strong> —
+  এই স্ক্রিনগুলো ট্যাবের ভেতরের বাটন থেকে খোলে, প্রতিটির নিজের অধ্যায় আছে। যেখানেই থাকুন,
+  উপরে বাঁয়ের <span class="kbd">‹</span> তীর চেপে এক ধাপ পিছনে যেতে পারবেন।</p>
+</section>
+
+<!-- ═══════════ ৩ · হোম ═══════════ -->
+<section class="chapter" id="c3">
+  <div class="chap-head">
+    <div class="chap-num">3</div>
+    <div>
+      <span class="kicker">অ্যাপের মূল স্ক্রিন</span>
+      <h2>হোম স্ক্রিন</h2>
+      <div class="glance">শুভেচ্ছা, সার্চ, ব্যানার, রেকমেন্ডেশন আর সবচেয়ে নতুন সুযোগ।</div>
+    </div>
+  </div>
+
+  <p class="lead">হোম আপনার দিনের ড্যাশবোর্ড — নাম ধরে শুভেচ্ছা জানায়, যেকোনো কিছু সার্চ করতে
+  দেয়, আর এক স্ক্রলে সবচেয়ে টাটকা সুযোগগুলো সাজিয়ে রাখে।</p>
+
+  <h3 class="sec"><span class="idx">৩.১</span> কী কী দেখবেন</h3>
+  <table class="tbl">
+    <tr><th style="width:44mm">উপাদান</th><th>কী করে</th></tr>
+    <tr><td><b>শুভেচ্ছা</b></td><td>“Hi, <em>আপনার নামের প্রথম অংশ</em> 👋” — নিজের অ্যাকাউন্টে ঢুকেছেন এটাই প্রমাণ।</td></tr>
+    <tr><td><b>সার্চ বার</b></td><td>যেকোনো কিছু লিখে এন্টার চাপলে পুরো অ্যাপে সার্চ হয় (অধ্যায় ১৪)।</td></tr>
+    <tr><td><b>🔔 বেল</b></td><td>নোটিফিকেশন ইনবক্স খোলে। বিন্দু দেখলে বুঝবেন নতুন কিছু পড়া বাকি।</td></tr>
+    <tr><td><b>▦ গ্রিড</b></td><td>ড্যাশবোর্ড খোলে — ডেডলাইন আর প্রোফাইল স্কোরসহ (অধ্যায় ১৪)।</td></tr>
+    <tr><td><b>প্রোমো ক্যারোসেল</b></td><td>ঘুরেফিরে আসা ব্যানার — সাথে KSE-র বাংলা মূলমন্ত্র <strong>“পড়াও, শেখো, আয় করো”</strong>।</td></tr>
+    <tr><td><b>Quick Access</b></td><td>যেকোনো এলাকায় সোজা ঢুকে পড়ার দশটি টাইল — নিচে দেখুন।</td></tr>
+    <tr><td><b>Recommended for You</b></td><td>আপনার প্রোফাইল আর আগ্রহের সাথে মেলানো সুযোগ।</td></tr>
+    <tr><td><b>Latest Opportunities</b></td><td>সবচেয়ে নতুন প্রকাশিত আইটেম; <span class="kbd">See All</span> চেপে পুরো লিস্ট।</td></tr>
+    <tr><td><b>Hot To-Lets</b></td><td>ক্যাম্পাসের কাছে নতুন বাসার লিস্টিং (অধ্যায় ৬)।</td></tr>
+  </table>
+
+  <h3 class="sec"><span class="idx">৩.২</span> Quick Access টাইল</h3>
+  <p>এক ট্যাপে পুরো অ্যাপের দশটি শর্টকাট:</p>
+  <p>
+    <span class="pill i">Internship</span><span class="pill g">Scholarship</span><span class="pill a">Tuition</span>
+    <span class="pill n">Workshops</span><span class="pill n">Events</span><span class="pill n">Community</span>
+    <span class="pill n">Mentor</span><span class="pill i">To-Let</span><span class="pill g">Student Hub</span>
+    <span class="pill a">Mess</span>
+  </p>
+
+  <h3 class="sec"><span class="idx">৩.৩</span> ＋ কুইক অ্যাকশন শিট</h3>
+  <p>নিচের বারের <strong>＋</strong> চাপলে যেগুলো <em>করার</em> কাজগুলো সামনে আসে (শুধু দেখা নয়):</p>
+  <ul class="list">
+    <li><strong>My dashboard</strong> — প্রোফাইল স্কোর, সেভ করা সুযোগ, আসন্ন ডেডলাইন</li>
+    <li><strong>Browse internships / Find scholarships / Find a tutor</strong> — সোজা খোঁজায় নামা</li>
+    <li><strong>Open Student Hub</strong> — লোকাল সার্ভিস, দোকান আর ডিল</li>
+    <li><strong>Suggest a place</strong> — লোকাল সার্ভিস যোগ করা (অধ্যায় ৮)</li>
+    <li><strong>Post a To-Let</strong> — রুম, সাবলেট বা মেস সিটের বিজ্ঞাপন (অধ্যায় ৬)</li>
+    <li><strong>Sell or exchange a book</strong> — পুরোনো বইয়ের ক্রেতা খুঁজুন (অধ্যায় ৯)</li>
+    <li><strong>Join a community</strong> — ক্লাব আর স্টাডি গ্রুপ (অধ্যায় ১২)</li>
+  </ul>
+
+  <div class="tip"><b>কিছু খালি দেখলে?</b> কোনো সেকশনে “Nothing published yet” লেখা থাকলে বুঝবেন
+  এখন ওখানে ভেরিফায়েড কনটেন্ট নেই — নিয়মিত নতুন লিস্টিং আসে, একটু পরেই আবার দেখুন।</div>
+</section>
+
+<!-- ═══════════ ৪ · এক্সপ্লোর ═══════════ -->
+<section class="chapter" id="c4">
+  <div class="chap-head">
+    <div class="chap-num">4</div>
+    <div>
+      <span class="kicker">সুযোগ খোঁজা</span>
+      <h2>সুযোগ ঘুরে দেখা — Explore</h2>
+      <div class="glance">ইন্টার্নশিপ, ইভেন্ট, ওয়ার্কশপ — ব্রাউজ, ফিল্টার, সেভ আর আবেদন।</div>
+    </div>
+  </div>
+
+  <p class="lead"><strong>Explore</strong> ট্যাবটা KSE-র সবকিছুর প্রবেশদ্বার। প্রতিটি ক্যাটাগরি
+  কার্ডে ভেতরে কতগুলো আইটেম অপেক্ষায় — সেটার লাইভ কাউন্ট দেখায়।</p>
+
+  <h3 class="sec"><span class="idx">৪.১</span> Explore-এর দশটি ক্যাটাগরি</h3>
+  <table class="tbl">
+    <tr><th style="width:48mm">ক্যাটাগরি</th><th>ভেতরে কী আছে</th></tr>
+    <tr><td><b>Internships</b> — ক্যারিয়ারের শুরু</td><td>যাচাইকৃত প্রতিষ্ঠানের ইন্টার্নশিপ — লোকাল ও রিমোট।</td></tr>
+    <tr><td><b>Scholarships</b> — পড়াশোনার খরচ বহন</td><td>লোকাল ও আন্তর্জাতিক ফান্ড (অধ্যায় ৫)।</td></tr>
+    <tr><td><b>Bachelor To-Let</b> — রুম ও সাবলেট</td><td>ক্যাম্পাসের কাছে ছাত্রদের বাসা (অধ্যায় ৬)।</td></tr>
+    <tr><td><b>Events</b> — মিটআপ ও সেমিনার</td><td>এক ট্যাপে রেজিস্ট্রেশন করা যায় এমন ইভেন্ট।</td></tr>
+    <tr><td><b>Workshops</b> — নতুন স্কিল</td><td>হাতে-কলমে শেখার ওয়ার্কশপ, রেজিস্ট্রেশনসহ।</td></tr>
+    <tr><td><b>Tuition</b> — টিউটর খুঁজুন</td><td>ভেরিফায়েড টিউটর প্রোফাইল (অধ্যায় ৭)।</td></tr>
+    <tr><td><b>Mentorship</b> — মেন্টরের সাথে</td><td>শীঘ্রই আসছে — চালু হলে KSE জানিয়ে দেবে।</td></tr>
+    <tr><td><b>Student Hub</b></td><td>লোকাল সার্ভিস, দোকান, ডিল (অধ্যায় ৮)।</td></tr>
+    <tr><td><b>Book Exchange</b></td><td>বিনিময় বা কেনার মতো পুরোনো বই (অধ্যায় ৯)।</td></tr>
+    <tr><td><b>Research Partners</b></td><td>প্রজেক্টের সহযোগী (অধ্যায় ১০)।</td></tr>
+  </table>
+  <p>Explore-এর উপরের সার্চ বার ক্যাটাগরিগুলোই ফিল্টার করে — “বই” বা “book” লিখলে সোজা
+  Book Exchange-এ পৌঁছে যাবেন।</p>
+
+  <h3 class="sec"><span class="idx">৪.২</span> লিস্ট ব্রাউজ ও ফিল্টার</h3>
+  <p>যেকোনো ক্যাটারিগরি খুলুন (যেমন <strong>Internships</strong>) — কার্ডের লিস্ট পাবেন: শিরোনাম,
+  প্রতিষ্ঠান, লোকেশন, মোড আর ডেডলাইন। লিস্টের উপরের বাটনগুলো:</p>
+  <ul class="list">
+    <li><span class="kbd">Filters</span> — নিচ থেকে উঠে আসা শিটে ওই ক্যাটাগরির ফিল্টারগুলো।</li>
+    <li><span class="kbd">Load more</span> — পরের পাতা যোগ হয়; অ্যাপ দ্রুত চলে এজন্যই লিস্ট পেজে ভাগ করা।</li>
+  </ul>
+  <h4>সাধারণ ফিল্টার</h4>
+  <p><span class="pill i">মোড: রিমোট / অন-সাইট / হাইব্রিড</span>
+     <span class="pill i">ডেডলাইন: যেমন আগামী ৭ দিন</span>
+     <span class="pill i">ক্যাটাগরি বা ধরন</span>
+     <span class="pill i">সাজানো: সর্বশেষ / ভাড়া বেশি → কম (টু-লেট)</span></p>
+  <p>ফিল্টার চালু করতে <span class="kbd">Apply</span>, আবার শুরু করতে <span class="kbd">Reset</span>।
+  স্কলারশিপ, টু-লেট ও টিউটর লিস্টে নিজস্ব বাড়তি ফিল্টার আছে (ফান্ডিং টাইপ, রুম টাইপ, বিষয়, ফি…)।</p>
+
+  <h3 class="sec"><span class="idx">৪.৩</span> সুযোগের ডিটেইল পেজ</h3>
+  <p>যেকোনো কার্ডে ট্যাপ করলে সম্পূর্ণ বিবরণ:</p>
+  <div class="grid2">
+    <div class="card"><h5>📌 মূল তথ্য</h5>শিরোনাম, প্রতিষ্ঠান, ধরন, লোকেশন, মোড (রিমোট / অন-সাইট / হাইব্রিড), যোগ্যতা আর পূর্ণ বিবরণ।</div>
+    <div class="card"><h5>🗓 ডেডলাইন</h5>ইন্টার্নশিপ ও স্কলারশিপে <strong>Application deadline</strong>; ইভেন্ট ও ওয়ার্কশপে <strong>Registration deadline</strong>।</div>
+    <div class="card feat"><h5>🔖 সেভ করুন</h5>বুকমার্ক বাটন আইটেমটিকে <strong>Saved</strong> লিস্টে রাখে — ড্যাশবোর্ডের ডেডলাইন ট্র্যাকারেও যোগ হয়।</div>
+    <div class="card feat green"><h5>🚀 আবেদন / রেজিস্ট্রেশন</h5><strong>Apply now</strong> ব্রাউজারে অফিসিয়াল আবেদন পেজ খোলে। ইভেন্ট-ওয়ার্কশপে থাকে <strong>Register</strong>।</div>
+  </div>
+  <p>দুটি অবস্থায় বাটন বদলে যায়: ডেডলাইন পেরোলে <span class="pill n">Deadline passed</span>
+  (কাজ করে না), বন্ধ ইভেন্টে <span class="pill n">Registration closed</span>। KSE টিমের যাচাইকৃত
+  আইটেমে <span class="pill i">Manually curated</span> ব্যাজ থাকে।</p>
+
+  <div class="tip"><b>কেন অফিসিয়াল লিংকে পাঠাই:</b> KSE সুযোগটা দেখায় আর ডেডলাইন মনে করিয়ে দেয় —
+  আবেদনটা হয় আয়োজকের নিজের অফিসিয়াল পেজেই, যাতে কোনো তথ্য আড়ালে না থাকে।</div>
+
+  <h3 class="sec"><span class="idx">৪.৪</span> ইভেন্ট ও ওয়ার্কশপ রেজিস্ট্রেশন</h3>
+  <ol class="steps">
+    <li><strong>Explore → Events</strong> (বা <strong>Workshops</strong>) খুলুন।</li>
+    <li>চাইলে ফিল্টার করুন — তারিখ, আয়োজক, লোকেশন বা অনলাইন/অফলাইন ধরনে।</li>
+    <li>ইভেন্টে ঢুকে <span class="kbd">Register</span> চাপুন।</li>
+    <li>আপনার রেজিস্ট্রেশনগুলো <strong>ড্যাশবোর্ডে</strong> দেখা যাবে।</li>
+  </ol>
+</section>
+
+<!-- ═══════════ ৫ · স্কলারশিপ ═══════════ -->
+<section class="chapter" id="c5">
+  <div class="chap-head">
+    <div class="chap-num">5</div>
+    <div>
+      <span class="kicker">পড়াশোনার খরচ বহন</span>
+      <h2>স্কলারশিপ ও অ্যাপ্লিকেশন ট্র্যাকার</h2>
+      <div class="glance">ফান্ড খুঁজুন, তারপর Saved থেকে Selected পর্যন্ত প্রতিটি আবেদনের হিসাব।</div>
+    </div>
+  </div>
+
+  <p class="lead">স্কলারশিপ লিস্ট বাকি সব সুযোগের মতোই — আসল জাদু হলো ভেতরে থাকা
+  <strong>অ্যাপ্লিকেশন ট্র্যাকার</strong>, যা আপনার পুরো স্কলারশিপ ক্যাম্পেইন গুছিয়ে রাখে।</p>
+
+  <h3 class="sec"><span class="idx">৫.১</span> স্কলারশিপ খুঁজুন</h3>
+  <ol class="steps">
+    <li><strong>Explore → Scholarships</strong>-এ যান।</li>
+    <li><strong>লোকাল / আন্তর্জাতিক</strong>, বিশ্ববিদ্যালয়, ডিগ্রি লেভেল ও ফান্ডিং টাইপ ফিল্টারে সংকুচিত করুন।</li>
+    <li>যোগ্যতা, ফান্ডিং বিবরণ আর ডেডলাইন পড়তে একটি স্কলারশিপ খুলুন।</li>
+    <li><span class="kbd">Apply now</span> চেপে অফিসিয়াল আবেদন পেজ খুলুন।</li>
+  </ol>
+
+  <h3 class="sec"><span class="idx">৫.২</span> আবেদন ট্র্যাক করুন</h3>
+  <p>যেকোনো স্কলারশিপের ডিটেইলে <span class="kbd">Add to application tracker</span> (আগে থেকে
+  ট্র্যাক করলে <span class="kbd">Update tracker</span>) চেপে অবস্থা বাছুন:</p>
+  <p>
+    <span class="pill n">Saved — সেভ করা</span>
+    <span class="pill i">Interested — আগ্রহী</span>
+    <span class="pill a">Preparing — প্রস্তুতি নিচ্ছি</span>
+    <span class="pill g">Applied — আবেদন করেছি</span>
+    <span class="pill r">Rejected — বাতিল</span>
+    <span class="pill g">Selected — নির্বাচিত</span>
+  </p>
+  <p>অগ্রগতি অনুযায়ী যখন খুশি অবস্থা বদলান — প্রতিবার KSE নিশ্চিত করে দেয় যে ট্র্যাকারে ঢুকেছে।</p>
+
+  <h3 class="sec"><span class="idx">৫.৩</span> My Scholarships</h3>
+  <p><strong>Profile → My Scholarships</strong> খুললে ট্র্যাক করা সব স্কলারশিপ এক লিস্টে — প্রতিটির
+  পাশে রঙিন স্ট্যাটাস চিপ আর ডেডলাইন। এটাই আপনার ক্যাম্পেইনের সারসংক্ষেপ — ট্র্যাক করা
+  আইটেম ড্যাশবোর্ডের ডেডলাইনেও যোগ হয়, তাই কোনোটা আর চোখের আড়ালে থাকে না।</p>
+
+  <div class="tip"><b>পরামর্শ:</b> ঘুরতে ঘুরতে সম্ভাব্য সবগুলো <em>Interested</em> করে রাখুন, কয়েক সপ্তাহ
+  বাকি থাকলে আসল প্রার্থীদের <em>Preparing</em>-এ তুলুন, আর জমা দেওয়ার সাথে সাথে <em>Applied</em>।
+  লিস্টটা সবুজ হতে দেখার একটা আলাদাই আনন্দ আছে!</div>
+</section>
+
+<!-- ═══════════ ৬ · টু-লেট ═══════════ -->
+<section class="chapter" id="c6">
+  <div class="chap-head">
+    <div class="chap-num">6</div>
+    <div>
+      <span class="kicker">ছাত্রদের বাসা</span>
+      <h2>ব্যাচেলর টু-লেট</h2>
+      <div class="glance">রুম, সাবলেট, হোস্ট ফ্যামিলি আর মেস সিট — ছাত্রদের পোস্ট, ছাত্রদের জন্য।</div>
+    </div>
+  </div>
+
+  <p class="lead">“Bachelor To-Let” হলো KSE-র বাসার বাজার: ছাত্র ও বাড়িওয়ালাদের পোস্ট করা যাচাইকৃত
+  লিস্টিং — খুলনার ছাত্র যা যা চায় ঠিক তেমন ফিল্টারসহ।</p>
+
+  <h3 class="sec"><span class="idx">৬.১</span> বাসা খুঁজুন</h3>
+  <ol class="steps">
+    <li><strong>Explore → Bachelor To-Let</strong> খুলুন (বা হোমের Hot To-Let কার্ড)।</li>
+    <li>সার্চ বারে <em>এলাকা, ল্যান্ডমার্ক বা রুম টাইপ</em> লিখে খুঁজুন।</li>
+    <li><span class="kbd">Filters</span> চেপে সিটি (খুলনা, যশোর, রাজশাহী…), এলাকা, রুম টাইপ ও জেন্ডার প্রেফারেন্স বাছুন; সাজান সর্বশেষ বা ভাড়া অনুযায়ী।</li>
+    <li>লিস্টিংয়ে ট্যাপ করলে ছবি, ভাড়া, ঠিকানা আর যোগাযোগের ঠিকানা।</li>
+  </ol>
+  <h4>যেসব রুম টাইপ দেখবেন</h4>
+  <p><span class="pill i">সিঙ্গেল রুম</span><span class="pill i">মেস সাবলেট</span>
+     <span class="pill i">হোস্ট ফ্যামিলি</span><span class="pill n">…আরও ছাত্রবান্ধব টাইপ</span></p>
+
+  <h3 class="sec"><span class="idx">৬.২</span> লিস্টিং পোস্ট করুন</h3>
+  <p>রুম, সাবলেট বা মেস সিট ভাড়া দিতে চান?</p>
+  <ol class="steps">
+    <li>টু-লেট লিস্টে <span class="kbd">Post a listing</span> (বা <strong>＋ → Post a To-Let</strong>)।</li>
+    <li>বিবরণ দিন: শিরোনাম, এলাকা, রুম টাইপ, ভাড়া, জেন্ডার প্রেফারেন্স ও বর্ণনা।</li>
+    <li>ছবি দিন (প্রতি লিস্টিংয়ের সীমা পর্যন্ত — চাইলে ছবির অনুমতি দিন)।</li>
+    <li>জমা দিন। লিস্টিং প্রথমে <span class="pill a">Pending review</span>-এ যায় — KSE টিম দেখে তারপর লাইভ করে।</li>
+  </ol>
+
+  <h3 class="sec"><span class="idx">৬.৩</span> নিজের লিস্টিং ম্যানেজ করুন</h3>
+  <p>টু-লেট স্ক্রিনে <span class="kbd">My listings</span> চেপে আপনার পোস্ট আর তার অবস্থা দেখুন:</p>
+  <p>
+    <span class="pill a">Pending review — রিভিউ চলছে</span>
+    <span class="pill g">Published — প্রকাশিত</span>
+    <span class="pill r">Rejected — বাতিল</span>
+    <span class="pill n">Expired — মেয়াদোত্তীর্ণ</span>
+    <span class="pill n">Archived — আর্কাইভ</span>
+  </p>
+  <p>আর ভাড়া দিচ্ছেন না? লিস্টিং খুলে <span class="kbd">Withdraw</span> চাপুন — নিশ্চিত করার পর
+  লিস্টিংটি আর কারও চোখে পড়ে না।</p>
+
+  <div class="note"><b>নিরাপত্তা আগে:</b> টাকা দেওয়ার আগে বন্ধু নিয়ে জায়গাটা ঘুরে দেখুন, আর কথাবার্তা
+  চেনা মাধ্যমেই রাখুন। KSE লিস্টিং যাচাই করে, কিন্তু মানুষটাকে যাচাই করা আপনার দায়িত্ব।</div>
+</section>
+
+<!-- ═══════════ ৭ · টিউশন ═══════════ -->
+<section class="chapter" id="c7">
+  <div class="chap-head">
+    <div class="chap-num">7</div>
+    <div>
+      <span class="kicker">পড়ানো ও শেখা</span>
+      <h2>টিউশন — টিউটর খুঁজুন বা নিজেই হোন</h2>
+      <div class="glance">বিশ্ববিদ্যালয়ের কাছের ভেরিফায়েড টিউটর, আর যারা পড়ান তাদের জন্য টিউটর আবেদন।</div>
+    </div>
+  </div>
+
+  <p class="lead">টিউশন এলাকাটা ইচ্ছে করেই সহজ রাখা হয়েছে — খোঁজা আর রিকোয়েস্ট। সঠিক টিউটর বেছে
+  নিন, রিকোয়েস্ট পাঠান, অবস্থা দেখুন। কোনো মিডলম্যান নেই, লুকানো চার্জ নেই।</p>
+
+  <h3 class="sec"><span class="idx">৭.১</span> টিউটর খুঁজুন</h3>
+  <ol class="steps">
+    <li><strong>Explore → Tuition</strong> খুলুন।</li>
+    <li><strong>বিষয়</strong>, বিশ্ববিদ্যালয়, এলাকা ও মাসিক ফি অনুযায়ী ফিল্টার করুন।</li>
+    <li><span class="pill g">✓ Verified</span> ব্যাজের টিউটরদের KSE টিম যাচাই করেছে।</li>
+    <li>টিউটরের পুরো প্রোফাইল দেখুন: <strong>About</strong>, <strong>Subjects</strong>, <strong>Availability</strong>, <strong>University</strong>, <strong>Location</strong>, ফি আর অন্য ছাত্রদের <strong>Reviews</strong>।</li>
+  </ol>
+
+  <h3 class="sec"><span class="idx">৭.২</span> টিউশন রিকোয়েস্ট পাঠান</h3>
+  <ol class="steps">
+    <li>টিউটরের প্রোফাইলে <span class="kbd">Request tuition</span> চাপুন।</li>
+    <li><strong>বিষয়</strong> (ও টিউটর) নিশ্চিত করুন, ছোট একটা মেসেজ লিখুন, চাইলে পছন্দের সময় দিন।</li>
+    <li><span class="kbd">Send request</span> চাপুন।</li>
+  </ol>
+  <h4>রিকোয়েস্টের খোঁজ রাখুন</h4>
+  <p><strong>My tuition requests</strong> খুলুন (টিউশন এলাকা বা ＋ শিট থেকে)। প্রতিটি রিকোয়েস্টের অবস্থা:</p>
+  <p><span class="pill a">Pending — অপেক্ষমাণ</span> <span class="pill g">Accepted — গৃহীত</span> <span class="pill r">Rejected — বাতিল</span> <span class="pill n">Closed — বন্ধ</span></p>
+
+  <h3 class="sec"><span class="idx">৭.৩</span> নিজেই টিউটর হোন</h3>
+  <p>আপনি পড়ান (বা পড়াতে চান)? একবার আবেদন করুন — তারপর আপনার টিউটর কার্ড খোঁজার লিস্টে দেখা যাবে:</p>
+  <ol class="steps">
+    <li><strong>Profile → Become a Tutor</strong>-এ যান।</li>
+    <li>যেসব <strong>বিষয়</strong> পড়াান সেগুলো বাছুন (অন্তত একটা)।</li>
+    <li>টাকায় <strong>মাসিক ফির রেঞ্জ</strong> দিন (পূর্ণসংখ্যা, যেমন 2500) আর এলাকা লিখুন।</li>
+    <li>ছোট একটা পরিচিতি লিখুন — যেমন “CSE undergrad teaching programming fundamentals” — তারপর <span class="kbd">Submit application</span>।</li>
+  </ol>
+  <p>KSE টিম আবেদন যাচাই করে। অনুমোদিত হলেই আপনি টিউটর হিসেবে তালিকাভুক্ত; কোনো আবেদন
+  অনুমোদিত না হলে আবার আবেদন করতে পারবেন।</p>
+
+  <div class="tip"><b>টিউটর টিপ:</b> ঝাপসা নয়, নির্দিষ্ট পরিচিতি ভালো কাজ দেয়। “C আর Python পড়াই
+  ফার্স্ট-ইয়ারদের” — “সব পড়াই” থেকে অনেক বেশি ভালো রিকোয়েস্ট আনে।</div>
+</section>
+
+<!-- ═══════════ ৮ · স্টুডেন্ট হাব ═══════════ -->
+<section class="chapter" id="c8">
+  <div class="chap-head">
+    <div class="chap-num">8</div>
+    <div>
+      <span class="kicker">ক্যাম্পাসের আশপাশ</span>
+      <h2>স্টুডেন্ট হাব</h2>
+      <div class="glance">লোকাল সার্ভিস, দোকান আর স্টুডেন্ট ডিসকাউন্ট — ছাত্রদের বানানো, ছাত্রদের জন্য।</div>
+    </div>
+  </div>
+
+  <p class="lead">স্টুডেন্ট হাব দৈনন্দিন প্রশ্নের উত্তর দেয়: কাছের লন্ড্রি কোথায়, কোন দোকানে ছাত্রদের
+  ছাড়, ক্যাম্পাসের কাছে কে সাইকেল সারে। কনটেন্ট মানুষের হাতে গড়া — ছাত্ররাই সাজেস্ট করে,
+  টিম যাচাই করে প্রকাশ করে।</p>
+
+  <h3 class="sec"><span class="idx">৮.১</span> হাবে ঘুরে দেখুন</h3>
+  <ol class="steps">
+    <li><strong>Explore → Student Hub</strong> খুলুন (বা Quick Access টাইল)।</li>
+    <li>ক্যাটাগরি কার্ডে হাব সাজানো — যেমন <strong>Study &amp; Research</strong>, <strong>Daily Life</strong>, <strong>Mobility</strong>, <strong>Student Deals</strong> — প্রতিটিতে লাইভ লিস্টিং কাউন্ট।</li>
+    <li>ক্যাটাগরি, তারপর লিস্টিংয়ে ঢুকলে ঠিকানা, ফোন, খোলার সময় আর জায়গাটার বিশেষত্ব দেখবেন।</li>
+    <li>হাবের সার্চ দিয়ে নাম বা কীওয়ার্ডে সরাসরি খুঁজুন।</li>
+  </ol>
+
+  <h3 class="sec"><span class="idx">৮.২</span> জায়গা সাজেস্ট করুন</h3>
+  <p>কোনো দোকান বা সার্ভিস জানেন যেটা অন্য ছাত্রদের কাজে লাগবে? এক মিনিটেই যোগ করুন:</p>
+  <ol class="steps">
+    <li><span class="kbd">Suggest a place</span> চাপুন (হাব স্ক্রিন বা ＋ কুইক অ্যাকশন)।</li>
+    <li><strong>Place name</strong> (যেমন “New Star Laundry”), <strong>Category</strong> আর <strong>Service type</strong> (যেমন “Wash, Dry cleaning, Pickup”) দিন।</li>
+    <li><strong>City</strong> (যেমন খুলনা), <strong>Area</strong> (যেমন শিববাড়ী), রাস্তার ঠিকানা ও ল্যান্ডমার্ক যোগ করুন।</li>
+    <li>ফোন নম্বর, খোলার সময় (যেমন “Sat–Thu 9:00–21:00”) আর জায়গাটা কী জন্য পরিচিত সেটার এক লাইনের বিবরণ দিন।</li>
+    <li><span class="kbd">Send suggestion</span> — KSE টিম দেখে হাবে প্রকাশ করবে।</li>
+  </ol>
+
+  <div class="tip"><b>ভালো সাজেশন নির্দিষ্ট হয়:</b> সঠিক ল্যান্ডমার্ক, আসল খোলার সময় আর জায়গাটার
+  সত্যিকারের বিশেষত্ব — এই তিনটাই একটা লিস্টিংকে সবার কাজে লাগায়।</div>
+</section>
+
+<!-- ═══════════ ৯ · বই বিনিময় ═══════════ -->
+<section class="chapter" id="c9">
+  <div class="chap-head">
+    <div class="chap-num">9</div>
+    <div>
+      <span class="kicker">পুনর্ব্যবহার · সাশ্রয়</span>
+      <h2>বই বিনিময় — Book Exchange</h2>
+      <div class="glance">পড়া শেষ হওয়া বই বিক্রি, বিনিময় বা দান করে দিন।</div>
+    </div>
+  </div>
+
+  <p class="lead">প্রতি সেমিস্টার শেষে এমন বইয়ের স্তূপ, যা আর কোনোদিন খোলা হবে না — আর প্রতি
+  সেমিস্টারের শুরুতেই কেউ না কেউ ঠিক সেই বইগুলোই খোঁজে। Book Exchange দুটোকে মেলায়।</p>
+
+  <h3 class="sec"><span class="idx">৯.১</span> বই খুঁজুন</h3>
+  <ol class="steps">
+    <li><strong>Explore → Book Exchange</strong> খুলুন।</li>
+    <li>সার্চ করুন বা লিস্টিং ঘুরুন — প্রতিটিতে শিরোনাম, লেখক, সংস্করণ, বিষয়, অবস্থা আর দাম।</li>
+    <li>লিস্টিং খুললে পুরো বিবরণ, অবস্থার নোট আর বিক্রেতার ফোন নম্বর।</li>
+  </ol>
+
+  <h3 class="sec"><span class="idx">৯.২</span> বই পোস্ট করুন</h3>
+  <ol class="steps">
+    <li><span class="kbd">Post a book</span> চাপুন (বা ＋ → <em>Sell or exchange a book</em>)।</li>
+    <li><strong>Book title</strong>, <strong>Author</strong>, সংস্করণ (edition) ও বিষয় লিখুন।</li>
+    <li><strong>Condition</strong> বাছুন আর <strong>Price (BDT)</strong> সেট করুন।</li>
+    <li>বইটি কী হবে সেটা বাছুন — বিক্রি, বিনিময় বা দান (available for) — আর বিনিময় হলে বদলে কোন বই নেবেন লিখুন।</li>
+    <li>অবস্থার নোট (দাগ, দেখা করার জায়গা…) আর <strong>Phone number</strong> দিন যাতে ক্রেতা যোগাযোগ করতে পারে।</li>
+    <li>ছবি যোগ করে রিভিউর জন্য জমা দিন।</li>
+  </ol>
+
+  <h3 class="sec"><span class="idx">৯.৩</span> নিজের লিস্টিং ম্যানেজ করুন</h3>
+  <p>Book Exchange স্ক্রিনের <span class="kbd">My listings</span>-এ আপনার সব পোস্ট আর তার
+  রিভিউ অবস্থা — টু-লেটের মতোই: রিভিউ চলছে → প্রকাশিত।</p>
+
+  <div class="note"><b>বুদ্ধি করে দেখা করুন:</b> হ্যান্ডওভার ক্যাম্পাসে বা দিনের আলোয় কোনো পাবলিক
+  জায়গায় করুন, আর টাকা দেওয়ার আগে বইটা হাতে নিয়ে দেখে নিন।</div>
+</section>
+
+<!-- ═══════════ ১০ · রিসার্চ পার্টনার ═══════════ -->
+<section class="chapter" id="c10">
+  <div class="chap-head">
+    <div class="chap-num">10</div>
+    <div>
+      <span class="kicker">একসাথে কাজ</span>
+      <h2>রিসার্চ পার্টনার</h2>
+      <div class="glance">নিজের রিসার্চ প্রোফাইল প্রকাশ করুন, সহযোগী খুঁজুন।</div>
+    </div>
+  </div>
+
+  <p class="lead">ভালো প্রজেক্ট একা হয় না। Research Partners হলো ছোট কিন্তু কেন্দ্রিক একটা ডিরেক্টরি —
+  যারা থিসিস, প্রতিযোগিতা বা পেপারে একসাথে কাজ করতে চায় তেমন ছাত্রদের।</p>
+
+  <h3 class="sec"><span class="idx">১০.১</span> নিজের রিসার্চ প্রোফাইল প্রকাশ করুন</h3>
+  <ol class="steps">
+    <li><strong>Explore → Research Partners</strong> খুলে <span class="kbd">My research profile</span> চাপুন।</li>
+    <li><strong>Research interest</strong> লিখুন (যেমন “Computer Vision”) — আবশ্যক।</li>
+    <li><strong>Skills</strong> আর <strong>University / Institution</strong> যোগ করুন (যেমন KUET)।</li>
+    <li>সেভ করুন — আপনার প্রোফাইল এখন ডিরেক্টরিতে দেখা যাবে।</li>
+  </ol>
+
+  <h3 class="sec"><span class="idx">১০.২</span> সহযোগী খুঁজুন</h3>
+  <ul class="list">
+    <li>রিসার্চ আগ্রহ, টপিক বা স্কিল দিয়ে <strong>সার্চ</strong> করুন — যেমন “machine learning” বা “survey design”।</li>
+    <li>কার্ডে প্রত্যেকের আগ্রহ, স্কিল আর প্রতিষ্ঠান দেখুন।</li>
+    <li>প্রোফাইল খুলে যোগাযোগের তথ্যে কথা শুরু করুন।</li>
+    <li><span class="kbd">Load more</span> চেপে আরও ফলাফল দেখুন।</li>
+  </ul>
+
+  <div class="tip"><b>টিপ:</b> আগ্রহের লাইনটা নির্দিষ্ট রাখুন — “Computer Vision — medical imaging”
+  লিখলে সঠিক পার্টনার “technology” লেখার চেয়ে অনেক দ্রুত খুঁজে পাবেন।</div>
+</section>
+
+<!-- ═══════════ ১১ · মেস ম্যানেজমেন্ট ═══════════ -->
+<section class="chapter" id="c11">
+  <div class="chap-head">
+    <div class="chap-num">11</div>
+    <div>
+      <span class="kicker">ছাত্রজীবনের রোজকার</span>
+      <h2>মেস ম্যানেজমেন্ট</h2>
+      <div class="glance">খাবার, বাজার ডিউটি, শেয়ার্ড খরচ, ব্যালেন্স আর স্বচ্ছ মাসিক সেটেলমেন্ট।</div>
+    </div>
+  </div>
+
+  <div class="mini-toc"><b>এই অধ্যায়ে আছে</b>
+    <ul>
+      <li>মেস তৈরি ও জয়েন</li>
+      <li>মেস হোম — এক নজরে আজকের হিসাব</li>
+      <li>খাবার ও মাসিক ক্যালেন্ডার</li>
+      <li>বাজার এন্ট্রি ও ডিউটি ক্যালেন্ডার</li>
+      <li>শেয়ার্ড খরচ</li>
+      <li>ফাইন্যান্স — ব্যালেন্স ও পেমেন্ট</li>
+      <li>সেটেলমেন্ট — মাস শেষ করা</li>
+      <li>মেম্বার ও ম্যানেজার টুল</li>
+      <li>মেস সেটিংস</li>
+    </ul>
+  </div>
+
+  <p class="lead">KSE-র মেস মডিউল ফ্রিজের পাশে ঝোলানো খাতার জায়গা নেয়। সবাই রিয়েল টাইমে খাবার
+  আর খরচ দেখে, আর মাস শেষ হয় এমন এক সেটেলমেন্টে যার প্রতিটি লাইন সবাই মিলে দেখে নিতে
+  পারে। হোমের <strong>Mess</strong> টাইল বা ＋ কুইক অ্যাকশন থেকে ঢুকুন।</p>
+
+  <h3 class="sec"><span class="idx">১১.১</span> মেস তৈরি বা জয়েন করুন</h3>
+  <div class="grid2">
+    <div class="card feat"><h5>➕ Create a Mess</h5>মেসের নাম (যেমন “12 No. Bachelor Mess”), লোকেশন (যেমন বয়রা, খুলনা) আর সর্বোচ্চ মেম্বার সংখ্যা দিন। আপনি হয়ে যাবেন মেসের <strong>ম্যানেজার</strong>।</div>
+    <div class="card feat green"><h5>🔑 Join with Code</h5>ম্যানেজারের দেওয়া <strong>mess code</strong> (যেমন MESS-8F42) লিখুন, লাগলে invite code-ও। রিকোয়েস্ট অনুমোদনের অপেক্ষায় থাকবে।</div>
+  </div>
+  <p>Mess Hub-এ আপনার সব মেস দেখায় — অ্যাকটিভ মেসে ট্যাপ করলেই খুলবে, আর
+  <span class="pill a">pending</span> গুলোতে লেখা থাকে “Waiting for manager approval”। একজন মানুষ একাধিক মেসে থাকতে পারেন।</p>
+
+  <h3 class="sec"><span class="idx">১১.২</span> মেস হোম — সেকেন্ডেই আজকের খবর</h3>
+  <p>প্রতিটি মেসের নিজের স্ক্রিন আছে, নিচে পাঁচ-বাটনের বার:</p>
+  <div class="navbar">
+    <div class="nb"><div class="ic">🏠</div><div class="lb">Home</div><div class="ds">এক নজরে আজ</div></div>
+    <div class="nb"><div class="ic">🍽️</div><div class="lb">Meals</div><div class="ds">ক্যালেন্ডার ও অন/অফ</div></div>
+    <div class="nb"><div class="ic">🛒</div><div class="lb">Bazar</div><div class="ds">বাজার ও ডিউটি</div></div>
+    <div class="nb"><div class="ic">👛</div><div class="lb">Finance</div><div class="ds">ব্যালেন্স ও পেমেন্ট</div></div>
+    <div class="nb"><div class="ic">⋯</div><div class="lb">More</div><div class="ds">মেম্বার · সেটিংস</div></div>
+  </div>
+  <p>মেস হোমে যা যা থাকে:</p>
+  <ul class="list">
+    <li><strong>আজকের খাবার</strong> — সকাল, দুপুর, রাত; প্রতিটির পাশে এক ট্যাপে <span class="pill g">ON</span>/<span class="pill n">OFF</span>। ম্যানেজারের সেট করা কাট-অফ টাইম পেরোলে জানালা বন্ধ — KSE ঠিক কবে বন্ধ হলো সেটাও বলে দেয়।</li>
+    <li><strong>আপনার ব্যালেন্স</strong> এই মাসের, আর চলতি <strong>মিল রেট</strong>।</li>
+    <li><strong>আপনার পরের বাজার ডিউটি</strong> — সাথে এক্সচেঞ্জ চাওয়ার বাটন।</li>
+    <li>ম্যানেজারের <strong>ঘোষণা</strong> — একটা ছোট্ট ব্যানারে।</li>
+    <li>আপনার ডিউটির জন্য আসা <strong>এক্সচেঞ্জ রিকোয়েস্ট</strong> — সেখানেই মেনে নিন বা ফিরিয়ে দিন।</li>
+  </ul>
+
+  <h3 class="sec"><span class="idx">১১.৩</span> Meals — খাবার</h3>
+  <p><strong>Meals</strong> ট্যাবে আজকের ব্যবস্থাপনা আর পুরো মাসের হিসাব:</p>
+  <ul class="list">
+    <li>আজকের খাবার অন/অফ করুন (কাট-অফ মেনে)।</li>
+    <li><strong>মাসিক ক্যালেন্ডারে</strong> প্রতিদিনের প্রতিটি মেম্বারের খাবার — যেকোনো আগের বা পরের তারিখ দেখুন।</li>
+    <li>মাস বদলে সেটেলমেন্টের আগের ইতিহাস ঘাঁটুন।</li>
+  </ul>
+
+  <h3 class="sec"><span class="idx">১১.৪</span> Bazar — বাজার এন্ট্রি ও ডিউটি</h3>
+  <h4>বাজারের হিসাব লিখুন</h4>
+  <ol class="steps">
+    <li><strong>Bazar</strong> ট্যাবে <span class="kbd">Add Bazar</span> চাপুন।</li>
+    <li>প্রতিটি আইটেমের জন্য <span class="kbd">Add Item</span> চেপে নাম, পরিমাণ, একক ও দাম লিখুন।</li>
+    <li>ক্যাটাগরি দিন: <span class="pill g">Vegetables</span> <span class="pill i">Grocery</span> <span class="pill a">Spices</span> <span class="pill n">Snacks</span> <span class="pill n">Cleaning</span> <span class="pill n">Other</span>।</li>
+    <li><span class="kbd">Save Bazar</span> — মাসের মোট সাথে সাথে বদলায়, সব মেম্বার এন্ট্রি দেখতে পায়।</li>
+  </ol>
+  <h4>ডিউটি ক্যালেন্ডার</h4>
+  <ul class="list">
+    <li><strong>Bazar → Duty</strong> দেখায় কোন দিন কে বাজার করবে — নিজের ডিউটি আলাদা করে হাইলাইট, তাই “কবে আমার বাজার?” প্রশ্নের উত্তর এক নজরেই।</li>
+    <li><strong>ম্যানেজার</strong> ডিউটি দেন, বদলান আর মুছে দেন (<span class="kbd">Assign Duty</span>)।</li>
+    <li><strong>মেম্বাররা</strong> ডিউটি <strong>এক্সচেঞ্জ</strong> চাইতে পারেন; অন্যজন মেনে নিলে বা ফিরিয়ে দিলে ক্যালেন্ডার নিজেই বদলে যায়।</li>
+  </ul>
+
+  <h3 class="sec"><span class="idx">১১.৫</span> Expenses — শেয়ার্ড খরচ</h3>
+  <p>বাসা ভাড়া, বিদ্যুৎ-পানি, ইন্টারনেট — মেসের শেয়ার্ড ফিক্সড খরচ <strong>More → Expenses</strong>-এ:</p>
+  <ul class="list">
+    <li>সবাই মাসের খরচের মোট আর লেনদেনের লিস্ট দেখে।</li>
+    <li><strong>ম্যানেজার</strong> খরচ যোগ করেন (<span class="kbd">Add Expense</span> — টাকা, তারিখ, বিবরণ) আর ভুল হলে মুছে দেন।</li>
+    <li>বাজার আর খাবারের সাথে মিলে খরচও মাসের ব্যালেন্সে জমা হয়।</li>
+  </ul>
+
+  <h3 class="sec"><span class="idx">১১.৬</span> Finance — ব্যালেন্স ও পেমেন্ট</h3>
+  <ul class="list">
+    <li><strong>My Balance</strong> সংখ্যাটাকে ভেঙে দেখায়: খাওয়া মিল, আপনার দেওয়া বাজার, শেয়ার্ড খরচ — প্রতিটি লাইন স্পষ্ট।</li>
+    <li><span class="kbd">Record payment</span> দিয়ে জমা দেওয়া টাকা লিখুন (পরিমাণ + তারিখ)। পেমেন্ট অটো-কনফার্ম হয়; ম্যানেজার চাইলে পরে যাচাই বা নিজেও লিখতে পারেন।</li>
+    <li>পেমেন্টের অবস্থা: <span class="pill a">Pending</span> <span class="pill g">Confirmed</span> <span class="pill r">Rejected</span>।</li>
+    <li>পুরো পেমেন্ট ইতিহাস <strong>Payments</strong> স্ক্রিনে (More ট্যাবেও আছে)।</li>
+  </ul>
+
+  <h3 class="sec"><span class="idx">১১.৭</span> Settlement — মাস শেষ করা</h3>
+  <p>সেটেলমেন্ট মাসটাকে একটা চূড়ান্ত, যাচাইযোগ্য সংখ্যায় বদলে দেয়। ম্যানেজার তিন ধাপে চালান:</p>
+  <div class="grid3">
+    <div class="card"><h5>১ · Generate</h5><span class="kbd">Generate Settlement</span> মাসের মিল, বাজার ও খরচ থেকে ড্রাফট বানায় — সম্পূর্ণ ব্রেকডাউনসহ।</div>
+    <div class="card"><h5>২ · Publish</h5><span class="kbd">Publish</span> সেটেলমেন্ট সব মেম্বারের কাছে পাঠায় — প্রত্যেকে নিজের চূড়ান্ত ব্যালেন্স দেখে।</div>
+    <div class="card"><h5>৩ · Lock</h5><span class="kbd">Lock Month</span> মাসটাকে চিরতরে বন্ধ করে — এরপর আর মিল, বাজার বা খরচ বদলানো যায় না।</div>
+  </div>
+  <p>যেকোনো মেম্বার <strong>More → Settlement</strong> খুলে দেখতে পারেন তার সংখ্যা ঠিক কীভাবে
+  হিসাব হলো — খাতার পাতায় অঙ্ক নিয়ে তর্কের দিন শেষ।</p>
+
+  <h3 class="sec"><span class="idx">১১.৮</span> Members — মেম্বার ও ম্যানেজার টুল</h3>
+  <p><strong>More → Members</strong>-এ দেখা যায় মেসে কারা আছেন। ম্যানেজার হিসেবে আপনি পারবেন:</p>
+  <ul class="list">
+    <li>মেস কোড ব্যবহার করা কারও জয়েন রিকোয়েস্ট <strong>মেনে নেওয়া / ফিরিয়ে দেওয়া</strong>।</li>
+    <li>উঠে যাওয়া কাউকে <strong>Remove</strong> করা।</li>
+    <li><strong>Make Manager</strong> — আপনি চলে গেলে দায়িত্ব অন্যজনকে দেওয়া।</li>
+    <li>মেসের <strong>invite code</strong> দেখা ও শেয়ার করা।</li>
+  </ul>
+
+  <h3 class="sec"><span class="idx">১১.৯</span> মেস সেটিংস</h3>
+  <ul class="list">
+    <li><strong>মেস তথ্য</strong> — নাম, লোকেশন; মেম্বাররা মেস হোমে দেখে।</li>
+    <li><strong>Meal cut-offs</strong> — সকাল, দুপুর ও রাতের কাট-অফ সময় (HH:MM)। না বদলালে ডিফল্ট চলে; কাট-অফ পেরোলে সেই মিলের টগল সবার জন্য বন্ধ।</li>
+    <li><strong>Announcements</strong> — ঘোষণা লিখুন, সব মেম্বারের মেস হোমে ব্যানার হয়ে দেখাবে।</li>
+  </ul>
+  <p>সেটিংস <strong>শুধু ম্যানেজার</strong> বদলাতে পারেন; মেম্বাররা পড়তে পারেন — যাতে নিয়ম কখনো রহস্য না হয়।</p>
+</section>
+
+<!-- ═══════════ ১২ · কমিউনিটি ═══════════ -->
+<section class="chapter" id="c12">
+  <div class="chap-head">
+    <div class="chap-num">12</div>
+    <div>
+      <span class="kicker">ক্লাব ও গ্রুপ</span>
+      <h2>কমিউনিটি</h2>
+      <div class="glance">ক্লাব ফলো করুন, আলোচনায় জড়ুন, পোলে ভোট দিন, ইভেন্টে যান।</div>
+    </div>
+  </div>
+
+  <p class="lead"><strong>Community</strong> ট্যাবে খুলনার ছাত্র ক্লাব, স্টাডি গ্রুপ আর আগ্রহের গ্রুপ —
+  ইচ্ছে করেই সহজ রাখা: পোস্ট, পোল আর ইভেন্ট; পুরো সোশ্যাল নেটওয়ার্ক নয়।</p>
+
+  <h3 class="sec"><span class="idx">১২.১</span> কমিউনিটি খুঁজে জয়েন করুন</h3>
+  <ul class="list">
+    <li>ট্যাব খুললেই <strong>Recommended for you</strong> আর KSE জুড়ে <strong>Trending discussions</strong>।</li>
+    <li><em>Search communities…</em> বারে নাম ধরে ক্লাব খুঁজুন।</li>
+    <li>কমিউনিটি খুললে বিবরণ, বিশ্ববিদ্যালয় ও মেম্বার সংখ্যা; <span class="kbd">Join community</span> চাপুন (আবার বের হতে <span class="kbd">Joined</span>)।</li>
+  </ul>
+
+  <h3 class="sec"><span class="idx">১২.২</span> পোস্ট ও আলোচনা</h3>
+  <p>কমিউনিটির ভেতরে ফিডে মেম্বারদের পোস্ট। মেম্বার হলে চার ধরনের পোস্ট করা যায়:</p>
+  <p><span class="pill i">Discussion — আলোচনা</span> <span class="pill a">Question — প্রশ্ন</span> <span class="pill g">Opportunity — সুযোগ</span> <span class="pill n">Announcement — ঘোষণা</span></p>
+  <ol class="steps">
+    <li>পোস্ট কম্পোজারে ট্যাপ করুন (বা কমিউনিটির ভেতরে <span class="kbd">＋</span>)।</li>
+    <li>ধরন বাছুন — যেমন <em>Question</em> জিজ্ঞেস করে “What do you want to ask?”; <em>Opportunity</em>-তে সুযোগ, যোগ্যতা ও লিংক শেয়ার করতে বলে।</li>
+    <li>লিখুন, চাইলে <strong>ছবি যোগ করুন</strong>।</li>
+    <li>পোস্ট করুন — সাথে সাথেই ফিডে। মডারেটররা চাইলে পোস্ট অ্যানাউন্সমেন্ট হিসেবে পিন করেন।</li>
+  </ol>
+  <p>যেকোনো পোস্ট খুলে কমেন্ট করুন। “Be the first to comment” মানে — সেই প্রথম মানুষটা আপনিই
+  হোন! কিছু পুরোনো আলোচনা <span class="pill n">locked</span> — শুধু পড়া যায়।</p>
+
+  <h3 class="sec"><span class="idx">১২.৩</span> পোল</h3>
+  <ol class="steps">
+    <li>কমিউনিটিতে <span class="kbd">Create poll</span> চাপুন।</li>
+    <li>পরিষ্কার প্রশ্ন লিখুন (অন্তত ৫ অক্ষর) আর অপশনগুলো দিন।</li>
+    <li>ফলাফল কবে দেখা যাবে বাছুন: <span class="pill i">সবসময়</span> <span class="pill i">ভোট দেওয়ার পর</span> <span class="pill i">পোল শেষ হলে</span>।</li>
+  </ol>
+
+  <h3 class="sec"><span class="idx">১২.৪</span> কমিউনিটি ইভেন্ট</h3>
+  <ol class="steps">
+    <li>কমিউনিটিতে <span class="kbd">Create event</span> চাপুন।</li>
+    <li>শিরোনাম, শুরু ও শেষ সময় দিন (ফরম্যাট <em>YYYY-MM-DD HH:MM</em>), ধরন: <span class="pill g">Online</span> <span class="pill i">On campus</span> <span class="pill a">Hybrid</span>।</li>
+    <li>প্রকাশ করুন — ইভেন্ট কমিউনিটির <strong>Community events</strong> সেকশনে দেখা যাবে।</li>
+  </ol>
+
+  <h3 class="sec"><span class="idx">১২.৫</span> নতুন কমিউনিটির রিকোয়েস্ট</h3>
+  <p>এমন কমিউনিটি চান যেটা এখনো নেই? Community ট্যাবে <span class="kbd">Create in community</span>
+  চাপুন, বিবরণ দিন (ছবিসহ, চাইলে) আর জমা দিন। রিকোয়েস্ট KSE টিমের কাছে যায় — অনুমোদনের
+  আগ পর্যন্ত “pending admin review” দেখাবে।</p>
+
+  <div class="tip"><b>রিপোর্ট:</b> কমিউনিটিতে এমন কিছু দেখলে যেটা ঠিক নয়? পোস্টের রিপোর্ট (ফ্ল্যাগ)
+  বাটন ব্যবহার করুন — মডারেটররা দেখে নেবেন।</div>
+</section>
+
+<!-- ═══════════ ১৩ · প্রোফাইল ও পোর্টফোলিও ═══════════ -->
+<section class="chapter" id="c13">
+  <div class="chap-head">
+    <div class="chap-num">13</div>
+    <div>
+      <span class="kicker">KSE-তে আপনি</span>
+      <h2>আপনার প্রোফাইল ও পোর্টফোলিও</h2>
+      <div class="glance">ব্যক্তিগত তথ্য, শিক্ষা, প্রজেক্ট, সার্টিফিকেট, অর্জন, রিসার্চ, রেজুমে ও লিংক।</div>
+    </div>
+  </div>
+
+  <p class="lead">আপনার প্রোফাইল ভালো রেকমেন্ডেশনের জ্বালানি; আর পোর্টফোলিও সেই জীবন্ত সিভি —
+  যেটা ইন্টার্নশিপ বা স্কলারশিপের আবেদনে বারবার কাজে লাগবে।</p>
+
+  <h3 class="sec"><span class="idx">১৩.১</span> Profile ট্যাব</h3>
+  <ul class="list">
+    <li>আপনার <strong>নাম ও ছবি</strong>, সাথে <strong>প্রোফাইল সম্পূর্ণতার %</strong>।</li>
+    <li><span class="kbd">Improve Profile</span> / <span class="kbd">Edit profile</span> — নাম, বিশ্ববিদ্যালয়, ডিপার্টমেন্ট, একাডেমিক লেভেল, ফোন, বায়ো, আগ্রহ ও স্কিল বদলান।</li>
+    <li><strong>My portfolio</strong> — সম্পূর্ণ পোর্টফোলিও (নিচে)।</li>
+    <li><strong>My Scholarships</strong> — অ্যাপ্লিকেশন ট্র্যাকার (অধ্যায় ৫)।</li>
+    <li><strong>Become a Tutor</strong> — টিউটর আবেদন (অধ্যায় ৭)।</li>
+    <li><strong>Quick links</strong> — ড্যাশবোর্ড ও Saved।</li>
+    <li><strong>Settings</strong> আর <strong>Sign out</strong>।</li>
+  </ul>
+  <div class="tip"><b>প্রোফাইল পূরণ করবেন কেন?</b> KSE আপনার বিশ্ববিদ্যালয়, ডিপার্টমেন্ট, স্কিল ও
+  আগ্রহ দিয়ে সুযোগ সাজায় — ফাঁকা প্রোফাইল পায় সাধারণ ফলাফল, পূরণ করা প্রোফাইল পায় <em>আপনার</em> ফলাফল।</div>
+
+  <h3 class="sec"><span class="idx">১৩.২</span> পোর্টফোলিওর সেকশন</h3>
+  <p><strong>Profile → My portfolio</strong> খুলুন। প্রতিটি সেকশনে যোগ, সম্পাদনা ও মুছে ফেলা যায়:</p>
+  <table class="tbl">
+    <tr><th style="width:40mm">সেকশন</th><th>কী যোগ করবেন</th></tr>
+    <tr><td><b>🎓 Education</b></td><td>শিক্ষার স্তর, প্রতিষ্ঠান (লিস্ট থেকে — না থাকলে নতুনটা রিকোয়েস্ট করুন), জেলা (খুলনা বিভাগসহ), বিবরণ ও তারিখ।</td></tr>
+    <tr><td><b>📁 Projects</b></td><td>শিরোনাম, বিবরণ, টেক স্ট্যাক, প্রজেক্টের লিংক, শোকেস ফিল্ড ও তারিখ।</td></tr>
+    <tr><td><b>🛡️ Certificates</b></td><td>শিরোনাম, প্রদানকারী, প্রদানের তারিখ ও সার্টিফিকেটের বিবরণ।</td></tr>
+    <tr><td><b>🏆 Achievements</b></td><td>শিরোনাম, বিবরণ ও তারিখ — প্রতিযোগিতা, পুরস্কার, সম্মাননা।</td></tr>
+    <tr><td><b>🔬 Research</b></td><td>শিরোনাম, সারসংক্ষেপ, আপনার ভূমিকা, সহযোগীরা, লিংক ও তারিখ।</td></tr>
+    <tr><td><b>📄 Resume</b></td><td>আপনার রেজুমে ফাইল — একটাকে primary হিসেবে চিহ্নিত করুন। ফাইলের নাম রেফারেন্সে থাকে।</td></tr>
+    <tr><td><b>🔗 Links</b></td><td>পোর্টফোলিও ও সোশ্যাল লিংক, লেবেলসহ (GitHub, LinkedIn, নিজের সাইট…)।</td></tr>
+  </table>
+
+  <h3 class="sec"><span class="idx">১৩.৩</span> গোপনীয়তা</h3>
+  <p>পোর্টফোলিও আর প্রোফাইলের তথ্য আপনারই: কোন ফিল্ড পাবলিক সেটা স্পষ্টভাবে ঠিক করা, আর
+  প্রাইভেট আইটেম (রেজুমে, সার্টিফিকেট) শুধু আপনার কাছেই থাকে। KSE ছাত্র প্ল্যাটফর্মের যতটুকু
+  দরকার ততটুকুই ডেটা চায় — আর আপনার ফোন নম্বর বা ইমেইল কখনো অন্য ছাত্রদের কাছে যায় না।</p>
+</section>
+
+<!-- ═══════════ ১৪ · ড্যাশবোর্ড, সেভড, সার্চ ═══════════ -->
+<section class="chapter" id="c14">
+  <div class="chap-head">
+    <div class="chap-num">14</div>
+    <div>
+      <span class="kicker">আপনার নিয়ন্ত্রণকেন্দ্র</span>
+      <h2>ড্যাশবোর্ড, সেভড ও সার্চ</h2>
+      <div class="glance">এক নজরে ডেডলাইন, সব বুকমার্ক, আর পুরো অ্যাপের এক সার্চ বক্স।</div>
+    </div>
+  </div>
+
+  <h3 class="sec"><span class="idx">১৪.১</span> ড্যাশবোর্ড</h3>
+  <p>খুলুন হোমের <strong>▦ গ্রিড</strong>, ＋ শিট, বা Profile-এর quick link থেকে:</p>
+  <div class="grid3">
+    <div class="card feat"><h5>প্রোফাইল স্কোর গেজ</h5>ইন্ডিগো হিরোতে লাইভ গেজ — প্রোফাইল কতটা পূর্ণ; সাথে <span class="kbd">Improve Profile</span> শর্টকাট।</div>
+    <div class="card feat green"><h5>সুযোগের সারসংক্ষেপ</h5>২×২ গ্রিডে প্রতিটি ধরনের প্রকাশিত সুযোগের লাইভ কাউন্ট।</div>
+    <div class="card feat amber"><h5>আসন্ন ডেডলাইন</h5>আপনার সেভ করা পরের তিনটি ডেডলাইন — বুকমার্ক করার আসল লাভ এখানেই।</div>
+  </div>
+
+  <h3 class="sec"><span class="idx">১৪.২</span> Saved — বুকমার্ক</h3>
+  <ul class="list">
+    <li>যেকোনো সুযোগের কার্ড বা ডিটেইলে <strong>বুকমার্ক আইকন</strong> চেপে সেভ করুন।</li>
+    <li><strong>Profile → Saved</strong>-এ সবকিছু নতুন থেকে পুরোনো ক্রমে।</li>
+    <li>সরাতে আবার বুকমার্ক চাপুন (কার্ডে বা ডিটেইলে)।</li>
+  </ul>
+
+  <h3 class="sec"><span class="idx">১৪.৩</span> সার্চ — সবকিছুর জন্য একটাই বাক্স</h3>
+  <p><strong>হোম</strong> বা <strong>Explore</strong>-এর সার্চ বারে লিখে এন্টার চাপলেই গ্লোবাল সার্চ স্ক্রিন —
+  সুযোগ, টিউটর, কমিউনিটি আর হাব লিস্টিং সব একসাথে:</p>
+  <ol class="steps">
+    <li>টাইপ করলেই ফলাফল বদলায় — শিরোনাম, প্রতিষ্ঠান ও কীওয়ার্ড ধরে খোঁজে।</li>
+    <li>লিস্টের চেনা ফিল্টারগুলোই (ধরন, মোড, ডেডলাইন) সংকুচিত করুন।</li>
+    <li><span class="kbd">Clear search</span> / <span class="kbd">Clear all</span> চেপে নতুন করে শুরু, বা <span class="kbd">Load more</span>।</li>
+    <li>সার্চ স্ক্রিনের <strong>Explore categories</strong> সারি থেকে ক্যাটাগরি ধরেও ব্রাউজ করুন।</li>
+  </ol>
+  <p>কিছু না মিললে KSE অন্য কীওয়ার্ড বা শিথিল ফিল্টার চেষ্টা করতে বলে — আর মাঝে মাঝে
+  কনটেন্ট এখনো প্রকাশই হয়নি (“Verified listings are on their way”)।</p>
+</section>
+
+<!-- ═══════════ ১৫ · নোটিফিকেশন ═══════════ -->
+<section class="chapter" id="c15">
+  <div class="chap-head">
+    <div class="chap-num">15</div>
+    <div>
+      <span class="kicker">খবর হাতছাড়া নয়</span>
+      <h2>নোটিফিকেশন</h2>
+      <div class="glance">ডেডলাইন, ঘোষণা আর আপনার দরকারি খবরের ইন-অ্যাপ ইনবক্স।</div>
+    </div>
+  </div>
+
+  <p class="lead">হোমের <strong>🔔 বেল</strong> চেপে নোটিফিকেশন ইনবক্স খুলুন। বেলে লাল বিন্দু মানে —
+  নতুন কিছু পড়া বাকি।</p>
+
+  <h3 class="sec"><span class="idx">১৫.১</span> পড়া ও ব্যবস্থাপনা</h3>
+  <ul class="list">
+    <li>না পড়া নোটিফিকেশনে বেগুনি বিন্দু; খুললেই পড়া হয়ে যায়।</li>
+    <li>ট্যাপ করলে <strong>সংশ্লিষ্ট আইটেমেও</strong> নিয়ে যায় — ডেডলাইন রিমাইন্ডারে চাপলে সেই সুযোগই খোলে।</li>
+    <li><span class="kbd">Mark all read</span> — এক ট্যাপে সব পড়া হিসেবে চিহ্নিত।</li>
+  </ul>
+
+  <h3 class="sec"><span class="idx">১৫.২</span> এখানে কী কী আসে</h3>
+  <table class="tbl">
+    <tr><th style="width:54mm">নোটিফিকেশন</th><th>কখন</th></tr>
+    <tr><td><b>স্কলারশিপের ডেডলাইন কাছাকাছি</b></td><td>ট্র্যাক বা সেভ করা স্কলারশিপ শীঘ্রই বন্ধ হচ্ছে।</td></tr>
+    <tr><td><b>সেভ করা ইন্টার্নশিপের ডেডলাইন</b></td><td>Saved লিস্টের কিছু একটা শেষ হওয়ার পথে।</td></tr>
+    <tr><td><b>নতুন মিলে যাওয়া সুযোগ</b></td><td>প্রকাশিত কোনো আইটেম আপনার প্রোফাইল ও আগ্রহের সাথে মিলল।</td></tr>
+    <tr><td><b>আসন্ন ইভেন্ট</b></td><td>রেজিস্টার করা ইভেন্ট বা ওয়ার্কশপ সামনে রয়েছে।</td></tr>
+    <tr><td><b>কমিউনিটি ঘোষণা</b></td><td>আপনার জয়েন করা কমিউনিটি ঘোষণা দিল।</td></tr>
+    <tr><td><b>প্ল্যাটফর্ম ঘোষণা</b></td><td>KSE টিমের খবর — সবার জন্য, নির্দিষ্ট বিশ্ববিদ্যালয় বা নির্দিষ্ট মানুষদের জন্য।</td></tr>
+  </table>
+  <div class="tip"><b>ডেডলাইন মিস করবেন না:</b> যেগুলোতে সত্যিই আবেদন করার ইচ্ছে আছে সেগুলো সেভ (বা
+  স্কলারশিপে ট্র্যাক) করুন — রিমাইন্ডার আপনার সেভ করা লিস্টকে ঘিরেই তৈরি।</div>
+</section>
+
+<!-- ═══════════ ১৬ · সেটিংস ও রেফারেন্স ═══════════ -->
+<section class="chapter" id="c16">
+  <div class="chap-head">
+    <div class="chap-num">16</div>
+    <div>
+      <span class="kicker">শেষ কথা</span>
+      <h2>সেটিংস, সহায়তা ও কুইক রেফারেন্স</h2>
+      <div class="glance">থিম, অ্যাকাউন্টের মূল কথা, প্রশ্নোত্তর, আর সবকিছুর ঠিকানা।</div>
+    </div>
+  </div>
+
+  <h3 class="sec"><span class="idx">১৬.১</span> সেটিংস</h3>
+  <p><strong>Profile → Settings</strong> খুলুন:</p>
+  <ul class="list">
+    <li><strong>Appearance</strong> — <span class="pill i">Light</span>, <span class="pill n">Dark</span> বা <span class="pill n">System</span>; KSE সব জায়গায় আপনার পছন্দ মেনে চলে।</li>
+    <li><strong>Sign out</strong> — নিশ্চিত করলেই বেরিয়ে যাবেন; আবার KSE ব্যবহার করতে সাইন ইন করতে হবে।</li>
+  </ul>
+
+  <h3 class="sec"><span class="idx">১৬.২</span> সচরাচর প্রশ্ন</h3>
+  <table class="tbl">
+    <tr><th style="width:66mm">প্রশ্ন</th><th>উত্তর</th></tr>
+    <tr><td><b>KSE কি ফ্রি?</b></td><td>হ্যাঁ — এই নির্দেশিকার প্রতিটি ফিচার ব্যবহার করা যায় একদম বিনামূল্যে।</td></tr>
+    <tr><td><b>লিস্টিংয়ে “Pending review” কেন?</b></td><td>ব্যবহারকারীদের দেওয়া কনটেন্ট (টু-লেট, বই, জায়গা, কমিউনিটি) প্রকাশের আগে KSE টিম দেখে নেয়।</td></tr>
+    <tr><td><b>“Deadline passed” দেখালে কি আর আবেদন করা যায়?</b></td><td>না। ডেডলাইন পেরোলে বাটন বন্ধ; “আগামী ৭ দিন”-এর মতো ফিল্টারে চলতি সুযোগ খুঁজুন।</td></tr>
+    <tr><td><b>একাধিক মেসে থাকা যায়?</b></td><td>যায় — Mess Hub-এ আপনার সব মেস দেখায়; pending গুলো ম্যানেজারের অনুমোদনের অপেক্ষায় থাকে।</td></tr>
+    <tr><td><b>টিউটর থাকা বন্ধ করা যায়?</b></td><td>যায় — KSE সাপোর্টে জানালে আপনার টিউটর লিস্টিং সরিয়ে দেওয়া হবে।</td></tr>
+    <tr><td><b>ইন্টারনেট ছাড়া চলে?</b></td><td>ব্রাউজ করতে ইন্টারনেট লাগে। তবে সাধারণ মোবাইল নেটওয়ার্কেও অ্যাপ দ্রুত চলে।</td></tr>
+    <tr><td><b>অ্যাকাউন্ট ডিলিট করব কীভাবে?</b></td><td>KSE সাপোর্টে অ্যাকাউন্ট ডিলিটের অনুরোধ করুন — আপনার ডেটাও সাথে মুছে ফেলা হয়।</td></tr>
+  </table>
+
+  <h3 class="sec"><span class="idx">১৬.৩</span> কুইক রেফারেন্স — সবকিছু কোথায়</h3>
+  <table class="tbl">
+    <tr><th style="width:54mm">আমি চাই…</th><th>যাব</th></tr>
+    <tr><td>সবকিছুতে সার্চ করতে</td><td>হোমের সার্চ বার → এন্টার</td></tr>
+    <tr><td>ইন্টার্নশিপ / ইভেন্ট / ওয়ার্কশপ ঘুরতে</td><td>Explore → ক্যাটাগরি</td></tr>
+    <tr><td>স্কলারশিপ আবেদন ট্র্যাক করতে</td><td>স্কলারশিপ ডিটেইল → Add to application tracker</td></tr>
+    <tr><td>বাসা খুঁজতে / পোস্ট করতে</td><td>Explore → Bachelor To-Let (→ Post a listing)</td></tr>
+    <tr><td>টিউটর খুঁজতে / রিকোয়েস্ট পাঠাতে</td><td>Explore → Tuition → টিউটর → Request tuition</td></tr>
+    <tr><td>নিজে টিউটর হতে</td><td>Profile → Become a Tutor</td></tr>
+    <tr><td>লোকাল সার্ভিস দেখতে / সাজেস্ট করতে</td><td>Explore → Student Hub (→ Suggest a place)</td></tr>
+    <tr><td>পুরোনো বই বেচতে বা বিনিময় করতে</td><td>Explore → Book Exchange → Post a book</td></tr>
+    <tr><td>রিসার্চ সহযোগী খুঁজতে</td><td>Explore → Research Partners (→ My research profile)</td></tr>
+    <tr><td>মেস তৈরি / জয়েন করতে</td><td>হোম → Mess টাইল → Create / Join with Code</td></tr>
+    <tr><td>বাজার লিখতে / ডিউটি দেখতে</td><td>মেস → Bazar (+ Duty ক্যালেন্ডার)</td></tr>
+    <tr><td>মেসের মাস শেষ করতে</td><td>মেস → More → Settlement (ম্যানেজার)</td></tr>
+    <tr><td>কমিউনিটিতে পোস্ট / পোল / ইভেন্ট করতে</td><td>Community → কমিউনিটি খুলুন → create</td></tr>
+    <tr><td>আমার ডেডলাইন দেখতে</td><td>হোম → ▦ ড্যাশবোর্ড</td></tr>
+    <tr><td>আমার বুকমার্ক দেখতে</td><td>Profile → Saved</td></tr>
+    <tr><td>নোটিফিকেশন পড়তে</td><td>হোম → 🔔 বেল</td></tr>
+    <tr><td>পোর্টফোলিও সাজাতে</td><td>Profile → My portfolio</td></tr>
+    <tr><td>থিম বদলাতে / সাইন আউট করতে</td><td>Profile → Settings</td></tr>
+  </table>
+
+  <h3 class="sec"><span class="idx">১৬.৪</span> শীঘ্রই আসছে</h3>
+  <p>মেন্টরশিপ ম্যাচিং, আরও সমৃদ্ধ রেকমেন্ডেশন আর মেসেজিং — সব রোডম্যাপে আছে। নতুন ফিচার
+  চালু হলে KSE টিম আপনার নোটিফিকেশন ইনবক্সেই ঘোষণা করে।</p>
+
+  <div class="card blue keep" style="margin-top:6mm; text-align:center; padding:6mm;">
+    <h5 style="font-size:13pt;">এটাই KSE — সবকিছু এক জায়গায়। 🎓</h5>
+    <p class="mt0" style="margin:0;">প্রশ্ন বা মতামত? অ্যাপের সাপোর্ট ঠিকানায় KSE টিমের সাথে যোগাযোগ করুন।<br>
+    <strong style="color:var(--purple);">পড়াও, শেখো, আয় করো</strong></p>
+  </div>
+</section>
+
+</body>
+</html>
