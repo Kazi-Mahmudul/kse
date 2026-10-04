@@ -99,6 +99,7 @@ export default function RegisterScreen() {
           name="password"
           label="Password (8+ characters)"
           secureTextEntry
+          showToggle
           textContentType="newPassword"
         />
 

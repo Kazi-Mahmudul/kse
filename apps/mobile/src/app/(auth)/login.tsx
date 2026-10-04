@@ -86,6 +86,7 @@ export default function LoginScreen() {
           name="password"
           label="Password"
           secureTextEntry
+          showToggle
           textContentType="password"
         />
 

@@ -1,5 +1,7 @@
+import { Ionicons } from '@expo/vector-icons';
 import { Controller, type Control, type FieldValues, type Path } from 'react-hook-form';
-import { StyleSheet, Text, TextInput, View, type TextInputProps } from 'react-native';
+import { useState } from 'react';
+import { Pressable, StyleSheet, Text, TextInput, View, type TextInputProps } from 'react-native';
 
 import { useTheme } from '@/hooks/use-theme';
 
@@ -8,6 +10,12 @@ interface TextFieldProps<T extends FieldValues>
   control: Control<T>;
   name: Path<T>;
   label: string;
+  /**
+   * Render a show/hide eye toggle for password fields. Implies nothing on
+   * its own — pass `secureTextEntry` alongside it; the toggle flips that
+   * prop while typing.
+   */
+  showToggle?: boolean;
 }
 
 /**
@@ -19,9 +27,11 @@ export function TextField<T extends FieldValues>({
   control,
   name,
   label,
+  showToggle = false,
   ...inputProps
 }: TextFieldProps<T>) {
   const colors = useTheme();
+  const [visible, setVisible] = useState(false);
 
   return (
     <Controller
@@ -30,17 +40,36 @@ export function TextField<T extends FieldValues>({
       render={({ field: { onChange, onBlur, value }, fieldState }) => (
         <View style={styles.container}>
           <Text style={[styles.label, { color: colors.text }]}>{label}</Text>
-          <TextInput
-            {...inputProps}
-            value={value}
-            onChangeText={onChange}
-            onBlur={onBlur}
-            placeholderTextColor={colors.textSecondary}
-            style={[
-              styles.input,
-              { backgroundColor: colors.backgroundElement, color: colors.text },
-            ]}
-          />
+          <View style={styles.inputRow}>
+            <TextInput
+              {...inputProps}
+              secureTextEntry={showToggle && inputProps.secureTextEntry ? !visible : inputProps.secureTextEntry}
+              value={value}
+              onChangeText={onChange}
+              onBlur={onBlur}
+              placeholderTextColor={colors.textSecondary}
+              style={[
+                styles.input,
+                { backgroundColor: colors.backgroundElement, color: colors.text },
+                showToggle && styles.inputWithToggle,
+              ]}
+            />
+            {showToggle && inputProps.secureTextEntry ? (
+              <Pressable
+                onPress={() => setVisible((v) => !v)}
+                accessibilityRole="button"
+                accessibilityLabel={visible ? 'Hide password' : 'Show password'}
+                hitSlop={8}
+                style={styles.toggle}
+              >
+                <Ionicons
+                  name={visible ? 'eye-off-outline' : 'eye-outline'}
+                  size={20}
+                  color={colors.textSecondary}
+                />
+              </Pressable>
+            ) : null}
+          </View>
           {fieldState.error && (
             <Text style={[styles.error, { color: colors.danger }]}>
               {fieldState.error.message}
@@ -60,14 +89,26 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
   },
+  inputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   input: {
+    flex: 1,
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 14,
     fontSize: 16,
   },
+  inputWithToggle: {
+    paddingRight: 46,
+  },
+  toggle: {
+    position: 'absolute',
+    right: 12,
+    padding: 4,
+  },
   error: {
     fontSize: 13,
   },
 });
-
