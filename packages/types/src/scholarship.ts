@@ -83,7 +83,6 @@ export const SCHOLARSHIP_APPLICATION_STATUS_LABELS: Record<
 
 /** Match-engine output levels, ordered best→worst. */
 export const SCHOLARSHIP_MATCH_LEVELS = [
-  'highly_matched',
   'eligible',
   'potential',
   'not_eligible',
@@ -91,7 +90,6 @@ export const SCHOLARSHIP_MATCH_LEVELS = [
 export type ScholarshipMatchLevel = (typeof SCHOLARSHIP_MATCH_LEVELS)[number];
 
 export const SCHOLARSHIP_MATCH_LEVEL_LABELS: Record<ScholarshipMatchLevel, string> = {
-  highly_matched: 'Highly Matched',
   eligible: 'Eligible',
   potential: 'Potential',
   not_eligible: 'Not Eligible',
@@ -108,8 +106,6 @@ export interface OpportunityEligibility {
   cgpa_scale: number | null;
   degree_levels: DegreeLevel[];
   fields: string[];
-  countries: string[];
-  nationalities: string[];
   ielts_min: number | null;
   toefl_min: number | null;
   pte_min: number | null;
@@ -179,8 +175,6 @@ export interface ScholarshipMatchReason {
     | 'cgpa'
     | 'degree_level'
     | 'field'
-    | 'country'
-    | 'nationality'
     | 'ielts'
     | 'toefl'
     | 'pte'

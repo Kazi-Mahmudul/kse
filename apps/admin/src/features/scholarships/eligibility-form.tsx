@@ -35,8 +35,8 @@ export function EligibilityFormPanel({
           </h2>
           <p className="mt-0.5 text-xs text-zinc-500">
             Structured rules used by the mobile matching engine. Leave fields
-            empty for “no constraint”. CSV arrays go in comma-separated form
-            (e.g. <span className="font-mono">UK, USA, Canada</span>).
+            empty for “no constraint”. List fields go in comma-separated form
+            (e.g. <span className="font-mono">Computer Science, Engineering</span>).
           </p>
         </div>
         {eligibility ? (
@@ -88,24 +88,6 @@ export function EligibilityFormPanel({
               placeholder="Computer Science, Engineering"
             />
           </div>
-        </fieldset>
-
-        <fieldset className="space-y-3">
-          <legend className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
-            Geography
-          </legend>
-          <TextField
-            name="countries"
-            label="Eligible countries (comma-separated)"
-            defaultValue={(eligibility?.countries ?? []).join(', ')}
-            placeholder="Bangladesh, India, Nepal"
-          />
-          <TextField
-            name="nationalities"
-            label="Eligible nationalities (comma-separated)"
-            defaultValue={(eligibility?.nationalities ?? []).join(', ')}
-            placeholder="BD, IN"
-          />
         </fieldset>
 
         <fieldset className="space-y-3">

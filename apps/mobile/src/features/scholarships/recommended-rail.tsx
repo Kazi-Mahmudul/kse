@@ -19,7 +19,7 @@ interface RecommendedRailProps {
 /**
  * "Recommended for you" rail rendered above the Scholarship Hub list. Uses
  * the rule-based matcher to bucket every loaded scholarship, then shows the
- * top-N "highly_matched" + "eligible" rows. Empty until matching resolves,
+ * top-N "eligible" rows. Empty until matching resolves,
  * in which case it renders nothing rather than a half-empty header.
  */
 export function RecommendedRail({ items }: RecommendedRailProps) {
@@ -32,7 +32,7 @@ export function RecommendedRail({ items }: RecommendedRailProps) {
     const verdictById = new Map(matches.map((row) => [row.opportunity_id, row.level]));
     return items
       .map((row) => ({ row, level: verdictById.get(row.id) ?? null }))
-      .filter((entry) => entry.level === 'highly_matched' || entry.level === 'eligible')
+      .filter((entry) => entry.level === 'eligible')
       .slice(0, 8);
   }, [items, matches]);
 

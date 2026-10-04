@@ -218,10 +218,8 @@ function formatDeadline(deadline: string | null): string | null {
  *  Hub and the detail page without re-importing a generic Badge helper. */
 function matchTone(level: ScholarshipMatchLevel, tints: Record<TintKey, { bg: string; fg: string }>) {
   switch (level) {
-    case 'highly_matched':
-      return tints.emerald;
     case 'eligible':
-      return tints.indigo;
+      return tints.emerald;
     case 'potential':
       return tints.amber;
     case 'not_eligible':

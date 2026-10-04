@@ -94,9 +94,7 @@ async function loadMatchingProfile(): Promise<MatchingProfile> {
     has_publication: (researchRes.data ?? []).length > 0,
     has_project_experience: (projectsRes.data ?? []).length > 0,
     has_any_activity: false, // patched in below by useMyActivities result
-    // Country / nationality / test_scores are filled in client-side once
-    // the queries resolve (they need joins that are easier to do as
-    // separate queries than as a single RPC).
+    // test_scores are filled in client-side once the queries resolve.
   };
 }
 
@@ -118,9 +116,6 @@ interface UseScholarshipMatcherArgs {
   /** Opportunity IDs to evaluate. The hook fetches eligibility for these
    *  once and runs the engine client-side. */
   opportunityIds: readonly string[];
-  /** Country / nationality of the student; pulled from profile where it lives. */
-  country?: string | null;
-  nationalities?: string[];
 }
 
 /** Returns a stable query for the matching profile snapshot. */
@@ -133,11 +128,7 @@ export function useMatchingProfile() {
 }
 
 /** Evaluate `evaluateMatch` against a set of opportunities. */
-export function useScholarshipMatcher({
-  opportunityIds,
-  country,
-  nationalities,
-}: UseScholarshipMatcherArgs) {
+export function useScholarshipMatcher({ opportunityIds }: UseScholarshipMatcherArgs) {
   const profileQuery = useMatchingProfile();
   const eligibilityQuery = useEligibilityFor(opportunityIds);
   const testScoresQuery = useMyTestScores();
@@ -150,8 +141,6 @@ export function useScholarshipMatcher({
     has_leadership_activity: (activitiesQuery.data ?? []).some(
       (row) => row.activity_type === 'leadership',
     ),
-    country: country ?? null,
-    nationalities: nationalities ?? [],
   };
 
   const matches: ScholarshipMatch[] = opportunityIds.map((id) => {

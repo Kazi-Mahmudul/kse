@@ -26,7 +26,7 @@ function fail(context: string, message: string | null): never {
 // ── opportunity_eligibility ────────────────────────────────────────────────
 
 const ELIGIBILITY_COLUMNS =
-  'opportunity_id, min_cgpa, cgpa_scale, degree_levels, fields, countries, nationalities, ielts_min, toefl_min, pte_min, gre_min, requires_research, requires_publication, requires_work_experience, requires_project_experience, requires_leadership, requires_extracurricular, requires_test_score, required_documents, other_requirements';
+  'opportunity_id, min_cgpa, cgpa_scale, degree_levels, fields, ielts_min, toefl_min, pte_min, gre_min, requires_research, requires_publication, requires_work_experience, requires_project_experience, requires_leadership, requires_extracurricular, requires_test_score, required_documents, other_requirements';
 
 /** One eligibility row per opportunity. Missing rows mean "no constraints". */
 export async function listEligibilityForOpportunities(

@@ -1,3 +1,7 @@
+import {
+  DEGREE_LEVEL_LABELS,
+  EDUCATION_LEVEL_LABELS,
+} from '@kse/shared';
 import type {
   OpportunityEligibility,
   ScholarshipMatch,
@@ -16,8 +20,14 @@ import type {
  *   field is optional, so missing data counts as "no signal" rather than
  *   "not eligible" (the reason copy reflects that).
  *
+ * Deliberately out of scope: country / nationality rules. KSE serves
+ * Bangladeshi students only — every profile's country is Bangladesh and
+ * there is no nationality field — so geography can never exclude anyone.
+ * The `countries` / `nationalities` columns on the eligibility row stay
+ * purely informational ("open to Bangladeshi students").
+ *
  * Output:
- * - `level` collapses the rule outcomes into one of four buckets.
+ * - `level` collapses the rule outcomes into one of three buckets.
  * - `reasons` is the human-readable explanation used on the detail page
  *   and the Scholarship Hub match badge.
  */
@@ -30,10 +40,6 @@ export interface MatchingProfile {
   degree_levels?: string[];
   /** Program / major / field keywords (free text — matched against `fields`). */
   fields?: string[];
-  /** Student's country of citizenship / residence. */
-  country?: string | null;
-  /** Student's nationality / citizenship codes (ISO-2 or full names). */
-  nationalities?: string[];
   /** Latest test scores the student has recorded (per-type → highest). */
   test_scores?: Partial<Record<
     'ielts' | 'toefl' | 'pte' | 'gre' | 'duolingo' | 'oet' | 'toeic' | 'met' | 'moi' | 'other',
@@ -66,6 +72,34 @@ function normaliseCgpa(value: number, scale: number | null | undefined): number 
   const safeScale = scale && scale > 0 ? scale : 4;
   return (value / safeScale) * 4;
 }
+
+/**
+ * Ladder positions for study levels, used by the degree-level rule.
+ * A scholarship "funds" a level (e.g. a master's degree); the student
+ * qualifies when their highest education sits at or below that rung —
+ * a bachelor student is exactly who a master's scholarship is for.
+ * `other` / unmapped levels carry no signal.
+ */
+const EDUCATION_RANKS: Record<string, number> = {
+  primary_psc: 1,
+  jsc: 2,
+  ssc: 3,
+  hsc: 4,
+  diploma: 4,
+  certificate_course: 4,
+  bachelor: 5,
+  masters: 6,
+  mphil: 7,
+  phd: 8,
+};
+/** `opportunity_eligibility.degree_levels` uses the DegreeLevel enum; map
+ *  it onto the same ladder (undergraduate ≡ a completed bachelor). */
+const DEGREE_LEVEL_RANKS: Record<string, number> = {
+  diploma: 4,
+  undergraduate: 5,
+  masters: 6,
+  phd: 8,
+};
 
 export function evaluateMatch(
   eligibility: OpportunityEligibility | null,
@@ -101,22 +135,45 @@ export function evaluateMatch(
     }
   }
 
-  // 2. Degree level
+  // 2. Degree level — "can the student pursue this level?" The scholarship
+  // funds its eligible levels; the student qualifies while their highest
+  // education is at or below the highest funded rung (they haven't already
+  // moved past it).
   if (eligibility.degree_levels.length > 0) {
-    const held = profile.degree_levels ?? [];
-    const matched = eligibility.degree_levels.some((level) => held.includes(level));
-    if (matched) {
-      reasons.push(passed('degree_level', 'Education level matches.'));
-    } else {
-      const allowed = eligibility.degree_levels.join(', ');
-      reasons.push(
-        failed(
-          'degree_level',
-          held.length > 0
-            ? `Eligible levels: ${allowed}; your portfolio lists ${held.join(', ')}.`
-            : `Eligible levels: ${allowed}. Add your education level to verify.`,
-        ),
-      );
+    const fundedRanks = eligibility.degree_levels
+      .map((level) => DEGREE_LEVEL_RANKS[level])
+      .filter((rank): rank is number => rank != null);
+    const heldRanks = (profile.degree_levels ?? [])
+      .map((level) => EDUCATION_RANKS[level])
+      .filter((rank): rank is number => rank != null);
+
+    if (fundedRanks.length > 0) {
+      const fundedMax = Math.max(...fundedRanks);
+      const fundedLabels = eligibility.degree_levels
+        .map((level) => DEGREE_LEVEL_LABELS[level as keyof typeof DEGREE_LEVEL_LABELS] ?? level)
+        .join(', ');
+      if (heldRanks.length === 0) {
+        reasons.push(
+          failed(
+            'degree_level',
+            `Funds ${fundedLabels}. Add your education on Portfolio → Education to verify your level.`,
+          ),
+        );
+      } else if (Math.max(...heldRanks) <= fundedMax) {
+        reasons.push(passed('degree_level', `Funds ${fundedLabels} — your education level qualifies.`));
+      } else {
+        const highestHeld = (profile.degree_levels ?? [])
+          .filter((level) => EDUCATION_RANKS[level] != null)
+          .sort((a, b) => EDUCATION_RANKS[b] - EDUCATION_RANKS[a])[0];
+        reasons.push(
+          failed(
+            'degree_level',
+            `Funds ${fundedLabels}; your highest education (${
+              EDUCATION_LEVEL_LABELS[highestHeld as keyof typeof EDUCATION_LEVEL_LABELS] ?? highestHeld
+            }) is already above that level.`,
+          ),
+        );
+      }
     }
   }
 
@@ -138,46 +195,7 @@ export function evaluateMatch(
     }
   }
 
-  // 4. Country (eligible country list — student lives there)
-  if (eligibility.countries.length > 0) {
-    const studentCountry = profile.country?.trim();
-    if (!studentCountry) {
-      reasons.push(
-        failed('country', `Eligible countries: ${eligibility.countries.join(', ')}.`),
-      );
-    } else if (
-      eligibility.countries.some((c) => c.toLowerCase() === studentCountry.toLowerCase())
-    ) {
-      reasons.push(passed('country', `Country (${studentCountry}) is eligible.`));
-    } else {
-      reasons.push(
-        failed(
-          'country',
-          `Eligible countries: ${eligibility.countries.join(', ')}; your country is ${studentCountry}.`,
-        ),
-      );
-    }
-  }
-
-  // 5. Nationality
-  if (eligibility.nationalities.length > 0) {
-    const nationalities = (profile.nationalities ?? []).map((n) => n.toLowerCase());
-    const matched = eligibility.nationalities.some((n) =>
-      nationalities.includes(n.toLowerCase()),
-    );
-    if (matched) {
-      reasons.push(passed('nationality', 'Nationality is eligible.'));
-    } else {
-      reasons.push(
-        failed(
-          'nationality',
-          `Eligible nationalities: ${eligibility.nationalities.join(', ')}.`,
-        ),
-      );
-    }
-  }
-
-  // 6. English / standardised tests
+  // 4. English / standardised tests
   const scores = profile.test_scores ?? {};
   type TestKey = 'ielts' | 'toefl' | 'pte' | 'gre';
   interface TestCheck {
@@ -211,7 +229,7 @@ export function evaluateMatch(
     }
   }
 
-  // 7. Activity signals
+  // 5. Activity signals
   type ActivityCheck = [
     ScholarshipMatchReason['rule'],
     boolean | undefined,
@@ -235,7 +253,7 @@ export function evaluateMatch(
     }
   }
 
-  // 8. Has any test score at all (independent of minimums)
+  // 6. Has any test score at all (independent of minimums)
   if (eligibility.requires_test_score) {
     const anyTest = Object.values(scores).some((v) => v != null);
     if (anyTest) {
@@ -247,16 +265,14 @@ export function evaluateMatch(
     }
   }
 
-  // Roll up into a level. No constraints → eligible.
-  const failed_ = reasons.filter((r) => !r.passed);
-  const passed_ = reasons.filter((r) => r.passed);
+  // Roll up into a level. No constraints → eligible. One miss → potential
+  // ("you're close"); two or more → not eligible.
+  const failedCount = reasons.filter((r) => !r.passed).length;
 
   let level: ScholarshipMatchLevel;
-  if (reasons.length === 0) {
+  if (failedCount === 0) {
     level = 'eligible';
-  } else if (failed_.length === 0) {
-    level = passed_.length >= 5 ? 'highly_matched' : 'eligible';
-  } else if (failed_.length <= 1) {
+  } else if (failedCount === 1) {
     level = 'potential';
   } else {
     level = 'not_eligible';

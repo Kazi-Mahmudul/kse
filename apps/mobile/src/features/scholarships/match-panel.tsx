@@ -2,7 +2,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { ThemedText } from '@/components/themed-text';
 import { Card } from '@/components/ui/card';
 import { Spacing, type TintKey } from '@/constants/theme';
 import { SCHOLARSHIP_MATCH_LEVEL_LABELS } from '@kse/shared';
@@ -28,10 +27,8 @@ export function MatchPanel({ match, loading }: MatchPanelProps) {
   const tintKey = useMemo<TintKey | null>(() => {
     if (!match) return null;
     switch (match.level) {
-      case 'highly_matched':
-        return 'emerald';
       case 'eligible':
-        return 'indigo';
+        return 'emerald';
       case 'potential':
         return 'amber';
       case 'not_eligible':
@@ -46,11 +43,6 @@ export function MatchPanel({ match, loading }: MatchPanelProps) {
 
   return (
     <View style={styles.container}>
-      <View style={styles.headerRow}>
-        <Ionicons name="sparkles-outline" size={18} color={colors.primary} />
-        <ThemedText type="smallBold">Your match</ThemedText>
-      </View>
-
       <Card
         tint="backgroundElement"
         style={[
@@ -84,8 +76,6 @@ export function MatchPanel({ match, loading }: MatchPanelProps) {
 
 function summaryHelper(level: ScholarshipMatch['level']): string {
   switch (level) {
-    case 'highly_matched':
-      return 'Your profile satisfies every published requirement — a strong candidate.';
     case 'eligible':
       return 'You satisfy every published requirement — go for it.';
     case 'potential':
@@ -119,11 +109,6 @@ function ReasonRow({ reason }: { reason: ScholarshipMatchReason }) {
 
 const styles = StyleSheet.create({
   container: {
-    gap: Spacing.two,
-  },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
     gap: Spacing.two,
   },
   summary: {

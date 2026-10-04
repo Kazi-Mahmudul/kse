@@ -115,8 +115,6 @@ export const opportunityEligibilitySchema = z.object({
   cgpa_scale: optionalNumber(10),
   degree_levels: optionalStringList,
   fields: csvToStringArray,
-  countries: csvToStringArray,
-  nationalities: csvToStringArray,
   ielts_min: optionalNumber(9),
   toefl_min: optionalNumber(120),
   pte_min: optionalNumber(90),
