@@ -2,11 +2,14 @@ import { formatDateTime } from '@/lib/format';
 import { createAdminClient } from '@/lib/supabase/admin';
 import {
   NotificationsComposeForm,
+  type InstitutionOption,
   type StudentOption,
-  type UniversityOption,
 } from '@/features/notifications/compose-form';
 
 const RECENT_PAGE_SIZE = 10;
+/** PostgREST max_rows caps a single response at 1000 — page through the
+ *  institution directory so the searchable picker sees every row. */
+const INSTITUTION_PAGE_SIZE = 1000;
 
 interface DeliveryRow {
   notification_id: string;
@@ -22,6 +25,24 @@ interface RecentNotificationRow {
   created_at: string;
 }
 
+async function loadInstitutions(
+  admin: ReturnType<typeof createAdminClient>,
+): Promise<InstitutionOption[]> {
+  const rows: InstitutionOption[] = [];
+  for (let from = 0; ; from += INSTITUTION_PAGE_SIZE) {
+    const { data, error } = await admin
+      .from('education_institutions')
+      .select('id, name, city')
+      .eq('is_active', true)
+      .order('name')
+      .range(from, from + INSTITUTION_PAGE_SIZE - 1);
+    if (error) throw new Error(error.message);
+    rows.push(...((data ?? []) as unknown as InstitutionOption[]));
+    if ((data ?? []).length < INSTITUTION_PAGE_SIZE) break;
+  }
+  return rows;
+}
+
 /**
  * Notification composer + recent delivery log (spec §18, step 17).
  *
@@ -32,12 +53,11 @@ export default async function NotificationsPage() {
   const admin = createAdminClient();
 
   const [
-    { data: universityRows, error: universitiesError },
     { data: profileRows, error: studentsError },
     { data: recentRows, error: recentError },
     { data: authUsers },
+    institutionRows,
   ] = await Promise.all([
-    admin.from('universities').select('id, name').order('name'),
     admin
       .from('profiles')
       .select('id, full_name')
@@ -50,11 +70,8 @@ export default async function NotificationsPage() {
       .range(0, RECENT_PAGE_SIZE - 1),
     // profiles carries no email column — emails live only in auth.users.
     admin.auth.admin.listUsers({ page: 1, perPage: 1000 }),
+    loadInstitutions(admin),
   ]);
-
-  const universities: UniversityOption[] = (universityRows ?? []).map(
-    (row: { id: string; name: string }) => ({ id: row.id, name: row.name }),
-  );
 
   const emailByUserId = new Map(
     (authUsers?.users ?? []).map((user) => [user.id, user.email ?? '']),
@@ -119,11 +136,6 @@ export default async function NotificationsPage() {
           id only if you want the bell badge to deep-link into that detail.
         </p>
 
-        {universitiesError && (
-          <p className="mt-4 rounded-lg border border-red-200 bg-red-50 px-3.5 py-2.5 text-sm text-red-700">
-            Could not load universities: {universitiesError.message}
-          </p>
-        )}
         {studentsError && (
           <p className="mt-4 rounded-lg border border-red-200 bg-red-50 px-3.5 py-2.5 text-sm text-red-700">
             Could not load recipients: {studentsError.message}
@@ -132,7 +144,7 @@ export default async function NotificationsPage() {
 
         <div className="mt-6">
           <NotificationsComposeForm
-            universities={universities}
+            institutions={institutionRows}
             students={students}
           />
         </div>

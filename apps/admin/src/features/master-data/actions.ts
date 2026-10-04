@@ -80,8 +80,12 @@ async function createRow(
   return { error: null, fieldErrors: {} };
 }
 
-/** Delete a master-data row (inline ✕ forms — throws surface FK conflicts). */
-async function deleteRow(table: string, formData: FormData): Promise<void> {
+/** Delete a reference row (inline ✕ forms — throws surface FK conflicts). */
+async function deleteRow(
+  table: string,
+  formData: FormData,
+  revalidatePaths: string[] = [],
+): Promise<void> {
   await requireStaffUserId();
   const parsed = idSchema.safeParse({ id: formData.get('id') });
   if (!parsed.success) {
@@ -92,7 +96,9 @@ async function deleteRow(table: string, formData: FormData): Promise<void> {
   if (error) {
     throw new Error(`Delete failed: ${error.message}`);
   }
-  revalidatePath('/master-data');
+  for (const path of revalidatePaths) {
+    revalidatePath(path);
+  }
 }
 
 // ── Universities ────────────────────────────────────────────────────────────
@@ -102,7 +108,7 @@ export async function createUniversityAction(
   formData: FormData,
 ): Promise<MasterDataActionState> {
   return createRow('universities', universityFormSchema, formData, [
-    '/master-data',
+    '/education-institutions',
     '/notifications',
     '/users',
     '/communities',
@@ -110,8 +116,12 @@ export async function createUniversityAction(
 }
 
 export async function deleteUniversityAction(formData: FormData): Promise<void> {
-  await deleteRow('universities', formData);
-  revalidatePath('/notifications');
+  await deleteRow('universities', formData, [
+    '/education-institutions',
+    '/notifications',
+    '/users',
+    '/communities',
+  ]);
 }
 
 // ── Departments ─────────────────────────────────────────────────────────────
@@ -120,11 +130,11 @@ export async function createDepartmentAction(
   _prev: MasterDataActionState,
   formData: FormData,
 ): Promise<MasterDataActionState> {
-  return createRow('departments', departmentFormSchema, formData, ['/master-data']);
+  return createRow('departments', departmentFormSchema, formData, ['/education-institutions']);
 }
 
 export async function deleteDepartmentAction(formData: FormData): Promise<void> {
-  await deleteRow('departments', formData);
+  await deleteRow('departments', formData, ['/education-institutions']);
 }
 
 // ── Subjects ────────────────────────────────────────────────────────────────
@@ -133,11 +143,11 @@ export async function createSubjectAction(
   _prev: MasterDataActionState,
   formData: FormData,
 ): Promise<MasterDataActionState> {
-  return createRow('subjects', subjectFormSchema, formData, ['/master-data']);
+  return createRow('subjects', subjectFormSchema, formData, ['/tuition']);
 }
 
 export async function deleteSubjectAction(formData: FormData): Promise<void> {
-  await deleteRow('subjects', formData);
+  await deleteRow('subjects', formData, ['/tuition']);
 }
 
 // ── Skills ──────────────────────────────────────────────────────────────────
@@ -146,11 +156,11 @@ export async function createSkillAction(
   _prev: MasterDataActionState,
   formData: FormData,
 ): Promise<MasterDataActionState> {
-  return createRow('skills', skillFormSchema, formData, ['/master-data']);
+  return createRow('skills', skillFormSchema, formData, ['/users']);
 }
 
 export async function deleteSkillAction(formData: FormData): Promise<void> {
-  await deleteRow('skills', formData);
+  await deleteRow('skills', formData, ['/users']);
 }
 
 // ── Opportunity categories ─────────────────────────────────────────────────
@@ -160,7 +170,6 @@ export async function createCategoryAction(
   formData: FormData,
 ): Promise<MasterDataActionState> {
   return createRow('opportunity_categories', opportunityCategoryFormSchema, formData, [
-    '/master-data',
     '/opportunities',
   ]);
 }
@@ -182,7 +191,7 @@ export async function createTagAction(
     'tags',
     tagFormSchema,
     formData,
-    ['/master-data', '/opportunities'],
+    ['/opportunities'],
     (values) => ({ ...values, name: String(values.name).toLowerCase() }),
   );
 }

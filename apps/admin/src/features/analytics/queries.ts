@@ -10,28 +10,35 @@ export const RECENT_DAYS = 7;
 export const EXPIRY_WINDOW_DAYS = 14;
 
 export interface DashboardKpis {
+  // People
   totalUsers: number;
   activeStudents: number;
   newRegistrationsLast7Days: number;
-  activeOpportunities: number;
-  expiringOpportunities: number;
   totalTutors: number;
-  totalEvents: number;
-  totalCommunities: number;
+  // Opportunities
+  activeOpportunities: number;
   pendingReviewOpportunities: number;
+  expiringOpportunities: number;
+  totalEvents: number;
+  totalScholarships: number;
+  // Housing & services
+  activeToletListings: number;
+  pendingToletListings: number;
+  activeHubListings: number;
+  pendingHubListings: number;
+  totalMesses: number;
+  // Community
   activeCommunities: number;
-  pendingCommunityRequests: number;
-  openCommunityReports: number;
-  /** Total memberships across active communities. Not a true
-   *  "active users" KPI (we don't track per-user last_active_at yet) —
-   *  see the corresponding query comment. */
   communityMemberships: number;
+  pendingCommunityRequests: number;
+  // Moderation
+  openReports: number;
+  pendingTuitionRequests: number;
 }
 
 export interface RecentRegistration {
   id: string;
   fullName: string | null;
-  email: string | null;
   createdAt: string;
   universityName: string | null;
 }
@@ -62,12 +69,22 @@ export interface CommunityActivityItem {
   createdAt: string;
 }
 
+/** One row of the unified "needs attention" queue on the dashboard. */
+export interface ModerationItem {
+  id: string;
+  kind: 'opportunity' | 'tolet' | 'hub' | 'community request' | 'report' | 'tuition request';
+  title: string;
+  href: string;
+  createdAt: string;
+}
+
 export interface DashboardSummary {
   kpis: DashboardKpis;
   recentRegistrations: RecentRegistration[];
   expiring: ExpiringOpportunity[];
   recentNotifications: RecentNotification[];
   communityActivity: CommunityActivityItem[];
+  moderationQueue: ModerationItem[];
   /** ISO timestamp the metrics were computed at. */
   generatedAt: string;
 }
@@ -99,7 +116,6 @@ interface CountResult {
 interface ProfileJoinRow {
   id: string;
   full_name: string | null;
-  email: string | null;
   created_at: string;
   university: { name: string } | null;
 }
@@ -120,6 +136,36 @@ interface RecentNotificationRow {
   notifications_deliveries: { id: string }[];
 }
 
+interface PendingOpportunityRow {
+  id: string;
+  title: string;
+  created_at: string;
+}
+
+interface PendingHubRow {
+  id: string;
+  title: string;
+  created_at: string;
+}
+
+interface PendingCommunityRequestRow {
+  id: string;
+  name: string;
+  created_at: string;
+}
+
+interface PendingTuitionRequestRow {
+  id: string;
+  created_at: string;
+}
+
+interface OpenReportRow {
+  id: string;
+  target_type: string;
+  reason: string;
+  created_at: string;
+}
+
 /** Build a single-pass analytics summary. Aggregates use head:true where
  *  possible so the platform keeps cheap to render as data grows. */
 export async function getDashboardSummary(): Promise<DashboardSummary> {
@@ -132,21 +178,34 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
     totalUsersR,
     activeStudentsR,
     newRegistrationsR,
-    activeOpportunitiesR,
-    expiringOpportunitiesR,
     totalTutorsR,
-    totalEventsR,
-    totalCommunitiesR,
+    activeOpportunitiesR,
     pendingReviewR,
-    recentProfilesR,
-    expiringListR,
-    recentNotificationsR,
+    expiringOpportunitiesR,
+    totalEventsR,
+    totalScholarshipsR,
+    activeToletR,
+    pendingToletR,
+    activeHubR,
+    pendingHubR,
+    totalMessesR,
     activeCommunitiesR,
     pendingCommunityRequestsR,
     openCommunityReportsR,
+    openContentReportsR,
+    pendingTuitionRequestsR,
+    recentProfilesR,
+    expiringListR,
+    recentNotificationsR,
     activeCommunityMembersR,
     communityPostsR,
     communityRequestsR,
+    pendingOpportunityListR,
+    pendingToletListR,
+    pendingHubListR,
+    pendingCommunityRequestListR,
+    pendingTuitionRequestListR,
+    openReportListR,
   ] = await Promise.all([
     admin.from('profiles').select('id', { count: 'exact', head: true }),
     admin
@@ -157,6 +216,7 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
       .from('profiles')
       .select('id', { count: 'exact', head: true })
       .gte('created_at', since),
+    admin.from('tutors').select('id', { count: 'exact', head: true }),
     admin
       .from('opportunities')
       .select('id', { count: 'exact', head: true })
@@ -165,22 +225,67 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
     admin
       .from('opportunities')
       .select('id', { count: 'exact', head: true })
+      .eq('status', 'pending_review'),
+    admin
+      .from('opportunities')
+      .select('id', { count: 'exact', head: true })
       .eq('status', 'published')
       .gte('deadline', beforeExpiry)
       .lte('deadline', afterExpiry),
-    admin.from('tutors').select('id', { count: 'exact', head: true }),
     admin
       .from('opportunities')
       .select('id', { count: 'exact', head: true })
-      .eq('type', 'event'),
-    admin.from('communities').select('id', { count: 'exact', head: true }),
+      .eq('type', 'event')
+      .eq('status', 'published'),
     admin
       .from('opportunities')
       .select('id', { count: 'exact', head: true })
+      .eq('type', 'scholarship')
+      .eq('status', 'published'),
+    // To-Let listings are `type = 'tolet'` rows on the unified table.
+    admin
+      .from('opportunities')
+      .select('id', { count: 'exact', head: true })
+      .eq('type', 'tolet')
+      .eq('status', 'published'),
+    admin
+      .from('opportunities')
+      .select('id', { count: 'exact', head: true })
+      .eq('type', 'tolet')
       .eq('status', 'pending_review'),
     admin
+      .from('student_hub_listings')
+      .select('id', { count: 'exact', head: true })
+      .eq('status', 'published'),
+    admin
+      .from('student_hub_listings')
+      .select('id', { count: 'exact', head: true })
+      .eq('status', 'pending_review'),
+    admin.from('messes').select('id', { count: 'exact', head: true }),
+    admin
+      .from('communities')
+      .select('id', { count: 'exact', head: true })
+      .eq('status', 'active'),
+    admin
+      .from('community_requests')
+      .select('id', { count: 'exact', head: true })
+      .eq('status', 'pending'),
+    admin
+      .from('community_reports')
+      .select('id', { count: 'exact', head: true })
+      .eq('status', 'open'),
+    // Content reports (to-let + hub listings) share the `reports` table.
+    admin
+      .from('reports')
+      .select('id', { count: 'exact', head: true })
+      .eq('status', 'open'),
+    admin
+      .from('tuition_requests')
+      .select('id', { count: 'exact', head: true })
+      .eq('status', 'pending'),
+    admin
       .from('profiles')
-      .select('id, full_name, email, created_at, university:universities(name)')
+      .select('id, full_name, created_at, university:universities(name)')
       .order('created_at', { ascending: false })
       .limit(5),
     admin
@@ -199,18 +304,6 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
       )
       .order('created_at', { ascending: false })
       .limit(5),
-    admin
-      .from('communities')
-      .select('id', { count: 'exact', head: true })
-      .eq('status', 'active'),
-    admin
-      .from('community_requests')
-      .select('id', { count: 'exact', head: true })
-      .eq('status', 'pending'),
-    admin
-      .from('community_reports')
-      .select('id', { count: 'exact', head: true })
-      .eq('status', 'open'),
     admin
       // Sum of memberships across active communities. RLS-free via the
       // service-role client. (community_members.last_active_at is not
@@ -233,7 +326,46 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
       .eq('status', 'pending')
       .order('created_at', { ascending: false })
       .limit(5),
+    admin
+      .from('opportunities')
+      .select('id, title, created_at')
+      .eq('status', 'pending_review')
+      .order('created_at', { ascending: false })
+      .limit(10),
+    admin
+      .from('opportunities')
+      .select('id, title, created_at')
+      .eq('type', 'tolet')
+      .eq('status', 'pending_review')
+      .order('created_at', { ascending: false })
+      .limit(10),
+    admin
+      .from('student_hub_listings')
+      .select('id, title, created_at')
+      .eq('status', 'pending_review')
+      .order('created_at', { ascending: false })
+      .limit(10),
+    admin
+      .from('community_requests')
+      .select('id, name, created_at')
+      .eq('status', 'pending')
+      .order('created_at', { ascending: false })
+      .limit(10),
+    admin
+      .from('tuition_requests')
+      .select('id, created_at')
+      .eq('status', 'pending')
+      .order('created_at', { ascending: false })
+      .limit(10),
+    admin
+      .from('reports')
+      .select('id, target_type, reason, created_at')
+      .eq('status', 'open')
+      .order('created_at', { ascending: false })
+      .limit(10),
   ]);
+
+  const count = (r: unknown): number => (r as unknown as CountResult).count ?? 0;
 
   const expiringList: ExpiringOpportunity[] = ((expiringListR.data ?? []) as unknown as ExpiringRow[])
     .map((row) => {
@@ -255,7 +387,6 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
   ).map((row) => ({
     id: row.id,
     fullName: row.full_name,
-    email: row.email,
     createdAt: row.created_at,
     universityName: row.university?.name ?? null,
   }));
@@ -328,26 +459,90 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
     ),
   ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
+  // Unified moderation queue: everything waiting on a staff decision,
+  // newest first, capped so the panel stays scannable.
+  const moderationQueue: ModerationItem[] = [
+    ...((pendingOpportunityListR.data ?? []) as unknown as PendingOpportunityRow[])
+      .filter((row) => row.title)
+      .map((row) => ({
+        id: row.id,
+        kind: 'opportunity' as const,
+        title: row.title,
+        href: `/opportunities/${row.id}`,
+        createdAt: row.created_at,
+      })),
+    ...((pendingToletListR.data ?? []) as unknown as PendingOpportunityRow[])
+      .filter((row) => row.title)
+      .map((row) => ({
+        id: row.id,
+        kind: 'tolet' as const,
+        title: row.title,
+        href: `/tolet/${row.id}`,
+        createdAt: row.created_at,
+      })),
+    ...((pendingHubListR.data ?? []) as unknown as PendingHubRow[]).map((row) => ({
+      id: row.id,
+      kind: 'hub' as const,
+      title: row.title,
+      href: `/hub/${row.id}`,
+      createdAt: row.created_at,
+    })),
+    ...((pendingCommunityRequestListR.data ?? []) as unknown as PendingCommunityRequestRow[]).map(
+      (row) => ({
+        id: row.id,
+        kind: 'community request' as const,
+        title: row.name,
+        href: '/communities/pending',
+        createdAt: row.created_at,
+      }),
+    ),
+    ...((pendingTuitionRequestListR.data ?? []) as unknown as PendingTuitionRequestRow[]).map(
+      (row) => ({
+        id: row.id,
+        kind: 'tuition request' as const,
+        title: 'Tuition request awaiting review',
+        href: '/tuition/requests',
+        createdAt: row.created_at,
+      }),
+    ),
+    ...((openReportListR.data ?? []) as unknown as OpenReportRow[]).map((row) => ({
+      id: row.id,
+      kind: 'report' as const,
+      title: `${row.target_type} — ${row.reason}`,
+      href: row.target_type === 'hub_listing' ? '/hub/reports' : '/tolet/reports',
+      createdAt: row.created_at,
+    })),
+  ]
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .slice(0, 12);
+
   const summary: DashboardSummary = {
     kpis: {
-      totalUsers: (totalUsersR as unknown as CountResult).count ?? 0,
-      activeStudents: (activeStudentsR as unknown as CountResult).count ?? 0,
-      newRegistrationsLast7Days: (newRegistrationsR as unknown as CountResult).count ?? 0,
-      activeOpportunities: (activeOpportunitiesR as unknown as CountResult).count ?? 0,
-      expiringOpportunities: (expiringOpportunitiesR as unknown as CountResult).count ?? 0,
-      totalTutors: (totalTutorsR as unknown as CountResult).count ?? 0,
-      totalEvents: (totalEventsR as unknown as CountResult).count ?? 0,
-      totalCommunities: (totalCommunitiesR as unknown as CountResult).count ?? 0,
-      pendingReviewOpportunities: (pendingReviewR as unknown as CountResult).count ?? 0,
-      activeCommunities: (activeCommunitiesR as unknown as CountResult).count ?? 0,
-      pendingCommunityRequests: (pendingCommunityRequestsR as unknown as CountResult).count ?? 0,
-      openCommunityReports: (openCommunityReportsR as unknown as CountResult).count ?? 0,
-      communityMemberships: (activeCommunityMembersR as unknown as CountResult).count ?? 0,
+      totalUsers: count(totalUsersR),
+      activeStudents: count(activeStudentsR),
+      newRegistrationsLast7Days: count(newRegistrationsR),
+      totalTutors: count(totalTutorsR),
+      activeOpportunities: count(activeOpportunitiesR),
+      pendingReviewOpportunities: count(pendingReviewR),
+      expiringOpportunities: count(expiringOpportunitiesR),
+      totalEvents: count(totalEventsR),
+      totalScholarships: count(totalScholarshipsR),
+      activeToletListings: count(activeToletR),
+      pendingToletListings: count(pendingToletR),
+      activeHubListings: count(activeHubR),
+      pendingHubListings: count(pendingHubR),
+      totalMesses: count(totalMessesR),
+      activeCommunities: count(activeCommunitiesR),
+      communityMemberships: count(activeCommunityMembersR),
+      pendingCommunityRequests: count(pendingCommunityRequestsR),
+      openReports: count(openCommunityReportsR) + count(openContentReportsR),
+      pendingTuitionRequests: count(pendingTuitionRequestsR),
     },
     recentRegistrations,
     expiring: expiringList,
     recentNotifications,
     communityActivity,
+    moderationQueue,
     generatedAt: new Date().toISOString(),
   };
 

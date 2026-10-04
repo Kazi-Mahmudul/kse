@@ -6,6 +6,7 @@ import {
   setUserVerifiedAction,
 } from '@/features/users/actions';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { SkillsPanel } from '@/features/master-data/panels';
 import { createClient } from '@/lib/supabase/server';
 import { USER_ROLE_LABELS } from '@kse/shared';
 import type { UserRole } from '@kse/types';
@@ -349,6 +350,7 @@ export default async function UsersPage({
           </div>
         </div>
       )}
+      <SkillsPanel />
     </div>
   );
 }

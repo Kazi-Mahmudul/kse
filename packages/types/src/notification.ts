@@ -38,10 +38,12 @@ export interface NotificationItem {
   createdAt: string;
 }
 
-/** Admin composer target selector. */
+/** Admin composer target selector. Institution/district targeting uses the
+ *  live education-institutions directory and the profile district field. */
 export type NotificationAudience =
   | { kind: 'all_users' }
-  | { kind: 'university'; universityId: string }
+  | { kind: 'institution'; institutionId: string }
+  | { kind: 'district'; district: string }
   | { kind: 'users'; userIds: string[] };
 
 /** Service-role payload accepted by the notification server action. */

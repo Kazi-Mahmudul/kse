@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { StatusBadge } from '@/components/status-badge';
 import { formatDate } from '@/lib/format';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { CategoriesTagsPanel } from '@/features/master-data/panels';
 import {
   OPPORTUNITY_STATUS_OPTIONS,
   OPPORTUNITY_TYPE_LABELS,
@@ -235,6 +236,7 @@ export default async function OpportunitiesPage({
           </div>
         </div>
       )}
+      <CategoriesTagsPanel />
     </div>
   );
 }

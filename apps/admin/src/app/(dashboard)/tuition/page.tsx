@@ -2,6 +2,7 @@ import Link from 'next/link';
 
 import { formatDate } from '@/lib/format';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { SubjectsPanel } from '@/features/master-data/panels';
 import { VerifyButton } from '@/features/tuition/verify-button';
 import type { ContentStatus } from '@kse/types';
 
@@ -273,6 +274,7 @@ export default async function TuitionPage({
           </div>
         </div>
       )}
+      <SubjectsPanel />
     </div>
   );
 }

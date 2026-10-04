@@ -13,6 +13,7 @@ import {
 } from '@/features/education-institutions/actions';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { UniversitiesPanel } from '@/features/master-data/panels';
 import { isStaff } from '@/lib/roles';
 import { formatDateTime } from '@/lib/format';
 import {
@@ -428,6 +429,7 @@ export default async function EducationInstitutionsPage({ searchParams }: PagePr
           )}
         </section>
       </div>
+      <UniversitiesPanel />
     </div>
   );
 }

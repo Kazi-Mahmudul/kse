@@ -12,7 +12,7 @@ import {
   idSchema,
 } from '@kse/validation';
 
-const REVALIDATE = ['/education-institutions', '/master-data'];
+const REVALIDATE = ['/education-institutions'];
 
 /** Verified staff user (session + role read server-side, spec §5/§10). */
 async function requireStaffUserId(): Promise<string> {

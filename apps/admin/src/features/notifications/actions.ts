@@ -52,12 +52,48 @@ async function resolveAudience(
     if (error) throw new Error(error.message);
     return Array.from(new Set((data ?? []).map((row) => row.id)));
   }
-  if (audience.kind === 'university') {
-    // Recipients = active profiles whose university_id matches the target.
+  if (audience.kind === 'institution') {
+    // Recipients = active users with an education row at the target
+    // institution. Students link institutions through Portfolio →
+    // Education: by id when picked from the directory, or by name text.
+    const { data: institution, error: institutionError } = await admin
+      .from('education_institutions')
+      .select('name')
+      .eq('id', audience.institutionId)
+      .single();
+    if (institutionError) throw new Error('Unknown institution.');
+    const name = (institution?.name ?? '').trim();
+    const byIds = new Set<string>();
+    if (name) {
+      const { data: byName, error: byNameError } = await admin
+        .from('user_education')
+        .select('user_id')
+        .ilike('institution', name);
+      if (byNameError) throw new Error(byNameError.message);
+      for (const row of byName ?? []) byIds.add(row.user_id);
+    }
+    const { data: byFk, error: byFkError } = await admin
+      .from('user_education')
+      .select('user_id')
+      .eq('institution_id', audience.institutionId);
+    if (byFkError) throw new Error(byFkError.message);
+    for (const row of byFk ?? []) byIds.add(row.user_id);
+    if (byIds.size === 0) return [];
     const { data, error } = await admin
       .from('profiles')
       .select('id')
-      .eq('university_id', audience.universityId)
+      .eq('status', 'active')
+      .in('id', Array.from(byIds));
+    if (error) throw new Error(error.message);
+    return Array.from(new Set((data ?? []).map((row) => row.id)));
+  }
+  if (audience.kind === 'district') {
+    // Recipients = active users whose profile lists the target district
+    // (Profile → Location, Khulna Division districts).
+    const { data, error } = await admin
+      .from('profiles')
+      .select('id')
+      .eq('district', audience.district)
       .eq('status', 'active');
     if (error) throw new Error(error.message);
     return Array.from(new Set((data ?? []).map((row) => row.id)));
@@ -90,12 +126,18 @@ export async function sendNotification(
   let audience: NotificationAudience;
   if (kind === 'all_users') {
     audience = { kind: 'all_users' };
-  } else if (kind === 'university') {
-    const universityId = String(formData.get('universityId') ?? '');
-    if (!/^[0-9a-f-]{36}$/i.test(universityId)) {
-      return { error: 'Choose a university.' };
+  } else if (kind === 'institution') {
+    const institutionId = String(formData.get('institutionId') ?? '');
+    if (!/^[0-9a-f-]{36}$/i.test(institutionId)) {
+      return { error: 'Choose an institution.' };
     }
-    audience = { kind: 'university', universityId };
+    audience = { kind: 'institution', institutionId };
+  } else if (kind === 'district') {
+    const district = String(formData.get('district') ?? '').trim();
+    if (!district) {
+      return { error: 'Choose a district.' };
+    }
+    audience = { kind: 'district', district };
   } else if (kind === 'users') {
     // Checkboxes submit as repeated userIds entries — one or many people.
     const userIds = formData
@@ -150,12 +192,13 @@ export async function sendNotification(
   }
 
   if (recipients.length === 0) {
-    return {
-      error:
-        audience.kind === 'university'
-          ? 'No active users at that university yet.'
-          : 'No recipients match this audience.',
-    };
+    const reason =
+      audience.kind === 'institution'
+        ? 'No active users have that institution on their education yet — students link it via Portfolio → Education.'
+        : audience.kind === 'district'
+          ? 'No active users have that district on their profile yet — students set it in Profile → Edit → Location.'
+          : 'No recipients match this audience.';
+    return { error: reason };
   }
 
   const rows = recipients.map((userId) => ({
