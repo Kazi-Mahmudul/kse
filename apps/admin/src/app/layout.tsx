@@ -17,8 +17,15 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`${geistSans.variable} h-full antialiased`}>
-      <body className="min-h-full flex flex-col font-sans">{children}</body>
+    // suppressHydrationWarning on <html>/<body>: browser extensions
+    // (Grammarly, Dark Reader, password managers…) inject attributes like
+    // data-gr-ext-installed before React hydrates, which otherwise logs a
+    // scary-but-harmless hydration mismatch. This only silences attribute
+    // diffs on these two elements — real mismatches elsewhere still error.
+    <html lang="en" className={`${geistSans.variable} h-full antialiased`} suppressHydrationWarning>
+      <body className="min-h-full flex flex-col font-sans" suppressHydrationWarning>
+        {children}
+      </body>
     </html>
   );
 }

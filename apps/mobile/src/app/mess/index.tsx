@@ -7,7 +7,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { alertInfo } from '@/lib/dialogs';
 import { useForm } from 'react-hook-form';
@@ -17,7 +18,7 @@ import { Screen } from '@/components/ui/screen';
 import { EmptyState } from '@/components/ui/empty-state';
 import { PrimaryButton } from '@/components/ui/primary-button';
 import { TextField } from '@/components/ui/text-field';
-import { FontFamilies, Spacing } from '@/constants/theme';
+import { FontFamilies, MaxContentWidth, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useSmartBack } from '@/hooks/use-smart-back';
 import { useCreateMess, useJoinMess, useMyMesses } from '@/features/mess/queries';
@@ -27,6 +28,7 @@ import { supabase } from '@/lib/supabase';
 
 export default function MessHubScreen() {
   const colors = useTheme();
+  const insets = useSafeAreaInsets();
   const goBack = useSmartBack('/');
   const router = useRouter();
   const { data: messes, isLoading, isError, error, refetch } = useMyMesses();
@@ -37,20 +39,28 @@ export default function MessHubScreen() {
   const pending = messes?.filter((m) => m.status === 'pending') ?? [];
 
   return (
-    <Screen scroll={false}>
-      <View style={styles.header}>
-        <Pressable onPress={goBack} accessibilityRole="button" accessibilityLabel="Go back" hitSlop={8}>
-          <Ionicons name="chevron-back" size={24} color={colors.text} />
-        </Pressable>
-        <View style={styles.titleWrap}>
-          <ThemedText type="subtitle">Mess Management</ThemedText>
-          <ThemedText type="small" themeColor="textSecondary">
-            Meals, bazar and settlement for your mess
-          </ThemedText>
+    <Screen scroll={false} fullBleed style={{ paddingVertical: 0, gap: 0 }}>
+      {/* Full-width scroller (scrollbar at the window edge on wide screens)
+          with the readable column centred inside it. */}
+      <ScrollView
+        style={{ flex: 1, width: '100%' }}
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+      >
+        <View style={styles.column}>
+        <View style={styles.header}>
+          <Pressable onPress={goBack} accessibilityRole="button" accessibilityLabel="Go back" hitSlop={8}>
+            <Ionicons name="chevron-back" size={24} color={colors.text} />
+          </Pressable>
+          <View style={styles.titleWrap}>
+            <ThemedText type="subtitle">Mess Management</ThemedText>
+            <ThemedText type="small" themeColor="textSecondary">
+              Meals, bazar and settlement for your mess
+            </ThemedText>
+          </View>
         </View>
-      </View>
 
-      <View style={styles.body}>
+        <View style={styles.body}>
         {isLoading ? (
           <InlineLoading label="Loading your messes…" />
         ) : isError ? (
@@ -112,16 +122,29 @@ export default function MessHubScreen() {
             ))}
           </View>
         )}
-      </View>
+        </View>
+        </View>
+      </ScrollView>
 
-      <View style={styles.footer}>
-        <PrimaryButton
-          label="Join with Code"
-          variant="outline"
-          onPress={() => setShowJoin(true)}
-          style={styles.footerBtn}
-        />
-        <PrimaryButton label="Create Mess" onPress={() => setShowCreate(true)} style={styles.footerBtn} />
+      <View
+        style={[
+          styles.footerWrap,
+          {
+            backgroundColor: colors.background,
+            borderTopColor: colors.border,
+            paddingBottom: Math.max(insets.bottom, Spacing.two),
+          },
+        ]}
+      >
+        <View style={styles.footerColumn}>
+          <PrimaryButton
+            label="Join with Code"
+            variant="outline"
+            onPress={() => setShowJoin(true)}
+            style={styles.footerBtn}
+          />
+          <PrimaryButton label="Create Mess" onPress={() => setShowCreate(true)} style={styles.footerBtn} />
+        </View>
       </View>
 
       <CreateMessSheet visible={showCreate} onClose={() => setShowCreate(false)} />
@@ -285,7 +308,7 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   body: {
-    flex: 1,
+    width: '100%',
   },
   list: {
     gap: Spacing.three - 6,
@@ -317,10 +340,30 @@ const styles = StyleSheet.create({
   pressed: {
     opacity: 0.75,
   },
-  footer: {
+  scrollContent: {
+    width: '100%',
+    alignItems: 'center',
+  },
+  column: {
+    width: '100%',
+    maxWidth: MaxContentWidth,
+    paddingHorizontal: Spacing.four,
+    paddingTop: Spacing.three,
+    paddingBottom: Spacing.three,
+    gap: Spacing.three,
+  },
+  footerWrap: {
+    width: '100%',
+    borderTopWidth: StyleSheet.hairlineWidth,
+    alignItems: 'center',
+  },
+  footerColumn: {
+    width: '100%',
+    maxWidth: MaxContentWidth,
     flexDirection: 'row',
     gap: Spacing.three - 6,
-    paddingBottom: Spacing.two,
+    paddingHorizontal: Spacing.four,
+    paddingTop: Spacing.two + 2,
   },
   footerBtn: {
     flex: 1,

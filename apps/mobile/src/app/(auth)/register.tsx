@@ -1,26 +1,18 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { useState } from 'react';
-import {
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 import { AuthDivider, GoogleButton, googleSignInSupported } from '@/components/ui/google-button';
 import { PrimaryButton } from '@/components/ui/primary-button';
-import { TextField } from '@/components/ui/text-field';
+import { AuthTextField } from '@/features/auth/auth-text-field';
 import { TextLink } from '@/components/ui/text-link';
+import { AuthShell } from '@/features/auth/auth-shell';
 import { signInWithGoogle } from '@/features/auth/google';
 import { AuthError, signUp } from '@/features/auth/service';
-import { useTheme } from '@/hooks/use-theme';
 import { registerSchema } from '@kse/validation';
 
 export default function RegisterScreen() {
-  const colors = useTheme();
   const [googleLoading, setGoogleLoading] = useState(false);
   const { control, handleSubmit, setError, formState } = useForm({
     resolver: zodResolver(registerSchema),
@@ -60,32 +52,22 @@ export default function RegisterScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      style={{ flex: 1, backgroundColor: colors.background }}
+    <AuthShell
+      title="Create your account"
+      subtitle="Join thousands of Khulna students finding opportunities."
     >
-      <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-        <View style={styles.header}>
-          <Text style={[styles.title, { color: colors.text }]}>Create your account</Text>
-          <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-            Join thousands of Khulna students finding opportunities.
-          </Text>
-        </View>
-
         {formState.errors.root?.message && (
-          <Text style={[styles.formError, { color: colors.danger }]}>
-            {formState.errors.root.message}
-          </Text>
+          <Text style={styles.formError}>{formState.errors.root.message}</Text>
         )}
 
-        <TextField
+        <AuthTextField
           control={control}
           name="full_name"
           label="Full name"
           autoCapitalize="words"
           textContentType="name"
         />
-        <TextField
+        <AuthTextField
           control={control}
           name="email"
           label="Email"
@@ -94,7 +76,7 @@ export default function RegisterScreen() {
           keyboardType="email-address"
           textContentType="emailAddress"
         />
-        <TextField
+        <AuthTextField
           control={control}
           name="password"
           label="Password (8+ characters)"
@@ -107,45 +89,43 @@ export default function RegisterScreen() {
           label="Create account"
           loading={formState.isSubmitting}
           onPress={onSubmit}
+          style={styles.brandButton}
         />
 
         {googleSignInSupported && (
           <>
-            <AuthDivider />
-            <GoogleButton loading={googleLoading} onPress={onGooglePress} />
+            <AuthDivider glass />
+            <GoogleButton glass loading={googleLoading} onPress={onGooglePress} />
           </>
         )}
 
         <View style={styles.footer}>
-          <Text style={{ color: colors.textSecondary }}>Already have an account? </Text>
-          <TextLink href="/(auth)/login">Sign in</TextLink>
+          <Text style={styles.footerText}>Already have an account? </Text>
+          <TextLink href="/(auth)/login" style={styles.link}>
+            Sign in
+          </TextLink>
         </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+    </AuthShell>
   );
 }
 
 const styles = StyleSheet.create({
-  scroll: {
-    flexGrow: 1,
-    justifyContent: 'center',
-    paddingHorizontal: 24,
-    paddingVertical: 32,
-    gap: 16,
-  },
-  header: {
-    gap: 8,
-    marginBottom: 8,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: '700',
-  },
-  subtitle: {
-    fontSize: 15,
+  brandButton: {
+    backgroundColor: '#4F46E5',
   },
   formError: {
     fontSize: 14,
+    lineHeight: 20,
+    textAlign: 'center',
+    // Errors can also be success notices ("check your email") — a soft,
+    // readable-on-photo tone covers both without a themed surface.
+    color: '#FCA5A5',
+  },
+  link: {
+    color: '#ffffff',
+  },
+  footerText: {
+    color: 'rgba(255,255,255,0.85)',
   },
   footer: {
     flexDirection: 'row',

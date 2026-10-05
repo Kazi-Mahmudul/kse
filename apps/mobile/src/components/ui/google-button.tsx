@@ -13,6 +13,13 @@ interface GoogleButtonProps {
   loading?: boolean;
   disabled?: boolean;
   onPress: () => void;
+  /**
+   * Glass treatment for the auth screens, where the button floats directly
+   * on the photograph: translucent fill + white border/label, identical in
+   * light and dark mode (the photo is the surface). Default keeps the
+   * themed solid treatment for any other context.
+   */
+  glass?: boolean;
 }
 
 /** Google brand "G" (official multi-color marks; brand-asset paths). */
@@ -39,7 +46,12 @@ function GoogleMark({ size }: { size: number }) {
   );
 }
 
-export function GoogleButton({ loading = false, disabled = false, onPress }: GoogleButtonProps) {
+export function GoogleButton({
+  loading = false,
+  disabled = false,
+  onPress,
+  glass = false,
+}: GoogleButtonProps) {
   const colors = useTheme();
   const isDisabled = disabled || loading;
 
@@ -50,22 +62,28 @@ export function GoogleButton({ loading = false, disabled = false, onPress }: Goo
       onPress={onPress}
       style={({ pressed }) => [
         styles.button,
-        {
-          backgroundColor: colors.background,
-          borderColor: colors.backgroundSelected,
-        },
+        glass
+          ? styles.buttonGlass
+          : {
+              backgroundColor: colors.background,
+              borderColor: colors.backgroundSelected,
+            },
         isDisabled && styles.disabled,
         pressed && !isDisabled && styles.pressed,
       ]}
     >
       {loading ? (
         <View style={styles.spinnerRow}>
-          <ActivityIndicator size="small" color={colors.text} />
+          <ActivityIndicator size="small" color={glass ? '#ffffff' : colors.text} />
         </View>
       ) : (
         <>
           <GoogleMark size={18} />
-          <Text style={[styles.label, { color: colors.heading }]}>Continue with Google</Text>
+          <Text
+            style={[styles.label, glass ? styles.labelGlass : { color: colors.heading }]}
+          >
+            Continue with Google
+          </Text>
         </>
       )}
     </Pressable>
@@ -73,13 +91,31 @@ export function GoogleButton({ loading = false, disabled = false, onPress }: Goo
 }
 
 /** Hairline divider with a centered "OR" between primary and social auth. */
-export function AuthDivider() {
+export function AuthDivider({ glass = false }: { glass?: boolean }) {
   const colors = useTheme();
   return (
     <View style={styles.divider} pointerEvents="none">
-      <View style={[styles.dividerLine, { backgroundColor: colors.backgroundSelected }]} />
-      <Text style={[styles.dividerText, { color: colors.textMuted }]}>OR</Text>
-      <View style={[styles.dividerLine, { backgroundColor: colors.backgroundSelected }]} />
+      <View
+        style={[
+          styles.dividerLine,
+          glass
+            ? styles.dividerLineGlass
+            : { backgroundColor: colors.backgroundSelected },
+        ]}
+      />
+      <Text
+        style={[styles.dividerText, glass ? styles.dividerTextGlass : { color: colors.textMuted }]}
+      >
+        OR
+      </Text>
+      <View
+        style={[
+          styles.dividerLine,
+          glass
+            ? styles.dividerLineGlass
+            : { backgroundColor: colors.backgroundSelected },
+        ]}
+      />
     </View>
   );
 }
@@ -111,6 +147,13 @@ const styles = StyleSheet.create({
   pressed: {
     opacity: 0.85,
   },
+  buttonGlass: {
+    backgroundColor: 'rgba(255,255,255,0.13)',
+    borderColor: 'rgba(255,255,255,0.38)',
+  },
+  labelGlass: {
+    color: '#ffffff',
+  },
   divider: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -124,6 +167,12 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     letterSpacing: 0.5,
+  },
+  dividerLineGlass: {
+    backgroundColor: 'rgba(255,255,255,0.35)',
+  },
+  dividerTextGlass: {
+    color: 'rgba(255,255,255,0.75)',
   },
 });
 

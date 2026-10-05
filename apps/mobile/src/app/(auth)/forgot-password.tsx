@@ -1,23 +1,15 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
-import {
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { StyleSheet, Text } from 'react-native';
 
 import { PrimaryButton } from '@/components/ui/primary-button';
-import { TextField } from '@/components/ui/text-field';
+import { AuthTextField } from '@/features/auth/auth-text-field';
 import { TextLink } from '@/components/ui/text-link';
+import { AuthShell } from '@/features/auth/auth-shell';
 import { AuthError, requestPasswordReset } from '@/features/auth/service';
-import { useTheme } from '@/hooks/use-theme';
 import { forgotPasswordSchema } from '@kse/validation';
 
 export default function ForgotPasswordScreen() {
-  const colors = useTheme();
   const { control, handleSubmit, setError, formState } = useForm({
     resolver: zodResolver(forgotPasswordSchema),
     defaultValues: { email: '' },
@@ -34,29 +26,19 @@ export default function ForgotPasswordScreen() {
   });
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      style={{ flex: 1, backgroundColor: colors.background }}
+    <AuthShell
+      title="Reset password"
+      subtitle="Enter your email and we'll send you a reset link."
     >
-      <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-        <View style={styles.header}>
-          <Text style={[styles.title, { color: colors.text }]}>Reset password</Text>
-          <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-            Enter your email and we&apos;ll send you a reset link.
-          </Text>
-        </View>
-
         {formState.errors.root?.message ? (
-          <Text style={[styles.formError, { color: colors.danger }]}>
-            {formState.errors.root.message}
-          </Text>
+          <Text style={styles.formError}>{formState.errors.root.message}</Text>
         ) : formState.isSubmitSuccessful ? (
-          <Text style={[styles.formError, { color: colors.success }]}>
+          <Text style={styles.formSuccess}>
             If an account exists for that email, a reset link is on its way. Check your inbox.
           </Text>
         ) : null}
 
-        <TextField
+        <AuthTextField
           control={control}
           name="email"
           label="Email"
@@ -66,37 +48,38 @@ export default function ForgotPasswordScreen() {
           textContentType="emailAddress"
         />
 
-        <PrimaryButton label="Send reset link" loading={formState.isSubmitting} onPress={onSubmit} />
+        <PrimaryButton
+          label="Send reset link"
+          loading={formState.isSubmitting}
+          onPress={onSubmit}
+          style={styles.brandButton}
+        />
 
-        <TextLink href="/(auth)/login" style={styles.backLink}>
+        <TextLink href="/(auth)/login" style={[styles.backLink, styles.link]}>
           Back to sign in
         </TextLink>
-      </ScrollView>
-    </KeyboardAvoidingView>
+    </AuthShell>
   );
 }
 
 const styles = StyleSheet.create({
-  scroll: {
-    flexGrow: 1,
-    justifyContent: 'center',
-    paddingHorizontal: 24,
-    paddingVertical: 32,
-    gap: 16,
-  },
-  header: {
-    gap: 8,
-    marginBottom: 8,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: '700',
-  },
-  subtitle: {
-    fontSize: 15,
+  brandButton: {
+    backgroundColor: '#4F46E5',
   },
   formError: {
     fontSize: 14,
+    lineHeight: 20,
+    textAlign: 'center',
+    color: '#FCA5A5',
+  },
+  formSuccess: {
+    fontSize: 14,
+    lineHeight: 20,
+    textAlign: 'center',
+    color: '#86EFAC',
+  },
+  link: {
+    color: '#ffffff',
   },
   backLink: {
     textAlign: 'center',

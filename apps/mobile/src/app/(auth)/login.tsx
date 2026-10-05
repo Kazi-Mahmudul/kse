@@ -1,26 +1,18 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { useState } from 'react';
-import {
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 import { AuthDivider, GoogleButton, googleSignInSupported } from '@/components/ui/google-button';
 import { PrimaryButton } from '@/components/ui/primary-button';
-import { TextField } from '@/components/ui/text-field';
+import { AuthTextField } from '@/features/auth/auth-text-field';
 import { TextLink } from '@/components/ui/text-link';
+import { AuthShell } from '@/features/auth/auth-shell';
 import { AuthError, signIn } from '@/features/auth/service';
 import { signInWithGoogle } from '@/features/auth/google';
-import { useTheme } from '@/hooks/use-theme';
 import { loginSchema } from '@kse/validation';
 
 export default function LoginScreen() {
-  const colors = useTheme();
   const [googleLoading, setGoogleLoading] = useState(false);
   const { control, handleSubmit, setError, formState } = useForm({
     resolver: zodResolver(loginSchema),
@@ -54,87 +46,79 @@ export default function LoginScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      style={{ flex: 1, backgroundColor: colors.background }}
-    >
-      <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-        <View style={styles.header}>
-          <Text style={[styles.title, { color: colors.text }]}>Welcome back!</Text>
-          <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-            Sign in to keep growing with KSE.
-          </Text>
-        </View>
+    <AuthShell title="Welcome back!" subtitle="Sign in to keep growing with KSE.">
+      {formState.errors.root?.message && (
+        <Text style={styles.formError}>{formState.errors.root.message}</Text>
+      )}
 
-        {formState.errors.root?.message && (
-          <Text style={[styles.formError, { color: colors.danger }]}>
-            {formState.errors.root.message}
-          </Text>
-        )}
+      <AuthTextField
+        control={control}
+        name="email"
+        label="Email"
+        autoCapitalize="none"
+        autoCorrect={false}
+        keyboardType="email-address"
+        textContentType="emailAddress"
+      />
+      <AuthTextField
+        control={control}
+        name="password"
+        label="Password"
+        secureTextEntry
+        showToggle
+        textContentType="password"
+      />
 
-        <TextField
-          control={control}
-          name="email"
-          label="Email"
-          autoCapitalize="none"
-          autoCorrect={false}
-          keyboardType="email-address"
-          textContentType="emailAddress"
-        />
-        <TextField
-          control={control}
-          name="password"
-          label="Password"
-          secureTextEntry
-          showToggle
-          textContentType="password"
-        />
+      <PrimaryButton
+        label="Sign in"
+        loading={formState.isSubmitting}
+        onPress={onSubmit}
+        style={styles.brandButton}
+      />
 
-        <PrimaryButton
-          label="Sign in"
-          loading={formState.isSubmitting}
-          onPress={onSubmit}
-        />
+      <View style={styles.center}>
+        <TextLink href="/(auth)/forgot-password" style={styles.link}>
+          Forgot password?
+        </TextLink>
+      </View>
 
-        <TextLink href="/(auth)/forgot-password">Forgot password?</TextLink>
+      {googleSignInSupported && (
+        <>
+          <AuthDivider glass />
+          <GoogleButton glass loading={googleLoading} onPress={onGooglePress} />
+        </>
+      )}
 
-        {googleSignInSupported && (
-          <>
-            <AuthDivider />
-            <GoogleButton loading={googleLoading} onPress={onGooglePress} />
-          </>
-        )}
-
-        <View style={styles.footer}>
-          <Text style={{ color: colors.textSecondary }}>New to KSE? </Text>
-          <TextLink href="/(auth)/register">Create an account</TextLink>
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+      <View style={styles.footer}>
+        <Text style={styles.footerText}>New to KSE? </Text>
+        <TextLink href="/(auth)/register" style={styles.link}>
+          Create an account
+        </TextLink>
+      </View>
+    </AuthShell>
   );
 }
 
 const styles = StyleSheet.create({
-  scroll: {
-    flexGrow: 1,
-    justifyContent: 'center',
-    paddingHorizontal: 24,
-    paddingVertical: 32,
-    gap: 16,
-  },
-  header: {
-    gap: 8,
-    marginBottom: 8,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: '700',
-  },
-  subtitle: {
-    fontSize: 15,
+  // Fixed brand fill (not the theme's mode-tinted primary) so the CTA looks
+  // identical over the photo in light and dark mode.
+  brandButton: {
+    backgroundColor: '#4F46E5',
   },
   formError: {
     fontSize: 14,
+    lineHeight: 20,
+    textAlign: 'center',
+    color: '#FCA5A5',
+  },
+  link: {
+    color: '#ffffff',
+  },
+  footerText: {
+    color: 'rgba(255,255,255,0.85)',
+  },
+  center: {
+    alignItems: 'center',
   },
   footer: {
     flexDirection: 'row',
