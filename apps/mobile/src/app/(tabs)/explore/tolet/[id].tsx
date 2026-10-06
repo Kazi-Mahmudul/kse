@@ -136,37 +136,50 @@ export default function ToletDetailScreen() {
 
         <ToletDetailHero imageUrls={listing.image_urls ?? []} title={listing.title} />
 
-        <View style={styles.headerRow}>
-          <View style={styles.headerBody}>
-            <ThemedText type="title">{listing.title}</ThemedText>
-            {location ? (
-              <ThemedText type="small" themeColor="textSecondary">
-                {location}
-              </ThemedText>
-            ) : null}
-            <View style={styles.chipRow}>
-              <View style={[styles.chip, { backgroundColor: statusBg(listing.listing_status, colors) }]}>
-                <Text style={[styles.chipText, { color: statusFg(listing.listing_status, colors) }]}>
-                  {statusLabel}
-                </Text>
+        {/* Full-width title: listing names are long ("Studio apartment —
+            BIDC Road, bachelor friendly"), and a title squeezed into the
+            narrow flex column beside the bookmark wrapped into five ragged
+            lines. The heading now spans the screen (like every other
+            detail page) and the bookmark sits beside the meta row. */}
+        <View style={styles.header}>
+          <ThemedText
+            type="subtitle"
+            textBreakStrategy="balanced"
+            style={styles.headerTitle}
+          >
+            {listing.title}
+          </ThemedText>
+          <View style={styles.headerRow}>
+            <View style={styles.headerBody}>
+              {location ? (
+                <ThemedText type="small" themeColor="textSecondary">
+                  {location}
+                </ThemedText>
+              ) : null}
+              <View style={styles.chipRow}>
+                <View style={[styles.chip, { backgroundColor: statusBg(listing.listing_status, colors) }]}>
+                  <Text style={[styles.chipText, { color: statusFg(listing.listing_status, colors) }]}>
+                    {statusLabel}
+                  </Text>
+                </View>
+                {roomLabel ? (
+                  <View style={[styles.chip, { backgroundColor: colors.backgroundElement }]}>
+                    <Text style={[styles.chipText, { color: colors.textSecondary }]}>
+                      {roomLabel}
+                    </Text>
+                  </View>
+                ) : null}
+                {genderLabel ? (
+                  <View style={[styles.chip, { backgroundColor: colors.backgroundElement }]}>
+                    <Text style={[styles.chipText, { color: colors.textSecondary }]}>
+                      {genderLabel}
+                    </Text>
+                  </View>
+                ) : null}
               </View>
-              {roomLabel ? (
-                <View style={[styles.chip, { backgroundColor: colors.backgroundElement }]}>
-                  <Text style={[styles.chipText, { color: colors.textSecondary }]}>
-                    {roomLabel}
-                  </Text>
-                </View>
-              ) : null}
-              {genderLabel ? (
-                <View style={[styles.chip, { backgroundColor: colors.backgroundElement }]}>
-                  <Text style={[styles.chipText, { color: colors.textSecondary }]}>
-                    {genderLabel}
-                  </Text>
-                </View>
-              ) : null}
             </View>
+            <BookmarkButton id={listing.id} kind="tolet" variant="icon" />
           </View>
-          <BookmarkButton id={listing.id} kind="tolet" variant="icon" />
         </View>
 
         <Card style={styles.contactCard}>
@@ -336,6 +349,12 @@ const styles = StyleSheet.create({
   },
   backRow: {
     marginBottom: -Spacing.one,
+  },
+  header: {
+    gap: Spacing.one + 2,
+  },
+  headerTitle: {
+    letterSpacing: -0.3,
   },
   headerRow: {
     flexDirection: 'row',

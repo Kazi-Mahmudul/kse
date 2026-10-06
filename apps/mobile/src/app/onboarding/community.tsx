@@ -19,7 +19,6 @@ export default function CommunityScreen() {
     <OnboardingStep
       step={3}
       image={require('@/assets/images/onboarding/community.jpg')}
-      eyebrow="Student Community"
       headline={['একসাথে শিখি,', 'একসাথে এগিয়ে যাই।']}
       body="শিক্ষার্থী কমিউনিটি, আলোচনা ও নতুন সুযোগের সাথে যুক্ত থাকো।"
       primaryLabel="Start"

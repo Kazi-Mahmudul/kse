@@ -15,7 +15,6 @@ export default function OpportunitiesScreen() {
     <OnboardingStep
       step={2}
       image={require('@/assets/images/onboarding/opportunities.jpg')}
-      eyebrow="Opportunities"
       headline={['তোমার জন্য সঠিক', 'সুযোগ খুঁজে নাও।']}
       body="তোমার শিক্ষা, দক্ষতা ও আগ্রহের ভিত্তিতে খুঁজে নাও তোমার জন্য উপযুক্ত সুযোগ।"
       primaryLabel="Next"

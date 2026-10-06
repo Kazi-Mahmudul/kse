@@ -8,7 +8,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
 import { BanglaFontFamilies, FontFamilies, Spacing } from '@/constants/theme';
-import { useTints } from '@/hooks/use-tints';
 import { useTheme } from '@/hooks/use-theme';
 import { useAuthStore } from '@/store/auth-store';
 import { useSettingsStore } from '@/store/settings-store';
@@ -42,7 +41,6 @@ import { useSettingsStore } from '@/store/settings-store';
 export interface OnboardingStepProps {
   step: 1 | 2 | 3;
   image: ImageSource;
-  eyebrow: string;
   /**
    * Two-line headline. Rendered inline as a single `<ThemedText>` so it
    * wraps naturally. Line 2 is coloured brand primary; line 1 stays in
@@ -72,7 +70,6 @@ const STEP_ROUTES = {
 export function OnboardingStep({
   step,
   image,
-  eyebrow,
   headline,
   body,
   primaryLabel,
@@ -80,7 +77,6 @@ export function OnboardingStep({
   focalPoint = 'center',
 }: OnboardingStepProps) {
   const colors = useTheme();
-  const tints = useTints();
   const session = useAuthStore((s) => s.session);
   const completeOnboarding = useSettingsStore((s) => s.setHasCompletedOnboarding);
 
@@ -172,18 +168,6 @@ export function OnboardingStep({
       {/* Card overlaps the hero so the gradient blends rather than seams. */}
       <View style={styles.card}>
         <View style={styles.cardInner}>
-          <View style={[styles.eyebrowChip, { backgroundColor: tints.indigo.bg }]}>
-            <View style={[styles.eyebrowDot, { backgroundColor: colors.primary }]} />
-            <ThemedText
-              style={[
-                styles.eyebrowLabel,
-                { color: colors.primary, fontFamily: BanglaFontFamilies.semiBold },
-              ]}
-            >
-              {eyebrow}
-            </ThemedText>
-          </View>
-
           {/*
               Headline as ONE inline ThemedText so line 2 follows line 1.
               Line 1 in `colors.heading` (auto-flips in dark mode); line 2
@@ -404,27 +388,6 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.three,
     paddingBottom: Spacing.four,
     gap: Spacing.three,
-  },
-  eyebrowChip: {
-    alignSelf: 'flex-start',
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 999,
-    maxWidth: '95%',
-  },
-  eyebrowDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 999,
-  },
-  eyebrowLabel: {
-    fontSize: 12,
-    lineHeight: 16,
-    letterSpacing: 0.2,
-    flexShrink: 1,
   },
   headline: {
     fontSize: 26,

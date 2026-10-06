@@ -16,7 +16,6 @@ export default function WelcomeScreen() {
     <OnboardingStep
       step={1}
       image={require('@/assets/images/onboarding/welcome.jpg')}
-      eyebrow="Khulna Student Ecosystem"
       headline={['তোমার স্বপ্নের পথে,', 'সুযোগগুলো']}
       body="স্কলারশিপ, ইন্টার্নশিপ, টিউশন, কমিউনিটি ও ক্যারিয়ার সুযোগ—সবকিছু এক জায়গায়।"
       primaryLabel="Start"
