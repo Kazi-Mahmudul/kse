@@ -8,12 +8,14 @@ import { SubjectPills } from '@/components/subject-pills';
 import { ThemedText } from '@/components/themed-text';
 import { TutorCard } from '@/components/tutor-card';
 import { EmptyState } from '@/components/ui/empty-state';
+import { FilterDropdown } from '@/components/ui/filter-dropdown';
 import { PrimaryButton } from '@/components/ui/primary-button';
 import { Screen } from '@/components/ui/screen';
 import { SearchBar } from '@/components/ui/search-bar';
 import { SectionHeader } from '@/components/ui/section-header';
 import { FontFamilies, Spacing } from '@/constants/theme';
 import {
+  useInstitutes,
   useSavedTutorIds,
   useSubjects,
   useTutorFeed,
@@ -23,6 +25,7 @@ import {
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { useTheme } from '@/hooks/use-theme';
 import { blurActiveElement } from '@/lib/focus';
+import { KHULNA_DISTRICT_OPTIONS } from '@kse/shared';
 
 const SORT_OPTIONS: { value: TutorSort; label: string }[] = [
   { value: 'popular', label: 'Most popular' },
@@ -47,22 +50,27 @@ export default function TuitionScreen() {
   const [subjectId, setSubjectId] = useState<string | undefined>();
   const [sort, setSort] = useState<TutorSort>('popular');
   const [sortOpen, setSortOpen] = useState(false);
+  const [district, setDistrict] = useState<string | undefined>();
+  const [universityId, setUniversityId] = useState<string | undefined>();
   const debouncedText = useDebouncedValue(text, 300);
 
   const q = debouncedText.trim() || undefined;
-  const query = useTutorFeed({ q, subjectId, sort });
+  const query = useTutorFeed({ q, subjectId, sort, district, universityId });
   const subjectsQuery = useSubjects();
+  const institutesQuery = useInstitutes();
   const savedQuery = useSavedTutorIds();
   const toggleSave = useToggleSavedTutor();
 
   const rows = query.data?.pages.flatMap((page) => page.rows) ?? [];
   const savedIds = new Set(savedQuery.data ?? []);
-  const hasCriteria = Boolean(q || subjectId || sort !== 'popular');
+  const hasCriteria = Boolean(q || subjectId || sort !== 'popular' || district || universityId);
 
   const clearAll = () => {
     setText('');
     setSubjectId(undefined);
     setSort('popular');
+    setDistrict(undefined);
+    setUniversityId(undefined);
   };
 
   return (
@@ -92,6 +100,26 @@ export default function TuitionScreen() {
           setSortOpen(true);
         }}
       />
+
+      <View style={styles.filterRow}>
+        <FilterDropdown
+          label="District"
+          allLabel="All districts"
+          options={KHULNA_DISTRICT_OPTIONS}
+          selected={district}
+          onSelect={setDistrict}
+        />
+        <FilterDropdown
+          label="Institute"
+          allLabel="All institutes"
+          options={(institutesQuery.data ?? []).map((institute) => ({
+            value: institute.id,
+            label: institute.name,
+          }))}
+          selected={universityId}
+          onSelect={setUniversityId}
+        />
+      </View>
 
       {/* Pills + section header travel as one tight block so "Popular
           Tutors" starts directly under the subject tabs (8px), not one
@@ -207,6 +235,10 @@ const styles = StyleSheet.create({
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: Spacing.two,
+  },
+  filterRow: {
+    flexDirection: 'row',
     gap: Spacing.two,
   },
   back: {

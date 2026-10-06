@@ -36,6 +36,7 @@ export const opportunityKeys = {
       filters.country ?? null,
       filters.countryNot ?? null,
       filters.location ?? null,
+      filters.locationLike ?? null,
       filters.organization ?? null,
       filters.internshipType ?? null,
       filters.eventType ?? null,

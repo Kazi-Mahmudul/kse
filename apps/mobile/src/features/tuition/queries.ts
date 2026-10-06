@@ -26,6 +26,7 @@ import {
   getMyTutorApplication,
   getMyTutorListing,
   getTutor,
+  listInstitutes,
   listMyTuitionRequests,
   listSavedTutorIds,
   listSubjects,
@@ -49,11 +50,14 @@ export const tuitionKeys = {
       filters.q || null,
       filters.subjectId ?? null,
       filters.sort ?? 'popular',
+      filters.district ?? null,
+      filters.universityId ?? null,
     ] as const,
   tutor: (id: string) => [...tuitionKeys.all, 'tutor', id] as const,
   tutorCount: () => [...tuitionKeys.all, 'tutors', 'count'] as const,
   reviews: (tutorId: string) => [...tuitionKeys.tutor(tutorId), 'reviews'] as const,
   subjects: () => [...tuitionKeys.all, 'subjects'] as const,
+  institutes: () => [...tuitionKeys.all, 'institutes'] as const,
   myRequests: () => [...tuitionKeys.all, 'myRequests'] as const,
   savedTutors: () => [...tuitionKeys.all, 'savedTutors'] as const,
   myApplication: () => [...tuitionKeys.all, 'myApplication'] as const,
@@ -84,6 +88,16 @@ export function useTutorCount() {
     staleTime: 60_000,
     refetchInterval: 60_000,
   } satisfies UseQueryOptions<number, Error>);
+}
+
+/** All institutes (public `universities` reference table) — Tuition Finder
+ *  institute filter dropdown. */
+export function useInstitutes() {
+  return useQuery({
+    queryKey: tuitionKeys.institutes(),
+    queryFn: listInstitutes,
+    staleTime: 5 * 60_000,
+  } satisfies UseQueryOptions<{ id: string; name: string }[], Error>);
 }
 
 export function useTutor(id: string) {

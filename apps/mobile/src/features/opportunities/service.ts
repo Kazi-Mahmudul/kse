@@ -43,6 +43,9 @@ export interface OpportunityFilters {
   countryNot?: string;
   /** Free-text facets filtered by exact value (spec §6: location, company). */
   location?: string;
+  /** Substring location match — district dropdowns: free-text locations like
+   *  "Khulna, Bangladesh" must still match the "Khulna" district option. */
+  locationLike?: string;
   organization?: string;
   /** Internship-only chip filter (spec 06._internship_hub_kse). */
   internshipType?: OpportunityInternshipType;
@@ -119,6 +122,9 @@ export async function fetchOpportunities(
   if (filters.location) {
     query = query.eq('location', filters.location);
   }
+  if (filters.locationLike) {
+    query = query.ilike('location', `%${filters.locationLike}%`);
+  }
   if (filters.organization) {
     query = query.eq('organization_name', filters.organization);
   }
@@ -194,13 +200,18 @@ export async function listOpportunityCategories(
 export interface OpportunityFacets {
   locations: string[];
   organizations: string[];
+  /** Countries offering published listings — scholarship country filter. */
+  countries: string[];
 }
 
 const FACET_MAX = 12;
+/** Countries can easily exceed the default cap — allow more of them. */
+const COUNTRY_FACET_MAX = 40;
 
 async function listDistinctValues(
-  column: 'location' | 'organization_name',
+  column: 'location' | 'organization_name' | 'country',
   type?: OpportunityType,
+  max = FACET_MAX,
 ): Promise<string[]> {
   let query = supabase
     .from('opportunities')
@@ -225,20 +236,21 @@ async function listDistinctValues(
     if (seen.has(key)) continue;
     seen.add(key);
     values.push(value.trim());
-    if (values.length >= FACET_MAX) break;
+    if (values.length >= max) break;
   }
   return values.sort((a, b) => a.localeCompare(b));
 }
 
-/** Distinct locations + organizations among published listings (step 14). */
+/** Distinct locations + organizations + countries among published listings. */
 export async function listOpportunityFacets(
   type?: OpportunityType,
 ): Promise<OpportunityFacets> {
-  const [locations, organizations] = await Promise.all([
+  const [locations, organizations, countries] = await Promise.all([
     listDistinctValues('location', type),
     listDistinctValues('organization_name', type),
+    listDistinctValues('country', type, COUNTRY_FACET_MAX),
   ]);
-  return { locations, organizations };
+  return { locations, organizations, countries };
 }
 
 /** Newest published opportunities across types (home "Latest"). */

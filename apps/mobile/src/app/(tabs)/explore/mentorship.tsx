@@ -96,7 +96,7 @@ export default function MentorshipScreen() {
             <Ionicons name="people-circle-outline" size={26} color="#ffffff" />
           </View>
           <View style={styles.heroCopy}>
-            <ThemedText themeColor="onPrimary" style={styles.heroTitle} numberOfLines={1}>
+            <ThemedText themeColor="onPrimary" style={styles.heroTitle} numberOfLines={2}>
               Learn from real practitioners
             </ThemedText>
             <ThemedText style={styles.heroSubtitle} numberOfLines={2}>

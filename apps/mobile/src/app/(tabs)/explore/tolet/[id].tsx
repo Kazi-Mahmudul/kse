@@ -11,7 +11,12 @@ import { Screen } from '@/components/ui/screen';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
 import { ToletDetailHero } from '@/features/tolet/components/tolet-detail-hero';
-import { useReportToletListing, useToletListing } from '@/features/tolet/queries';
+import {
+  useReportToletListing,
+  useSetListingAvailability,
+  useToletListing,
+} from '@/features/tolet/queries';
+import { useAuthStore } from '@/store/auth-store';
 import { useTheme } from '@/hooks/use-theme';
 import { analytics } from '@/lib/analytics';
 import { alertDialog, confirmDialog } from '@/lib/confirm';
@@ -34,6 +39,8 @@ export default function ToletDetailScreen() {
   const goBack = useSmartBack('/(tabs)/explore/tolet');
   const query = useToletListing(id ?? '');
   const report = useReportToletListing();
+  const availability = useSetListingAvailability();
+  const currentUserId = useAuthStore((state) => state.session?.user?.id);
 
   if (query.isLoading) {
     return (
@@ -121,6 +128,51 @@ export default function ToletDetailScreen() {
     });
   };
 
+  // Ownership + "house is booked" state. Booked = listing_status 'full';
+  // contact details are hidden from everyone (including the owner view)
+  // so nobody reaches out about a taken room.
+  const isOwner = Boolean(currentUserId && listing.created_by === currentUserId);
+  const isBooked = listing.listing_status === 'full';
+
+  const markBooked = async () => {
+    const confirmed = await confirmDialog({
+      title: 'Mark as booked?',
+      message:
+        'Your contact options will be hidden and the listing will show a Booked badge to everyone.',
+      confirmLabel: 'Mark booked',
+      cancelLabel: 'Cancel',
+    });
+    if (!confirmed) return;
+    try {
+      await availability.mutateAsync({ listingId: listing.id, status: 'full' });
+      analytics.toletListingStatusChanged(listing.id, 'full');
+    } catch (error) {
+      alertDialog({
+        title: 'Could not update',
+        message: error instanceof Error ? error.message : 'Please try again.',
+      });
+    }
+  };
+
+  const markAvailable = async () => {
+    const confirmed = await confirmDialog({
+      title: 'Mark as available?',
+      message: 'The Booked badge is removed and your contact options are visible again.',
+      confirmLabel: 'Mark available',
+      cancelLabel: 'Cancel',
+    });
+    if (!confirmed) return;
+    try {
+      await availability.mutateAsync({ listingId: listing.id, status: 'available' });
+      analytics.toletListingStatusChanged(listing.id, 'available');
+    } catch (error) {
+      alertDialog({
+        title: 'Could not update',
+        message: error instanceof Error ? error.message : 'Please try again.',
+      });
+    }
+  };
+
   return (
     <Screen>
       <Stack.Screen options={{ headerShown: false }} />
@@ -182,35 +234,59 @@ export default function ToletDetailScreen() {
           </View>
         </View>
 
-        <Card style={styles.contactCard}>
-          <Text style={[styles.sectionTitle, { color: colors.heading ?? colors.text }]}>
-            Contact
-          </Text>
-          <View style={styles.contactButtons}>
+        {isOwner ? (
+          <Card style={styles.ownerCard}>
+            <Text style={[styles.sectionTitle, { color: colors.heading ?? colors.text }]}>
+              Your listing
+            </Text>
+            <Text style={[styles.ownerHint, { color: colors.textSecondary }]}>
+              {isBooked
+                ? 'This listing is marked as booked.'
+                : 'House rented out? Mark it booked to hide your contact details.'}
+            </Text>
             <PrimaryButton
-              label="Call"
-              size="compact"
-              onPress={() => listing.landlord_phone && openTel(listing.landlord_phone)}
-              disabled={!listing.landlord_phone}
+              label={isBooked ? 'Mark as available' : 'Mark as booked'}
+              variant={isBooked ? 'outline' : 'primary'}
+              loading={availability.isPending}
+              onPress={isBooked ? markAvailable : markBooked}
             />
-            {listing.whatsapp ? (
+          </Card>
+        ) : null}
+
+        {/* Contact only while the listing is open — a Booked/Unavailable
+            listing shows no contact section at all; the status chip in the
+            header already tells the story. */}
+        {listing.listing_status !== 'full' && listing.listing_status !== 'unavailable' ? (
+          <Card style={styles.contactCard}>
+            <Text style={[styles.sectionTitle, { color: colors.heading ?? colors.text }]}>
+              Contact
+            </Text>
+            <View style={styles.contactButtons}>
               <PrimaryButton
-                label="WhatsApp"
-                variant="outline"
+                label="Call"
                 size="compact"
-                onPress={() => openWhatsApp(listing.whatsapp!)}
+                onPress={() => listing.landlord_phone && openTel(listing.landlord_phone)}
+                disabled={!listing.landlord_phone}
               />
-            ) : null}
-            {listing.contact_email ? (
-              <PrimaryButton
-                label="Email"
-                variant="outline"
-                size="compact"
-                onPress={() => openEmail(listing.contact_email!)}
-              />
-            ) : null}
-          </View>
-        </Card>
+              {listing.whatsapp ? (
+                <PrimaryButton
+                  label="WhatsApp"
+                  variant="outline"
+                  size="compact"
+                  onPress={() => openWhatsApp(listing.whatsapp!)}
+                />
+              ) : null}
+              {listing.contact_email ? (
+                <PrimaryButton
+                  label="Email"
+                  variant="outline"
+                  size="compact"
+                  onPress={() => openEmail(listing.contact_email!)}
+                />
+              ) : null}
+            </View>
+          </Card>
+        ) : null}
 
         <Card style={styles.detailsCard}>
           <Text style={[styles.sectionTitle, { color: colors.heading ?? colors.text }]}>
@@ -349,6 +425,13 @@ const styles = StyleSheet.create({
   },
   backRow: {
     marginBottom: -Spacing.one,
+  },
+  ownerCard: {
+    gap: Spacing.two,
+  },
+  ownerHint: {
+    fontSize: 13,
+    lineHeight: 18,
   },
   header: {
     gap: Spacing.one + 2,

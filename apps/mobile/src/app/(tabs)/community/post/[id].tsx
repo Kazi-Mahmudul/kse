@@ -151,11 +151,9 @@ export default function CommunityPostScreen() {
           <CommentComposer postId={post.id} />
         )
       ) : (
-        <Card tint="warning" style={styles.joinCard}>
-          <ThemedText type="small" themeColor="textSecondary">
-            Join the community to join the discussion.
-          </ThemedText>
-        </Card>
+        <ThemedText type="small" themeColor="textSecondary" style={styles.joinNote}>
+          Join the community to join the discussion.
+        </ThemedText>
       )}
     </Screen>
   );
@@ -234,7 +232,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.one + 2,
   },
-  joinCard: {
-    borderRadius: 12,
+  joinNote: {
+    textAlign: 'center',
+    paddingVertical: Spacing.two,
   },
 });

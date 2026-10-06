@@ -48,6 +48,28 @@ export interface TutorFilters {
   subjectId?: string;
   /** Card-list ordering; "popular" (default) is rating-driven per the design. */
   sort?: TutorSort;
+  /** District filter — exact `tutors.location` value (facet dropdown). */
+  district?: string;
+  /** Institute filter — `tutors.university_id` (facet dropdown). */
+  universityId?: string;
+}
+
+export interface TutorInstitute {
+  id: string;
+  name: string;
+}
+
+/** All institutes from the public `universities` reference table — the same
+ *  directory the education/portfolio section and tutor profiles use. */
+export async function listInstitutes(): Promise<TutorInstitute[]> {
+  const { data, error } = await supabase
+    .from('universities')
+    .select('id, name')
+    .order('name');
+  if (error) fail('Could not load institutes', error.message);
+  return ((data ?? []) as { id: string; name: string }[]).filter(
+    (row) => row.id && row.name,
+  );
 }
 
 export interface TutorPage {
@@ -208,6 +230,14 @@ export async function fetchTutors(
   if (filters.subjectId) {
     // Embedded filter — PostgREST requires the embed in select (PGRST108).
     query = query.eq('tutor_subjects.subject_id', filters.subjectId);
+  }
+  if (filters.district) {
+    // ilike so "Khulna" also matches formatted locations like
+    // "Khulna (Sonadanga)" — locations are free text.
+    query = query.ilike('location', `%${filters.district}%`);
+  }
+  if (filters.universityId) {
+    query = query.eq('university_id', filters.universityId);
   }
   // Strip characters PostgREST's `or=()` grammar reserves (or that would
   // break the ilike pattern); keep everything else, including Bangla.

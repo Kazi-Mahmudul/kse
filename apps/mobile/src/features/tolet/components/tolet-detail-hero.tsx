@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Dimensions,
   FlatList,
@@ -20,6 +20,9 @@ interface ToletDetailHeroProps {
   imageUrls: string[];
   title: string;
 }
+
+/** How long each photo stays on screen before auto-advancing. */
+const AUTO_SLIDE_INTERVAL_MS = 4000;
 
 /**
  * Horizontal image gallery for the Bachelor To-Let detail page.
@@ -46,6 +49,20 @@ export function ToletDetailHero({ imageUrls, title }: ToletDetailHeroProps) {
     },
     [screenWidth],
   );
+
+  // Auto-slide: advance every few seconds while there is more than one
+  // photo. `activeIndex` in the deps restarts the countdown after each
+  // change — including a manual swipe — so the current photo always gets a
+  // full interval. Paused while the lightbox is open.
+  useEffect(() => {
+    if (imageUrls.length < 2 || lightboxOpen) return;
+    const id = setInterval(() => {
+      const next = (activeIndex + 1) % imageUrls.length;
+      listRef.current?.scrollToOffset({ offset: next * screenWidth, animated: true });
+      setActiveIndex(next);
+    }, AUTO_SLIDE_INTERVAL_MS);
+    return () => clearInterval(id);
+  }, [imageUrls.length, screenWidth, lightboxOpen, activeIndex]);
 
   if (imageUrls.length === 0) {
     return (

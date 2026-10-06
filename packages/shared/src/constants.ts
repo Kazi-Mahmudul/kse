@@ -142,14 +142,17 @@ export const TOLET_ROOM_TYPE_LABELS: Record<ToletRoomType, string> = {
 
 export const TOLET_GENDER_PREFERENCE_LABELS: Record<ToletGenderPreference, string> = {
   any: 'Any gender',
-  male_only: 'Boys only',
-  female_only: 'Girls only',
+  male: 'Male',
+  female: 'Female',
+  family: 'Family',
 };
 
 export const TOLET_LISTING_STATUS_LABELS: Record<ToletListingStatus, string> = {
   available: 'Available',
   almost_full: 'Almost full',
-  full: 'Full',
+  // Owner-triggered "house is booked" state — hides contact info on the
+  // detail page and shows a Booked badge everywhere.
+  full: 'Booked',
   unavailable: 'Unavailable',
 };
 

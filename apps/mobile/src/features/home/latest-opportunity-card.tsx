@@ -1,6 +1,7 @@
 import { OpportunityCard } from '@/components/opportunity-card';
 import { EventCard } from '@/features/opportunities/components/event-card';
 import { InternshipCard } from '@/features/opportunities/components/internship-card';
+import { MentorCard } from '@/features/mentorship/mentor-card';
 import { ScholarshipCard } from '@/features/opportunities/components/scholarship-card';
 import type { OpportunitySummary } from '@kse/types';
 
@@ -17,7 +18,8 @@ interface LatestOpportunityCardProps {
  *   - `internship`         → InternshipCard   (stipend + deadline row)
  *   - `scholarship`        → ScholarshipCard  (degree-level + funding chip + deadline)
  *   - `event` / `workshop` → EventCard        (84×84 themed thumbnail + Register pill)
- *   - `mentorship` (and unknown types) → OpportunityCard (generic fallback)
+ *   - `mentorship`         → MentorCard       (large portrait + session chips)
+ *   - unknown types        → OpportunityCard  (generic fallback)
  *
  * No DOM wrapping here — each hub card already carries its own chrome
  * (border, radius, shadow). Stacking with the surrounding `gap: 10` keeps
@@ -33,6 +35,7 @@ export function LatestOpportunityCard({ opportunity }: LatestOpportunityCardProp
     case 'workshop':
       return <EventCard opportunity={opportunity} />;
     case 'mentorship':
+      return <MentorCard mentor={opportunity} />;
     default:
       return <OpportunityCard opportunity={opportunity} />;
   }

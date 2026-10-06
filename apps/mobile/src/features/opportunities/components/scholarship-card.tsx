@@ -229,7 +229,7 @@ function matchTone(level: ScholarshipMatchLevel, tints: Record<TintKey, { bg: st
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: 16,
+    borderRadius: 18,
     borderWidth: 1,
     // Subtle elevation matching the rest of the app's card shadow.
     elevation: 1,
@@ -249,16 +249,16 @@ const styles = StyleSheet.create({
     gap: Spacing.three,
   },
   logo: {
-    width: 48,
-    height: 48,
-    borderRadius: 16,
+    width: 72,
+    height: 72,
+    borderRadius: 18,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
   },
   logoText: {
-    fontSize: 15,
+    fontSize: 20,
     fontWeight: '700',
     letterSpacing: 0.5,
   },

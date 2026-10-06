@@ -373,10 +373,10 @@ export default function CommunityDetailScreen() {
       )}
 
       {!isMember && (
-        <Card tint="warning" style={styles.joinCta}>
+        <Card style={styles.joinCta}>
           <View style={styles.joinCtaRow}>
             <View style={styles.joinCtaBadge}>
-              <Ionicons name="chatbubbles-outline" size={18} color={colors.warning} />
+              <Ionicons name="chatbubbles-outline" size={18} color={colors.primary} />
             </View>
             <View style={styles.joinCtaText}>
               <ThemedText type="smallBold">Members only</ThemedText>

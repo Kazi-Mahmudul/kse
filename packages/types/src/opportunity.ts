@@ -73,7 +73,7 @@ export const TOLET_ROOM_TYPES = [
 export type ToletRoomType = (typeof TOLET_ROOM_TYPES)[number];
 
 /** Bachelor To-Let gender preference for tenants. */
-export const TOLET_GENDER_PREFERENCES = ['any', 'male_only', 'female_only'] as const;
+export const TOLET_GENDER_PREFERENCES = ['any', 'male', 'female', 'family'] as const;
 
 export type ToletGenderPreference = (typeof TOLET_GENDER_PREFERENCES)[number];
 

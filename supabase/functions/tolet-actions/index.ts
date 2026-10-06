@@ -34,6 +34,10 @@ const RATE_RULES: Record<string, RateRule> = {
   update_own_listing: { action: 'tolet_update', limit: 30, windowSeconds: 3600 },
   upload_listing_image: { action: 'tolet_image', limit: 50, windowSeconds: 3600 },
   report_listing: { action: 'tolet_report', limit: 10, windowSeconds: 86_400 },
+  // Owner lifecycle actions. Without a rule here the dispatcher rejects the
+  // action as "Unknown" before the switch is ever reached.
+  withdraw_own_listing: { action: 'tolet_withdraw', limit: 10, windowSeconds: 3600 },
+  mark_availability: { action: 'tolet_availability', limit: 30, windowSeconds: 3600 },
 };
 
 const ROOM_TYPES = new Set([
@@ -44,7 +48,7 @@ const ROOM_TYPES = new Set([
   'studio',
   'family',
 ]);
-const GENDERS = new Set(['any', 'male_only', 'female_only']);
+const GENDERS = new Set(['any', 'male', 'female', 'family']);
 const LISTING_STATUSES = new Set([
   'available',
   'almost_full',

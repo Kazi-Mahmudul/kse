@@ -81,11 +81,11 @@ export default function ExpensesScreen() {
       />
 
       {/* Total (spec §12) */}
-      <View style={[styles.totalCard, { backgroundColor: `${colors.warning}12`, borderColor: `${colors.warning}44` }]}>
+      <View style={[styles.totalCard, { backgroundColor: colors.background, borderColor: colors.border }]}>
         <ThemedText type="small" themeColor="textSecondary">
           Total expenses · {month.label.split(' ')[0]}
         </ThemedText>
-        <ThemedText style={[styles.totalValue, { color: colors.warning }]}>
+        <ThemedText style={[styles.totalValue, { color: colors.text }]}>
           {paisaToBdtCompact(total)}
         </ThemedText>
         <ThemedText type="small" themeColor="textMuted">

@@ -98,15 +98,6 @@ export function MentorCard({ mentor }: { mentor: OpportunitySummary }) {
             {mentor.organization_name}
           </ThemedText>
         </View>
-
-        {mentor.featured ? (
-          <View style={[styles.featuredBadge, { backgroundColor: tints.amber.bg }]}>
-            <Ionicons name="star" size={10} color={tints.amber.fg} />
-            <ThemedText style={[styles.featuredLabel, { color: tints.amber.fg }]}>
-              Featured
-            </ThemedText>
-          </View>
-        ) : null}
       </View>
 
       {mentor.summary ? (
@@ -116,6 +107,14 @@ export function MentorCard({ mentor }: { mentor: OpportunitySummary }) {
       ) : null}
 
       <View style={styles.chipRow}>
+        {mentor.featured ? (
+          <View style={[styles.featuredBadge, { backgroundColor: tints.amber.bg }]}>
+            <Ionicons name="star" size={10} color={tints.amber.fg} />
+            <ThemedText style={[styles.featuredLabel, { color: tints.amber.fg }]}>
+              Featured
+            </ThemedText>
+          </View>
+        ) : null}
         <View style={[styles.chip, { borderColor: colors.border }]}>
           <Ionicons
             name={
@@ -164,9 +163,9 @@ const styles = StyleSheet.create({
     gap: Spacing.two + 2,
   },
   avatarWrap: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
+    width: 76,
+    height: 76,
+    borderRadius: 16,
     overflow: 'hidden',
   },
   avatarFallback: {
@@ -180,7 +179,7 @@ const styles = StyleSheet.create({
   },
   avatarInitials: {
     fontFamily: FontFamilies.semiBold,
-    fontSize: 16,
+    fontSize: 22,
   },
   avatar: {
     width: '100%',

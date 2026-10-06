@@ -14,6 +14,7 @@ import {
 
 import { OpportunityFilterBar } from '@/components/opportunity-filter-bar';
 import { EmptyState } from '@/components/ui/empty-state';
+import { FilterDropdown } from '@/components/ui/filter-dropdown';
 import { PrimaryButton } from '@/components/ui/primary-button';
 import { Screen } from '@/components/ui/screen';
 import { SearchBar } from '@/components/ui/search-bar';
@@ -26,6 +27,7 @@ import type { OpportunityFilters } from '@/features/opportunities/service';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { useTheme } from '@/hooks/use-theme';
 import { blurActiveElement } from '@/lib/focus';
+import { KHULNA_DISTRICT_OPTIONS } from '@kse/shared';
 import type { OpportunityInternshipType } from '@kse/types';
 
 /** Quick-filter chip values on the Internship Hub (spec 06._internship_hub_kse). */
@@ -71,7 +73,6 @@ export default function InternshipHubScreen() {
   const [extraFilters, setExtraFilters] = useState<OpportunityFilters>({});
 
   const debouncedSearch = useDebouncedValue(searchText, 300).trim();
-
   const filters = useMemo<OpportunityFilters>(
     () => ({
       type: 'internship',
@@ -104,6 +105,7 @@ export default function InternshipHubScreen() {
       extraFilters.degreeLevel ||
       extraFilters.fundingType ||
       extraFilters.location ||
+      extraFilters.locationLike ||
       extraFilters.organization ||
       extraFilters.deadlineWithinDays,
   );
@@ -134,6 +136,15 @@ export default function InternshipHubScreen() {
             blurActiveElement();
             setFilterSheetOpen(true);
           }}
+        />
+
+        <FilterDropdown
+          label="District"
+          allLabel="All districts"
+          options={KHULNA_DISTRICT_OPTIONS}
+          selected={extraFilters.locationLike}
+          onSelect={(district) => handleFilterChange({ locationLike: district })}
+          style={styles.districtDropdown}
         />
 
         <ScrollView
@@ -256,6 +267,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.two,
     marginBottom: Spacing.two,
+  },
+  districtDropdown: {
+    maxWidth: 260,
   },
   chipRow: {
     flexDirection: 'row',

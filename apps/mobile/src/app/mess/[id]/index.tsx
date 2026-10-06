@@ -124,9 +124,9 @@ export default function MessDashboardScreen() {
 
       {/* Incoming exchange requests (spec §9) */}
       {myExchanges.map((x) => (
-        <View key={x.id} style={[styles.exchangeCard, { backgroundColor: `${colors.warning}12`, borderColor: `${colors.warning}55` }]}>
+        <View key={x.id} style={[styles.exchangeCard, { backgroundColor: colors.background, borderColor: colors.border }]}>
           <View style={styles.exchangeMeta}>
-            <Ionicons name="swap-horizontal-outline" size={18} color={colors.warning} />
+            <Ionicons name="swap-horizontal-outline" size={18} color={colors.primary} />
             <View style={styles.exchangeText}>
               <ThemedText type="smallBold" numberOfLines={1}>
                 {x.requester_name ?? 'A member'} wants to exchange bazar duty
@@ -268,10 +268,10 @@ export default function MessDashboardScreen() {
       {/* BAZAR (spec §3) */}
       <SectionLabel>BAZAR</SectionLabel>
       {my_next_duty ? (
-        <View style={[styles.dutyCard, { backgroundColor: `${colors.warning}12`, borderColor: `${colors.warning}55` }]}>
+        <View style={[styles.dutyCard, { backgroundColor: colors.background, borderColor: colors.border }]}>
           <View style={styles.dutyMeta}>
-            <View style={[styles.dutyIcon, { backgroundColor: `${colors.warning}26` }]}>
-              <Ionicons name="cart" size={18} color={colors.warning} />
+            <View style={[styles.dutyIcon, { backgroundColor: `${colors.primary}1A` }]}>
+              <Ionicons name="cart" size={18} color={colors.primary} />
             </View>
             <View>
               <ThemedText type="small" themeColor="textSecondary">
@@ -284,7 +284,7 @@ export default function MessDashboardScreen() {
           </View>
           <ActionButton
             label="Exchange"
-            tone="outline-warning"
+            tone="outline"
             onPress={() => setExchangeOpen(true)}
             disabled={exchanges?.some((x) => x.is_requester) ?? false}
           />
@@ -363,13 +363,13 @@ function ActionButton({
   loading,
 }: {
   label: string;
-  tone: 'solid' | 'outline-warning' | 'outline-danger';
+  tone: 'solid' | 'outline' | 'outline-danger';
   onPress: () => void;
   disabled?: boolean;
   loading?: boolean;
 }) {
   const colors = useTheme();
-  const fg = tone === 'solid' ? colors.onPrimary : tone === 'outline-warning' ? colors.warning : colors.danger;
+  const fg = tone === 'solid' ? colors.onPrimary : tone === 'outline-danger' ? colors.danger : colors.text;
   return (
     <Pressable
       onPress={onPress}
@@ -382,8 +382,8 @@ function ActionButton({
           ? { backgroundColor: colors.primary }
           : {
               borderWidth: 1,
-              borderColor: fg,
-              backgroundColor: tone === 'outline-warning' ? `${colors.warning}12` : `${colors.danger}10`,
+              borderColor: tone === 'outline-danger' ? colors.danger : colors.border,
+              backgroundColor: tone === 'outline-danger' ? `${colors.danger}10` : 'transparent',
             },
         (disabled || loading) && styles.actionDisabled,
         pressed && styles.pressed,

@@ -51,7 +51,7 @@ const QUICK_CHIPS: { value: QuickChip; label: string }[] = [
   { value: 'all', label: 'All' },
   { value: 'bachelor', label: 'Bachelor' },
   { value: 'sublet', label: 'Sublet' },
-  { value: 'female', label: 'Girls only' },
+  { value: 'female', label: 'Female' },
 ];
 
 function chipToFilters(chip: QuickChip): Partial<ToletFilters> {
@@ -61,7 +61,7 @@ function chipToFilters(chip: QuickChip): Partial<ToletFilters> {
     case 'sublet':
       return { roomType: 'sublet' satisfies ToletRoomType };
     case 'female':
-      return { gender: 'female_only' satisfies ToletGenderPreference };
+      return { gender: 'female' satisfies ToletGenderPreference };
     default:
       return {};
   }

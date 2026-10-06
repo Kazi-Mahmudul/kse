@@ -120,9 +120,9 @@ export default function BazarScreen() {
 
       {/* Incoming exchange requests (spec §9) */}
       {incoming.map((x) => (
-        <View key={x.id} style={[styles.exchangeCard, { backgroundColor: `${colors.warning}12`, borderColor: `${colors.warning}55` }]}>
+        <View key={x.id} style={[styles.exchangeCard, { backgroundColor: colors.background, borderColor: colors.border }]}>
           <View style={styles.exchangeMeta}>
-            <Ionicons name="swap-horizontal-outline" size={18} color={colors.warning} />
+            <Ionicons name="swap-horizontal-outline" size={18} color={colors.primary} />
             <View style={styles.exchangeText}>
               <ThemedText type="smallBold" numberOfLines={1}>
                 {x.requester_name ?? 'A member'} wants to exchange duty

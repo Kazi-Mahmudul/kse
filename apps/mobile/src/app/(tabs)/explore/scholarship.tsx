@@ -14,6 +14,7 @@ import {
 
 import { OpportunityFilterBar } from '@/components/opportunity-filter-bar';
 import { EmptyState } from '@/components/ui/empty-state';
+import { FilterDropdown } from '@/components/ui/filter-dropdown';
 import { PrimaryButton } from '@/components/ui/primary-button';
 import { Screen } from '@/components/ui/screen';
 import { SearchBar } from '@/components/ui/search-bar';
@@ -21,7 +22,7 @@ import { Chip } from '@/components/ui/chip';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
 import { ScholarshipCard } from '@/features/opportunities/components/scholarship-card';
-import { useOpportunityFeed } from '@/features/opportunities/queries';
+import { useOpportunityFacets, useOpportunityFeed } from '@/features/opportunities/queries';
 import type { OpportunityFilters } from '@/features/opportunities/service';
 import { RecommendedRail } from '@/features/scholarships/recommended-rail';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
@@ -70,21 +71,24 @@ export default function ScholarshipHubScreen() {
   const [activeChip, setActiveChip] = useState<QuickChip>('all');
   const [filterSheetOpen, setFilterSheetOpen] = useState(false);
   const [extraFilters, setExtraFilters] = useState<OpportunityFilters>({});
+  const [country, setCountry] = useState<string | undefined>();
 
   const debouncedSearch = useDebouncedValue(searchText, 300).trim();
+  const facetsQuery = useOpportunityFacets('scholarship');
+  const countries = facetsQuery.data?.countries ?? [];
 
   const filters = useMemo<OpportunityFilters>(
     () => ({
       type: 'scholarship',
       q: debouncedSearch || undefined,
       ...extraFilters,
-      // `chipToFilters` last so the chip's selection always wins over any
-      // stale `country` / `countryNot` in extraFilters (the filter sheet
-      // never sets them, but the merge order keeps semantics consistent
-      // with the Internship Hub).
+      // A specific country (dropdown) and the Local/International chips
+      // both write `country` / `countryNot` — selecting either clears the
+      // other, so at most one is active at a time.
+      ...(country ? { country } : {}),
       ...chipToFilters(activeChip),
     }),
-    [debouncedSearch, activeChip, extraFilters],
+    [debouncedSearch, activeChip, extraFilters, country],
   );
 
   const query = useOpportunityFeed(filters);
@@ -92,9 +96,15 @@ export default function ScholarshipHubScreen() {
 
   const handleChipPress = useCallback((chip: QuickChip) => {
     setActiveChip(chip);
-    // No manual reset needed — `country` / `countryNot` are owned by the
-    // chip (see `chipToFilters`) and the merge order above makes the chip
-    // authoritative.
+    // The chip now owns country/countryNot — drop a country picked in the
+    // dropdown so the two never fight.
+    setCountry(undefined);
+  }, []);
+
+  const handleCountrySelect = useCallback((value: string | undefined) => {
+    setCountry(value);
+    // "Local"/"International" contradict a specific country — reset to All.
+    if (value) setActiveChip('all');
   }, []);
 
   const handleFilterChange = useCallback((patch: Partial<OpportunityFilters>) => {
@@ -108,8 +118,7 @@ export default function ScholarshipHubScreen() {
       extraFilters.location ||
       extraFilters.organization ||
       extraFilters.deadlineWithinDays ||
-      extraFilters.country ||
-      extraFilters.countryNot,
+      country,
   );
 
   return (
@@ -138,6 +147,15 @@ export default function ScholarshipHubScreen() {
             blurActiveElement();
             setFilterSheetOpen(true);
           }}
+        />
+
+        <FilterDropdown
+          label="Country"
+          allLabel="All countries"
+          options={countries.map((name) => ({ value: name, label: name }))}
+          selected={country}
+          onSelect={handleCountrySelect}
+          style={styles.countryDropdown}
         />
 
         <ScrollView
@@ -197,6 +215,7 @@ export default function ScholarshipHubScreen() {
                   if (hasActiveFilters || activeChip !== 'all' || debouncedSearch) {
                     setActiveChip('all');
                     setExtraFilters({});
+                    setCountry(undefined);
                     setSearchText('');
                   } else {
                     query.refetch();
@@ -267,6 +286,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.two,
     marginBottom: Spacing.two,
+  },
+  countryDropdown: {
+    maxWidth: 260,
   },
   chipRow: {
     flexDirection: 'row',

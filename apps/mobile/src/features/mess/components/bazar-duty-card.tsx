@@ -25,12 +25,12 @@ export function BazarDutyCard({
 
   return (
     <View
-      style={[styles.card, { backgroundColor: `${colors.warning}14`, borderColor: `${colors.warning}55` }]}
+      style={[styles.card, { backgroundColor: colors.background, borderColor: colors.border }]}
       accessibilityLabel={`Your next bazar duty is ${rel}, ${formatWeekday(dutyDate)} ${formatDayMonth(dutyDate)}`}
     >
       <View style={styles.left}>
-        <View style={[styles.icon, { backgroundColor: `${colors.warning}26` }]}>
-          <Ionicons name="cart" size={20} color={colors.warning} />
+        <View style={[styles.icon, { backgroundColor: `${colors.primary}1A` }]}>
+          <Ionicons name="cart" size={20} color={colors.primary} />
         </View>
         <View style={styles.meta}>
           <ThemedText type="small" themeColor="textSecondary">
@@ -53,12 +53,12 @@ export function BazarDutyCard({
           accessibilityLabel="Exchange this bazar duty"
           style={({ pressed }) => [
             styles.exchange,
-            { borderColor: colors.warning, backgroundColor: `${colors.warning}1A` },
+            { borderColor: colors.primary, backgroundColor: `${colors.primary}14` },
             (disabled || pressed) && styles.pressed,
           ]}
         >
-          <Ionicons name="swap-horizontal" size={14} color={colors.warning} />
-          <ThemedText style={[styles.exchangeLabel, { color: colors.warning }]}>Exchange</ThemedText>
+          <Ionicons name="swap-horizontal" size={14} color={colors.primary} />
+          <ThemedText style={[styles.exchangeLabel, { color: colors.primary }]}>Exchange</ThemedText>
         </Pressable>
       ) : (
         <StatusBadge label={rel} tone="pending" />

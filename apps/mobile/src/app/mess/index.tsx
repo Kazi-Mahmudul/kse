@@ -78,10 +78,10 @@ export default function MessHubScreen() {
             {pending.map((mess) => (
               <View
                 key={mess.id}
-                style={[styles.card, { backgroundColor: `${colors.warning}14`, borderColor: `${colors.warning}55` }]}
+                style={[styles.card, { backgroundColor: colors.background, borderColor: colors.border }]}
               >
-                <View style={[styles.cardIcon, { backgroundColor: `${colors.warning}26` }]}>
-                  <Ionicons name="time-outline" size={18} color={colors.warning} />
+                <View style={[styles.cardIcon, { backgroundColor: `${colors.primary}1A` }]}>
+                  <Ionicons name="time-outline" size={18} color={colors.primary} />
                 </View>
                 <View style={styles.cardMeta}>
                   <ThemedText type="smallBold">{mess.name}</ThemedText>

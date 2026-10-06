@@ -34,7 +34,8 @@ export type AnalyticsEvent =
   | 'tolet_listing_contact_clicked'
   | 'tolet_listing_submitted'
   | 'tolet_listing_reported'
-  | 'tolet_listing_withdrawn';
+  | 'tolet_listing_withdrawn'
+  | 'tolet_listing_status_changed';
 
 export interface AnalyticsEventMap {
   signup_completed: never;
@@ -52,6 +53,7 @@ export interface AnalyticsEventMap {
   tolet_listing_submitted: { id: string };
   tolet_listing_reported: { id: string; reason: string };
   tolet_listing_withdrawn: { id: string };
+  tolet_listing_status_changed: { id: string; status: string };
 }
 
 export type EventProperties<E extends AnalyticsEvent> = AnalyticsEventMap[E];
@@ -156,6 +158,8 @@ export const analytics = {
     track('tolet_listing_reported', { id, reason }),
   toletListingWithdrawn: (id: string) =>
     track('tolet_listing_withdrawn', { id }),
+  toletListingStatusChanged: (id: string, status: string) =>
+    track('tolet_listing_status_changed', { id, status }),
 };
 
 export const _debug = { HAS_POSTHOG, HAS_SENTRY, providers: providers.map((p) => p.name) };

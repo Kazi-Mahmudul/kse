@@ -43,7 +43,7 @@ insert into public.opportunities (
     'UX/UI portfolio reviews and design-career guidance',
     E'Things Nusrat can help with:\n\n• Turning class projects into a hireable UX portfolio\n• Figma workflows, design systems and handoff discipline\n• Preparing for design internships and junior roles\n• Interview critique — how designers are actually evaluated\n\nAbout: Product designer with 6 years across logistics and fintech products. Mentored 20+ students through the Pathao design internship programme. Reviews portfolios async over chat, plus one 45-minute call a month.\n\nBest for: design-curious students from any discipline — no art background needed.',
     'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=800&q=80',
-    'Remote', 'remote'::public.opportunity_mode,
+    null, 'remote'::public.opportunity_mode,
     'Anyone willing to share their portfolio (even rough work) before the first session.',
     null,
     '2026-12-15T18:00:00+00:00'::timestamptz,

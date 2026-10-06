@@ -30,8 +30,6 @@ import {
   DEGREE_LEVEL_LABELS,
   FUNDING_TYPE_LABELS,
   OPPORTUNITY_INTERNSHIP_TYPE_LABELS,
-  OPPORTUNITY_MODE_LABELS,
-  OPPORTUNITY_TYPE_LABELS,
 } from '@kse/shared';
 
 /** Opportunity detail (step 8): full listing + apply via the official URL. */
@@ -114,30 +112,13 @@ export default function OpportunityDetailScreen() {
       )}
 
       <View style={styles.heading}>
-        <View style={styles.badges}>
-          <Badge label={OPPORTUNITY_TYPE_LABELS[opportunity.type]} tone="primary" />
-          {opportunity.verified && <Badge label="Verified" tone="success" />}
-          {opportunity.featured && <Badge label="Featured" tone="warning" />}
-          {opportunity.opportunity_mode && (
-            <Badge
-              label={OPPORTUNITY_MODE_LABELS[opportunity.opportunity_mode]}
-              tone="neutral"
-            />
-          )}
-          {opportunity.type === 'internship' && opportunity.internship_type && (
-            <Badge
-              label={OPPORTUNITY_INTERNSHIP_TYPE_LABELS[opportunity.internship_type]}
-              tone="neutral"
-            />
-          )}
-        </View>
         <ThemedText type="subtitle">{opportunity.title}</ThemedText>
         <ThemedText type="small" themeColor="textSecondary">
           {opportunity.organization_name}
         </ThemedText>
       </View>
 
-      <Card tint={expired ? 'danger' : deadlineTone(opportunity.deadline) === 'warning' ? 'warning' : 'backgroundElement'}>
+      <Card tint={expired ? 'danger' : 'backgroundElement'}>
         <View style={styles.deadlineRow}>
           <Ionicons
             name="time-outline"
@@ -298,11 +279,9 @@ export default function OpportunityDetailScreen() {
           }}
         />
       ) : (
-        <Card tint="warning">
-          <ThemedText type="small">
-            No application link yet — check the source or contact the organizer.
-          </ThemedText>
-        </Card>
+        <ThemedText type="small" themeColor="textSecondary" style={styles.noLinkNote}>
+          No application link yet — check the source or contact the organizer.
+        </ThemedText>
       )}
 
       {isScholarship ? (
@@ -378,11 +357,6 @@ const styles = StyleSheet.create({
   heading: {
     gap: Spacing.one + 2,
   },
-  badges: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.one,
-  },
   deadlineRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -406,5 +380,8 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: Spacing.one + 2,
     marginTop: Spacing.two,
+  },
+  noLinkNote: {
+    textAlign: 'center',
   },
 });
