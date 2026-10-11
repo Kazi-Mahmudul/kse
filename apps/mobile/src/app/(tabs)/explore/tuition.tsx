@@ -57,7 +57,9 @@ export default function TuitionScreen() {
   const q = debouncedText.trim() || undefined;
   const query = useTutorFeed({ q, subjectId, sort, district, universityId });
   const subjectsQuery = useSubjects();
-  const institutesQuery = useInstitutes();
+  // Institute options follow the selected district (portfolio education
+  // picker behavior) — the dropdown only offers that district's institutes.
+  const institutesQuery = useInstitutes(district);
   const savedQuery = useSavedTutorIds();
   const toggleSave = useToggleSavedTutor();
 
@@ -107,7 +109,13 @@ export default function TuitionScreen() {
           allLabel="All districts"
           options={KHULNA_DISTRICT_OPTIONS}
           selected={district}
-          onSelect={setDistrict}
+          onSelect={(nextDistrict) => {
+            // A new district invalidates an institute picked under the old
+            // one (or under "All districts") — reset it so the two never
+            // contradict.
+            setDistrict(nextDistrict);
+            setUniversityId(undefined);
+          }}
         />
         <FilterDropdown
           label="Institute"
@@ -115,6 +123,7 @@ export default function TuitionScreen() {
           options={(institutesQuery.data ?? []).map((institute) => ({
             value: institute.id,
             label: institute.name,
+            keywords: institute.shortName ?? undefined,
           }))}
           selected={universityId}
           onSelect={setUniversityId}
@@ -162,7 +171,7 @@ export default function TuitionScreen() {
           message={
             hasCriteria
               ? 'Try a different subject or clear the search.'
-              : 'Verified tutors are added as they join KSE.'
+              : 'Verified tutors are added as they join Shujog.'
           }
           actionLabel={hasCriteria ? 'Clear filters' : 'Refresh'}
           onAction={hasCriteria ? clearAll : () => query.refetch()}

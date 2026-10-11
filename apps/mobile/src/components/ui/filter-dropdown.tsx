@@ -9,6 +9,9 @@ import { useTheme } from '@/hooks/use-theme';
 export interface FilterDropdownOption {
   value: string;
   label: string;
+  /** Extra match text for the search box (e.g. an acronym — "KUET" — so
+   *  acronym queries find the full-name institute). */
+  keywords?: string;
 }
 
 interface FilterDropdownProps {
@@ -47,7 +50,11 @@ export function FilterDropdown({
   const visibleOptions = useMemo(() => {
     const term = search.trim().toLowerCase();
     if (!term) return options;
-    return options.filter((option) => option.label.toLowerCase().includes(term));
+    return options.filter(
+      (option) =>
+        option.label.toLowerCase().includes(term) ||
+        (option.keywords?.toLowerCase().includes(term) ?? false),
+    );
   }, [options, search]);
   const closeSheet = () => {
     setOpen(false);
@@ -86,10 +93,17 @@ export function FilterDropdown({
       </Pressable>
 
       <Modal visible={open} transparent animationType="slide" onRequestClose={closeSheet}>
-        <Pressable
-          style={[styles.backdrop, { backgroundColor: colors.scrim }]}
-          onPress={closeSheet}
-        >
+        {/* Full-screen container: the backdrop Pressable is a SIBLING laid out
+            behind the sheet, not a parent — a wrapping backdrop makes taps on
+            the search input bubble up and close the sheet (RNW). Same
+            structure as the portfolio institution picker. */}
+        <View style={styles.backdropWrap}>
+          <Pressable
+            style={[StyleSheet.absoluteFill, { backgroundColor: colors.scrim }]}
+            onPress={closeSheet}
+            accessibilityRole="button"
+            accessibilityLabel="Close"
+          />
           <View style={[styles.sheet, { backgroundColor: colors.background }]}>
             <ThemedText type="smallBold" style={styles.sheetTitle}>
               {label}
@@ -153,7 +167,7 @@ export function FilterDropdown({
               </ThemedText>
             ) : null}
           </View>
-        </Pressable>
+        </View>
       </Modal>
     </View>
   );
@@ -179,7 +193,7 @@ const styles = StyleSheet.create({
   pressed: {
     opacity: 0.7,
   },
-  backdrop: {
+  backdropWrap: {
     flex: 1,
     justifyContent: 'flex-end',
   },
@@ -189,6 +203,9 @@ const styles = StyleSheet.create({
     padding: Spacing.four,
     gap: 2,
     maxHeight: '70%',
+    // Painted above the sibling backdrop Pressable.
+    zIndex: 1,
+    elevation: 1,
   },
   sheetTitle: {
     marginBottom: Spacing.two,

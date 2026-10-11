@@ -70,7 +70,7 @@ export function SettingsForm({ values }: { values: SettingsFormValues }) {
             <input
               name="support_contact"
               defaultValue={values.support_contact}
-              placeholder="support@kse.app"
+              placeholder="support@shujog.app"
               required
               className={inputClass}
             />
@@ -93,7 +93,7 @@ export function SettingsForm({ values }: { values: SettingsFormValues }) {
             <input
               name="terms_url"
               defaultValue={values.terms_url}
-              placeholder="https://kse.app/terms"
+              placeholder="https://shujog.app/terms"
               className={inputClass}
             />
           </label>
@@ -102,7 +102,7 @@ export function SettingsForm({ values }: { values: SettingsFormValues }) {
             <input
               name="privacy_url"
               defaultValue={values.privacy_url}
-              placeholder="https://kse.app/privacy"
+              placeholder="https://shujog.app/privacy"
               className={inputClass}
             />
           </label>
@@ -120,7 +120,7 @@ export function SettingsForm({ values }: { values: SettingsFormValues }) {
               ['facebook_url', 'Facebook', 'https://facebook.com/…', values.facebook_url],
               ['instagram_url', 'Instagram', 'https://instagram.com/…', values.instagram_url],
               ['linkedin_url', 'LinkedIn', 'https://linkedin.com/…', values.linkedin_url],
-              ['website_url', 'Website', 'https://kse.app', values.website_url],
+              ['website_url', 'Website', 'https://shujog.app', values.website_url],
             ] as const
           ).map(([name, label, placeholder, defaultValue]) => (
             <label key={name} className="flex flex-col gap-1.5">

@@ -58,11 +58,10 @@ export default async function DashboardLayout({ children }: { children: React.Re
     <div className="flex min-h-screen bg-zinc-50">
       <aside className="sticky top-0 flex h-screen w-64 shrink-0 flex-col border-r border-zinc-200 bg-white">
         <div className="flex items-center gap-2.5 px-5 py-5">
-          <div className="grid size-8 place-items-center rounded-lg bg-indigo-600 text-sm font-bold text-white">
-            K
-          </div>
+          {/* eslint-disable-next-line @next/next/no-img-element -- local static asset */}
+          <img src="/logo.png" alt="Shujog" className="size-8 rounded-lg" />
           <span className="text-base font-semibold tracking-tight text-zinc-900">
-            KSE Admin
+            Shujog Admin
           </span>
         </div>
 

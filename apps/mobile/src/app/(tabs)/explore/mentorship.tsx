@@ -101,7 +101,7 @@ export default function MentorshipScreen() {
             </ThemedText>
             <ThemedText style={styles.heroSubtitle} numberOfLines={2}>
               Engineers, designers, researchers and teachers offering free 1:1
-              guidance to KSE students.
+              guidance to Shujog students.
             </ThemedText>
           </View>
           {!query.isPending ? (

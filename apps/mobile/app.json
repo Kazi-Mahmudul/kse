@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "KSE",
+    "name": "Shujog",
     "slug": "kse",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -29,7 +29,7 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#208AEF",
+          "backgroundColor": "#FFFFFF",
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 76
         }

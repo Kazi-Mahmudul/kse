@@ -32,7 +32,7 @@ import { useSettingsStore } from '@/store/settings-store';
  *   inverted white card).
  *
  * All copy is Bengali (Hind Siliguri) — Poppins is the Latin display font but
- * has no Bengali glyphs. The "KSE" pill label, skip pill, and "Login" link
+ * has no Bengali glyphs. The "Shujog" pill label, skip pill, and "Login" link
  * stay in Poppins (Latin only).
  *
  * The brand pill and skip pill float over the photo as dark translucent
@@ -142,10 +142,13 @@ export function OnboardingStep({
         {/* Top safe-area overlay: brand pill (left) + skip pill (right). */}
         <SafeAreaView edges={['top']} style={styles.topBar}>
           <View style={[styles.brandPill, { backgroundColor: pillBg, borderColor: pillBorder }]}>
-            <View style={[styles.brandIconWrap, { backgroundColor: colors.primary }]}>
-              <Ionicons name="school" size={12} color="#FFFFFF" />
-            </View>
-            <ThemedText style={styles.brandLabel}>KSE</ThemedText>
+            <Image
+              source={require('@/assets/images/logo-transparent.png')}
+              style={styles.brandLogo}
+              contentFit="cover"
+              accessible={false}
+            />
+            <ThemedText style={styles.brandLabel}>Shujog</ThemedText>
           </View>
           {showSkip ? (
             <Pressable
@@ -350,12 +353,10 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     elevation: 2,
   },
-  brandIconWrap: {
+  brandLogo: {
     width: 18,
     height: 18,
-    borderRadius: 999,
-    alignItems: 'center',
-    justifyContent: 'center',
+    borderRadius: 5,
   },
   brandLabel: {
     color: '#FFFFFF',

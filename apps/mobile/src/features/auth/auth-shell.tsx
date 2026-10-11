@@ -1,4 +1,3 @@
-import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import type { ReactNode } from 'react';
@@ -64,7 +63,13 @@ export function AuthShell({
               {/* Header — centred exactly over the middle of the photo. */}
               <View style={styles.header}>
                 <View style={styles.logoBadge}>
-                  <Ionicons name="school" size={26} color="#ffffff" />
+                  <Image
+                    source={require('@/assets/images/logo-transparent.png')}
+                    style={styles.logoImage}
+                    contentFit="cover"
+                    transition={200}
+                    accessible={false}
+                  />
                 </View>
                 <ThemedText style={styles.title}>{title}</ThemedText>
                 <ThemedText style={styles.subtitle}>{subtitle}</ThemedText>
@@ -113,6 +118,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.35)',
     marginBottom: Spacing.one,
+    overflow: 'hidden',
+  },
+  logoImage: {
+    width: '100%',
+    height: '100%',
   },
   title: {
     fontFamily: FontFamilies.bold,

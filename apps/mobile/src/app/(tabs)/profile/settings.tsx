@@ -37,7 +37,7 @@ export default function SettingsScreen() {
   const confirmSignOut = async () => {
     const confirmed = await confirmDialog({
       title: 'Sign out?',
-      message: 'You will need to sign in again to use KSE.',
+      message: 'You will need to sign in again to use Shujog.',
       confirmLabel: 'Sign out',
       destructive: true,
     });

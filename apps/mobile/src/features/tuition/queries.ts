@@ -57,7 +57,7 @@ export const tuitionKeys = {
   tutorCount: () => [...tuitionKeys.all, 'tutors', 'count'] as const,
   reviews: (tutorId: string) => [...tuitionKeys.tutor(tutorId), 'reviews'] as const,
   subjects: () => [...tuitionKeys.all, 'subjects'] as const,
-  institutes: () => [...tuitionKeys.all, 'institutes'] as const,
+  institutes: (district?: string) => [...tuitionKeys.all, 'institutes', district ?? null] as const,
   myRequests: () => [...tuitionKeys.all, 'myRequests'] as const,
   savedTutors: () => [...tuitionKeys.all, 'savedTutors'] as const,
   myApplication: () => [...tuitionKeys.all, 'myApplication'] as const,
@@ -90,14 +90,15 @@ export function useTutorCount() {
   } satisfies UseQueryOptions<number, Error>);
 }
 
-/** All institutes (public `universities` reference table) — Tuition Finder
- *  institute filter dropdown. */
-export function useInstitutes() {
+/** Institutes (public `universities` reference table) for the Tuition Finder
+ *  filter dropdown — scoped to the selected district when one is active,
+ *  mirroring the portfolio education picker's district → city chaining. */
+export function useInstitutes(district?: string) {
   return useQuery({
-    queryKey: tuitionKeys.institutes(),
-    queryFn: listInstitutes,
+    queryKey: tuitionKeys.institutes(district),
+    queryFn: () => listInstitutes(district),
     staleTime: 5 * 60_000,
-  } satisfies UseQueryOptions<{ id: string; name: string }[], Error>);
+  } satisfies UseQueryOptions<{ id: string; name: string; shortName: string | null }[], Error>);
 }
 
 export function useTutor(id: string) {

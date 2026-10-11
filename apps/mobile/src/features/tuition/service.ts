@@ -57,19 +57,28 @@ export interface TutorFilters {
 export interface TutorInstitute {
   id: string;
   name: string;
+  /** Acronym form ("KUET") — the dropdown searches it alongside the name so
+   *  acronym queries find their full-name institute. */
+  shortName: string | null;
 }
 
-/** All institutes from the public `universities` reference table — the same
- *  directory the education/portfolio section and tutor profiles use. */
-export async function listInstitutes(): Promise<TutorInstitute[]> {
-  const { data, error } = await supabase
+/** Institutes from the public `universities` reference table — the same
+ *  directory the education/portfolio section and tutor profiles use. Each
+ *  row's `location` holds the district name, so a selected district scopes
+ *  the list exactly like the portfolio education picker (city = district). */
+export async function listInstitutes(district?: string): Promise<TutorInstitute[]> {
+  let query = supabase
     .from('universities')
-    .select('id, name')
+    .select('id, name, short_name')
     .order('name');
+  if (district) {
+    query = query.ilike('location', district);
+  }
+  const { data, error } = await query;
   if (error) fail('Could not load institutes', error.message);
-  return ((data ?? []) as { id: string; name: string }[]).filter(
-    (row) => row.id && row.name,
-  );
+  return ((data ?? []) as { id: string; name: string; short_name: string | null }[])
+    .filter((row) => row.id && row.name)
+    .map((row) => ({ id: row.id, name: row.name, shortName: row.short_name ?? null }));
 }
 
 export interface TutorPage {

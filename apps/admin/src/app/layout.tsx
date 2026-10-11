@@ -9,10 +9,10 @@ const geistSans = Geist({
 
 export const metadata: Metadata = {
   title: {
-    default: "KSE Admin",
-    template: "%s — KSE Admin",
+    default: "Shujog Admin",
+    template: "%s — Shujog Admin",
   },
-  description: "Content management portal for the Khulna Student Ecosystem.",
+  description: "Content management portal for Shujog — the Khulna student ecosystem app.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

@@ -15,7 +15,7 @@ export default async function MessListPage() {
         <div>
           <h1 className="text-2xl font-bold text-zinc-900">Mess Management</h1>
           <p className="mt-1 text-sm text-zinc-500">
-            Manage all messes in the KSE platform
+            Manage all messes in the Shujog platform
           </p>
         </div>
       </div>

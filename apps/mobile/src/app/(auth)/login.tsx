@@ -46,7 +46,7 @@ export default function LoginScreen() {
   };
 
   return (
-    <AuthShell title="Welcome back!" subtitle="Sign in to keep growing with KSE.">
+    <AuthShell title="Welcome back!" subtitle="Sign in to keep growing with Shujog.">
       {formState.errors.root?.message && (
         <Text style={styles.formError}>{formState.errors.root.message}</Text>
       )}
@@ -90,7 +90,7 @@ export default function LoginScreen() {
       )}
 
       <View style={styles.footer}>
-        <Text style={styles.footerText}>New to KSE? </Text>
+        <Text style={styles.footerText}>New to Shujog? </Text>
         <TextLink href="/(auth)/register" style={styles.link}>
           Create an account
         </TextLink>
