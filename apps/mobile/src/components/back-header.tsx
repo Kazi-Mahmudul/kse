@@ -6,10 +6,12 @@ import { Spacing } from '@/constants/theme';
 import { useSmartBack } from '@/hooks/use-smart-back';
 import { useTheme } from '@/hooks/use-theme';
 
+import type { Href } from 'expo-router';
+
 /** Screen header with a back chevron (stack/modal screens). */
-export function BackHeader({ title }: { title: string }) {
+export function BackHeader({ title, fallback }: { title: string; fallback?: Href }) {
   const colors = useTheme();
-  const goBack = useSmartBack();
+  const goBack = useSmartBack(fallback);
   return (
     <View style={styles.header}>
       <Pressable

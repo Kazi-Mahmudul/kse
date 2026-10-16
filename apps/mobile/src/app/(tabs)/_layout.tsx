@@ -8,7 +8,7 @@ export default function TabsLayout() {
   return (
     <>
       <AnimatedSplashOverlay />
-      <Tabs screenOptions={{ headerShown: false }} tabBar={(props) => <TabsBar {...props} />}>
+      <Tabs backBehavior="history" screenOptions={{ headerShown: false }} tabBar={(props) => <TabsBar {...props} />}>
         <Tabs.Screen name="index" />
         <Tabs.Screen name="explore" />
         <Tabs.Screen name="community" />
