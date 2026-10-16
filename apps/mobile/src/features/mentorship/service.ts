@@ -340,10 +340,10 @@ export async function fetchMySessions(tab: 'upcoming' | 'past'): Promise<MentorS
   if (tab === 'upcoming') {
     query = query
       .or(`preferred_date.is.null,preferred_date.gte.${today}`)
-      .in('status', ['pending', 'confirmed']);
+      .in('status', ['pending', 'accepted', 'confirmed']);
   } else {
     query = query
-      .or(`preferred_date.lt.${today},status.eq.completed,status.eq.cancelled`);
+      .or(`preferred_date.lt.${today},status.eq.completed,status.eq.closed,status.eq.cancelled,status.eq.rejected`);
   }
 
   const { data, error } = await query.order('created_at', { ascending: false });
@@ -356,6 +356,12 @@ export async function fetchMySessions(tab: 'upcoming' | 'past'): Promise<MentorS
       organization_name: string;
       image_url: string | null;
     } | null;
+
+    let normalizedStatus: MentorSession['status'] = 'pending';
+    if (row.status === 'accepted' || row.status === 'confirmed') normalizedStatus = 'confirmed';
+    else if (row.status === 'closed' || row.status === 'completed') normalizedStatus = 'completed';
+    else if (row.status === 'rejected' || row.status === 'cancelled') normalizedStatus = 'cancelled';
+
     return {
       id: row.id,
       opportunity_id: row.opportunity_id,
@@ -368,7 +374,7 @@ export async function fetchMySessions(tab: 'upcoming' | 'past'): Promise<MentorS
       preferred_time: row.preferred_time ?? null,
       session_mode: row.session_mode ?? 'online',
       session_type: row.topic ?? null,
-      status: (row.status as MentorSession['status']) ?? 'pending',
+      status: normalizedStatus,
       created_at: row.created_at,
     };
   });

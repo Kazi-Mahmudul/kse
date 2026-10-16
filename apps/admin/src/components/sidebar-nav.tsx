@@ -34,6 +34,17 @@ const NAV_GROUPS: readonly NavGroup[] = [
       },
       { href: '/tuition', label: 'Tuition & Tutors' },
       {
+        href: '/mentorship',
+        label: 'Mentorship',
+        children: [
+          { href: '/mentorship', label: 'All Mentors' },
+          { href: '/mentorship/new', label: 'Add Mentor' },
+          { href: '/mentorship/sessions', label: 'Sessions' },
+          { href: '/mentorship/questions', label: 'Questions' },
+          { href: '/mentorship/discussions', label: 'Discussions' },
+        ],
+      },
+      {
         href: '/tolet',
         label: 'Bachelor To-Let',
         children: [
