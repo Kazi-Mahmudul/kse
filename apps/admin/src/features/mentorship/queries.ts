@@ -66,6 +66,46 @@ export interface AdminDiscussionRow {
   mentor_title: string | null;
 }
 
+interface RawSessionRow {
+  id: string;
+  opportunity_id: string;
+  student_id: string;
+  topic: string;
+  message: string | null;
+  preferred_date: string | null;
+  preferred_time: string | null;
+  session_mode: string | null;
+  contact_email: string | null;
+  contact_phone: string | null;
+  request_type: string;
+  status: string;
+  created_at: string;
+  opportunities?: { title?: string | null } | null;
+}
+
+interface RawQuestionRow {
+  id: string;
+  student_id: string;
+  question: string;
+  category: string;
+  status: string;
+  answer: string | null;
+  answered_by: string | null;
+  answered_at: string | null;
+  created_at: string;
+}
+
+interface RawDiscussionRow {
+  id: string;
+  opportunity_id: string;
+  title: string;
+  content: string;
+  likes_count: number | null;
+  comments_count: number | null;
+  created_at: string;
+  opportunities?: { title?: string | null } | null;
+}
+
 export interface MentorshipKpis {
   totalMentors: number;
   publishedMentors: number;
@@ -183,19 +223,21 @@ export async function getSessionRequests(opts: {
   const { data, count, error } = await query.range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1);
   if (error) throw error;
 
-  const studentIds = Array.from(new Set((data ?? []).map((r: any) => r.student_id).filter(Boolean)));
+  const studentIds = Array.from(
+    new Set((data ?? []).map((r: { student_id?: string | null }) => r.student_id).filter(Boolean) as string[]),
+  );
   const profilesMap = new Map<string, string>();
   if (studentIds.length > 0) {
     const { data: profileRows } = await admin
       .from('profiles')
       .select('id, full_name')
       .in('id', studentIds);
-    (profileRows ?? []).forEach((p: any) => {
+    (profileRows ?? []).forEach((p: { id: string; full_name?: string | null }) => {
       if (p.full_name) profilesMap.set(p.id, p.full_name);
     });
   }
 
-  const rows: AdminSessionRow[] = (data ?? []).map((row: any) => {
+  const rows: AdminSessionRow[] = ((data ?? []) as unknown as RawSessionRow[]).map((row) => {
     let normalizedStatus = row.status;
     if (row.status === 'accepted') normalizedStatus = 'confirmed';
     else if (row.status === 'closed') normalizedStatus = 'completed';
@@ -246,19 +288,21 @@ export async function getMentorQuestions(opts: {
   const { data, count, error } = await query.range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1);
   if (error) throw error;
 
-  const studentIds = Array.from(new Set((data ?? []).map((r: any) => r.student_id).filter(Boolean)));
+  const studentIds = Array.from(
+    new Set((data ?? []).map((r: { student_id?: string | null }) => r.student_id).filter(Boolean) as string[]),
+  );
   const profilesMap = new Map<string, string>();
   if (studentIds.length > 0) {
     const { data: profileRows } = await admin
       .from('profiles')
       .select('id, full_name')
       .in('id', studentIds);
-    (profileRows ?? []).forEach((p: any) => {
+    (profileRows ?? []).forEach((p: { id: string; full_name?: string | null }) => {
       if (p.full_name) profilesMap.set(p.id, p.full_name);
     });
   }
 
-  const rows: AdminQuestionRow[] = (data ?? []).map((row: any) => ({
+  const rows: AdminQuestionRow[] = ((data ?? []) as unknown as RawQuestionRow[]).map((row) => ({
     id: row.id,
     student_id: row.student_id,
     question: row.question,
@@ -295,7 +339,7 @@ export async function getMentorDiscussions(opts: {
 
   if (error) throw error;
 
-  const rows: AdminDiscussionRow[] = (data ?? []).map((row: any) => ({
+  const rows: AdminDiscussionRow[] = ((data ?? []) as unknown as RawDiscussionRow[]).map((row) => ({
     id: row.id,
     opportunity_id: row.opportunity_id,
     title: row.title,
@@ -339,11 +383,11 @@ export async function getMentorDetail(id: string): Promise<AdminMentorDetail | n
 
   const row = oppRes.data;
   const tags: string[] = (tagsRes.data ?? [])
-    .map((t: any) => t.tags?.name)
-    .filter(Boolean);
+    .flatMap((t) => (Array.isArray(t.tags) ? t.tags.map((x) => x?.name) : [(t.tags as { name?: string | null } | null)?.name]))
+    .filter((name): name is string => Boolean(name));
 
   const sessionStudentIds = Array.from(
-    new Set((sessionsRes.data ?? []).map((s: any) => s.student_id).filter(Boolean)),
+    new Set((sessionsRes.data ?? []).map((s: { student_id?: string | null }) => s.student_id).filter(Boolean) as string[]),
   );
   const profilesMap = new Map<string, string>();
   if (sessionStudentIds.length > 0) {
@@ -351,12 +395,12 @@ export async function getMentorDetail(id: string): Promise<AdminMentorDetail | n
       .from('profiles')
       .select('id, full_name')
       .in('id', sessionStudentIds);
-    (profileRows ?? []).forEach((p: any) => {
+    (profileRows ?? []).forEach((p: { id: string; full_name?: string | null }) => {
       if (p.full_name) profilesMap.set(p.id, p.full_name);
     });
   }
 
-  const sessions: AdminSessionRow[] = (sessionsRes.data ?? []).map((s: any) => ({
+  const sessions: AdminSessionRow[] = ((sessionsRes.data ?? []) as unknown as RawSessionRow[]).map((s) => ({
     id: s.id,
     opportunity_id: s.opportunity_id,
     student_id: s.student_id,
@@ -375,7 +419,7 @@ export async function getMentorDetail(id: string): Promise<AdminMentorDetail | n
     student_email: s.contact_email ?? null,
   }));
 
-  const discussions: AdminDiscussionRow[] = (discussionsRes.data ?? []).map((d: any) => ({
+  const discussions: AdminDiscussionRow[] = ((discussionsRes.data ?? []) as unknown as RawDiscussionRow[]).map((d) => ({
     id: d.id,
     opportunity_id: d.opportunity_id,
     title: d.title,

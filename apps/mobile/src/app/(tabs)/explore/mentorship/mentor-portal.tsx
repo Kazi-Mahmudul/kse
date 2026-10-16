@@ -675,7 +675,7 @@ export default function MentorPortalScreen() {
               <View style={styles.emptyBox}>
                 <Ionicons name="newspaper-outline" size={42} color={colors.textMuted} />
                 <ThemedText themeColor="textSecondary" style={styles.emptyText}>
-                  You haven't posted any discussions yet.{'\n'}Tap "+ New Post" to start a discussion.
+                  {"You haven't posted any discussions yet.\nTap \"+ New Post\" to start a discussion."}
                 </ThemedText>
               </View>
             }

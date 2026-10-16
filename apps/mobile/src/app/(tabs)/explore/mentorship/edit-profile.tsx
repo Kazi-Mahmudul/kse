@@ -1,8 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { Image } from 'expo-image';
-import { router, Stack } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { Stack } from 'expo-router';
+import { useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -44,47 +44,66 @@ export default function EditMentorProfileScreen() {
 
   const updateMutation = useUpdateMentorProfile();
 
-  // Form states
-  const [title, setTitle] = useState('');
-  const [organization, setOrganization] = useState('');
-  const [designation, setDesignation] = useState('');
-  const [experienceYears, setExperienceYears] = useState('1');
-  const [sessionMode, setSessionMode] = useState<Mode>('online');
-  const [location, setLocation] = useState('');
-  const [summary, setSummary] = useState('');
-  const [linkedinUrl, setLinkedinUrl] = useState('');
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
-  const [coverImageUrl, setCoverImageUrl] = useState<string | null>(null);
+  if (applicationQuery.isLoading || (opportunityId && detailQuery.isLoading)) {
+    return (
+      <>
+        <Stack.Screen options={{ headerShown: false }} />
+        <View style={[styles.root, { backgroundColor: colors.surfaceMuted }]}>
+          <Header goBack={goBack} colors={colors} />
+          <View style={styles.loadingCenter}>
+            <ActivityIndicator size="large" color={colors.primary} />
+          </View>
+        </View>
+      </>
+    );
+  }
+
+  return (
+    <EditMentorProfileForm
+      key={opportunityId || application?.id || 'new'}
+      mentorDetail={mentorDetail}
+      application={application}
+      opportunityId={opportunityId}
+      updateMutation={updateMutation}
+      goBack={goBack}
+      colors={colors}
+      tints={tints}
+    />
+  );
+}
+
+function EditMentorProfileForm({
+  mentorDetail,
+  application,
+  opportunityId,
+  updateMutation,
+  goBack,
+  colors,
+  tints,
+}: {
+  mentorDetail?: MentorDetail;
+  application?: any;
+  opportunityId?: string | null;
+  updateMutation: ReturnType<typeof useUpdateMentorProfile>;
+  goBack: () => void;
+  colors: ReturnType<typeof useTheme>;
+  tints: ReturnType<typeof useTints>;
+}) {
+  // Form states initialized directly from query data
+  const [title, setTitle] = useState(mentorDetail?.title ?? application?.full_name ?? '');
+  const [organization, setOrganization] = useState(mentorDetail?.organization_name ?? application?.organization ?? '');
+  const [designation, setDesignation] = useState(mentorDetail?.education ?? application?.designation ?? application?.education ?? '');
+  const [experienceYears, setExperienceYears] = useState(String(mentorDetail?.experience_years ?? application?.experience_years ?? 1));
+  const [sessionMode, setSessionMode] = useState<Mode>((mentorDetail?.opportunity_mode as Mode) ?? (application?.session_mode as Mode) ?? 'online');
+  const [location, setLocation] = useState(mentorDetail?.location ?? '');
+  const [summary, setSummary] = useState(mentorDetail?.summary ?? mentorDetail?.description ?? application?.bio ?? '');
+  const [linkedinUrl, setLinkedinUrl] = useState(mentorDetail?.source_url ?? application?.linkedin_url ?? '');
+  const [imageUrl, setImageUrl] = useState<string | null>(mentorDetail?.image_url ?? application?.avatar_url ?? null);
+  const [coverImageUrl, setCoverImageUrl] = useState<string | null>(mentorDetail?.cover_image_url ?? application?.cover_image_url ?? null);
 
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [isUploadingCover, setIsUploadingCover] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-
-  // Sync initial state
-  useEffect(() => {
-    if (mentorDetail) {
-      setTitle(mentorDetail.title ?? '');
-      setOrganization(mentorDetail.organization_name ?? '');
-      setDesignation(mentorDetail.education ?? '');
-      setExperienceYears(String(mentorDetail.experience_years ?? 1));
-      setSessionMode((mentorDetail.opportunity_mode as Mode) ?? 'online');
-      setLocation(mentorDetail.location ?? '');
-      setSummary(mentorDetail.summary ?? mentorDetail.description ?? '');
-      setLinkedinUrl(mentorDetail.source_url ?? '');
-      setImageUrl(mentorDetail.image_url ?? null);
-      setCoverImageUrl(mentorDetail.cover_image_url ?? null);
-    } else if (application) {
-      setTitle(application.full_name ?? '');
-      setOrganization(application.organization ?? '');
-      setDesignation(application.designation ?? application.education ?? '');
-      setExperienceYears(String(application.experience_years ?? 1));
-      setSessionMode((application.session_mode as Mode) ?? 'online');
-      setSummary(application.bio ?? '');
-      setLinkedinUrl(application.linkedin_url ?? '');
-      setImageUrl(application.avatar_url ?? null);
-      setCoverImageUrl(application.cover_image_url ?? null);
-    }
-  }, [mentorDetail, application]);
 
   // Pick & upload avatar
   const handlePickAvatar = async () => {
@@ -180,20 +199,6 @@ export default function EditMentorProfileScreen() {
       setIsSaving(false);
     }
   };
-
-  if (applicationQuery.isLoading || (opportunityId && detailQuery.isLoading)) {
-    return (
-      <>
-        <Stack.Screen options={{ headerShown: false }} />
-        <View style={[styles.root, { backgroundColor: colors.surfaceMuted }]}>
-          <Header goBack={goBack} colors={colors} />
-          <View style={styles.loadingCenter}>
-            <ActivityIndicator size="large" color={colors.primary} />
-          </View>
-        </View>
-      </>
-    );
-  }
 
   return (
     <>

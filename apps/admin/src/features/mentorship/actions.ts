@@ -22,7 +22,11 @@ async function requireStaff() {
 }
 
 /** Sync tag strings with public.tags and public.opportunity_tags. */
-async function syncOpportunityTags(admin: any, opportunityId: string, tags: string[]) {
+async function syncOpportunityTags(
+  admin: ReturnType<typeof createAdminClient>,
+  opportunityId: string,
+  tags: string[],
+) {
   const cleaned = Array.from(new Set(tags.map((t) => t.trim().toLowerCase()).filter(Boolean)));
   if (cleaned.length === 0) return;
 
@@ -42,7 +46,7 @@ async function syncOpportunityTags(admin: any, opportunityId: string, tags: stri
   if (tagRows && tagRows.length > 0) {
     await admin.from('opportunity_tags').delete().eq('opportunity_id', opportunityId);
     await admin.from('opportunity_tags').insert(
-      tagRows.map((row: any) => ({ opportunity_id: opportunityId, tag_id: row.id })),
+      tagRows.map((row: { id: string }) => ({ opportunity_id: opportunityId, tag_id: row.id })),
     );
   }
 }
@@ -376,7 +380,7 @@ export async function reviewMentorApplicationAction(formData: FormData) {
           .select('id');
         if (tagRows && tagRows.length > 0) {
           await admin.from('opportunity_tags').insert(
-            tagRows.map((row: any) => ({ opportunity_id: opportunityId, tag_id: row.id })),
+            tagRows.map((row: { id: string }) => ({ opportunity_id: opportunityId, tag_id: row.id })),
           );
         }
       }

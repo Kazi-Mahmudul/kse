@@ -1,5 +1,4 @@
 import Link from 'next/link';
-import { Suspense } from 'react';
 
 import { formatDate } from '@/lib/format';
 import { getMentors, getMentorshipKpis, PAGE_SIZE } from '@/features/mentorship/queries';

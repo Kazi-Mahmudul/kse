@@ -63,7 +63,6 @@ function StatusBanner({
 }) {
   const isApproved = application.status === 'approved';
   const isRejected = application.status === 'rejected';
-  const isPending = application.status === 'pending';
 
   const bannerColor = isApproved
     ? tints.emerald

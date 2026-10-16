@@ -15,7 +15,7 @@ import {
 import { ThemedText } from '@/components/themed-text';
 import { FontFamilies, Spacing } from '@/constants/theme';
 import { useMentors, useMyConversations } from '@/features/mentorship/queries';
-import type { MentorConversationSummary, MentorSummary } from '@/features/mentorship/types';
+import type { MentorSummary } from '@/features/mentorship/types';
 import { useSmartBack } from '@/hooks/use-smart-back';
 import { useTheme } from '@/hooks/use-theme';
 import { useTints } from '@/hooks/use-tints';

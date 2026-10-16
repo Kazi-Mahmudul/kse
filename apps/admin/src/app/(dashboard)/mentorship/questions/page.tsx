@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { formatDate, formatDateTime } from '@/lib/format';
+import { formatDateTime } from '@/lib/format';
 import { getMentorQuestions, PAGE_SIZE } from '@/features/mentorship/queries';
 import { answerQuestionAction, closeQuestionAction } from '@/features/mentorship/actions';
 

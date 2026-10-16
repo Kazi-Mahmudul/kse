@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { formatDate, formatDateTime } from '@/lib/format';
+import { formatDate } from '@/lib/format';
 import {
   getMentorDiscussions,
   getMentorsDropdown,
