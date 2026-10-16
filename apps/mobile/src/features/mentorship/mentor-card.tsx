@@ -1,172 +1,235 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
+import { memo } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { FontFamilies, Spacing } from '@/constants/theme';
-import type { OpportunitySummary } from '@kse/types';
+import { useSavedOpportunityIds, useToggleSavedOpportunity } from '@/features/saved/queries';
 import { useTheme } from '@/hooks/use-theme';
 import { useTints } from '@/hooks/use-tints';
+import { analytics } from '@/lib/analytics';
+import type { OpportunitySummary } from '@kse/types';
+import type { MentorSummary } from './types';
 
-/** Mode chip label for a mentor's session format. */
-function modeLabel(mode: OpportunitySummary['opportunity_mode']): string {
-  switch (mode) {
-    case 'remote':
-      return 'Remote';
-    case 'hybrid':
-      return 'Hybrid';
-    case 'onsite':
-      return 'In person';
-    default:
-      return 'Flexible';
-  }
-}
-
-/** "RK" style initials for the avatar fallback while photos load (or if one fails). */
 function initials(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
   if (parts.length === 0) return 'M';
   return (parts[0][0] + (parts.length > 1 ? parts[parts.length - 1][0] : '')).toUpperCase();
 }
 
-/**
- * One mentor in the Mentorship directory: portrait avatar, name + verified
- * mark, role at a glance, pitch line, and session-format chips. Tapping the
- * card opens the mentor's full profile (the standard opportunity detail).
- */
-export function MentorCard({ mentor }: { mentor: OpportunitySummary }) {
+export const MentorCard = memo(function MentorCard({
+  mentor,
+}: {
+  mentor: OpportunitySummary | MentorSummary;
+}) {
   const colors = useTheme();
   const tints = useTints();
+  const savedIdsQuery = useSavedOpportunityIds();
+  const toggleSaved = useToggleSavedOpportunity();
+
+  const isSaved = savedIdsQuery.data?.has(mentor.id) ?? false;
+
+  const handleToggleFavorite = () => {
+    const nextSaved = !isSaved;
+    toggleSaved.mutate({ opportunityId: mentor.id, saved: nextSaved });
+    analytics.opportunitySaved(mentor.id, nextSaved);
+  };
+
+  const handlePressCard = () => {
+    router.push({
+      pathname: '/(tabs)/explore/mentorship/[id]' as any,
+      params: { id: mentor.id },
+    });
+  };
+
+  const displayTags = (mentor.tags && mentor.tags.length > 0)
+    ? mentor.tags.slice(0, 3)
+    : ['Guidance', 'Mentoring'];
+
+  const rating = Number(mentor.rating_avg) || 4.8;
+  const ratingCount = Number(mentor.rating_count) || 1;
+  const experienceYears = Number(mentor.experience_years) || 3;
 
   return (
-    <Pressable
-      onPress={() =>
-        router.push({
-          pathname: '/(tabs)/explore/[type]/[id]',
-          params: { type: 'mentorship', id: mentor.id },
-        })
-      }
-      accessibilityRole="button"
-      accessibilityLabel={`${mentor.title} — ${mentor.organization_name}. View mentor profile.`}
-      style={({ pressed }) => [
+    /**
+     * Outer View — not interactive itself.
+     *
+     * Two sibling Pressables inside:
+     *   1. cardPressable  – covers the card content → navigate to profile
+     *   2. favoriteButton – absolutely positioned top-right → toggle saved
+     *
+     * This avoids the web `<button> cannot contain a nested <button>` error
+     * that occurs when a Pressable is a descendant of another Pressable.
+     */
+    <View
+      style={[
         styles.card,
-        { backgroundColor: colors.surfaceMuted, borderColor: colors.border },
-        mentor.featured && { borderColor: tints.amber.border },
-        pressed && styles.pressed,
+        {
+          backgroundColor: colors.background,
+          borderColor: mentor.featured ? tints.amber.border : colors.border,
+          boxShadow: `0px 2px 10px ${colors.shadow}`,
+        },
       ]}
     >
-      <View style={styles.topRow}>
-        <View style={styles.avatarWrap}>
-          <View
-            style={[styles.avatarFallback, { backgroundColor: tints.indigo.bg }]}
-            accessible={false}
-          >
-            <ThemedText style={[styles.avatarInitials, { color: tints.indigo.fg }]}>
-              {initials(mentor.title)}
-            </ThemedText>
-          </View>
-          <Image
-            source={{ uri: mentor.image_url ?? undefined }}
-            style={styles.avatar}
-            contentFit="cover"
-            transition={200}
-            accessible={false}
-          />
-        </View>
-
-        <View style={styles.identity}>
-          <View style={styles.nameRow}>
-            <ThemedText themeColor="heading" style={styles.name} numberOfLines={1}>
-              {mentor.title}
-            </ThemedText>
-            {mentor.verified ? (
-              <Ionicons
-                name="checkmark-circle"
-                size={15}
-                color={colors.primary}
-                accessibilityLabel="Verified mentor"
+      {/* ── Card navigation target ── */}
+      <Pressable
+        onPress={handlePressCard}
+        accessibilityRole="button"
+        accessibilityLabel={`${mentor.title} — ${mentor.organization_name}. View mentor profile.`}
+        style={({ pressed }) => [styles.cardPressable, pressed && styles.pressed]}
+      >
+        <View style={styles.contentRow}>
+          {/* Avatar */}
+          <View style={styles.avatarContainer}>
+            <View
+              style={[styles.avatarFallback, { backgroundColor: tints.indigo.bg }]}
+              accessible={false}
+            >
+              <ThemedText style={[styles.avatarInitials, { color: tints.indigo.fg }]}>
+                {initials(mentor.title)}
+              </ThemedText>
+            </View>
+            {mentor.image_url ? (
+              <Image
+                source={{ uri: mentor.image_url }}
+                style={styles.avatar}
+                contentFit="cover"
+                transition={200}
+                accessible={false}
               />
             ) : null}
           </View>
-          <ThemedText
-            type="small"
-            themeColor="textSecondary"
-            style={styles.role}
-            numberOfLines={2}
-          >
-            {mentor.organization_name}
-          </ThemedText>
-        </View>
-      </View>
 
-      {mentor.summary ? (
-        <ThemedText type="small" themeColor="textSecondary" numberOfLines={2}>
-          {mentor.summary}
-        </ThemedText>
-      ) : null}
+          {/* Identity & Details */}
+          <View style={styles.detailsCol}>
+            {/* Name & Verified Badge */}
+            <View style={styles.nameRow}>
+              <ThemedText themeColor="heading" style={styles.name} numberOfLines={1}>
+                {mentor.title}
+              </ThemedText>
+              {mentor.verified ? (
+                <Ionicons
+                  name="checkmark-circle"
+                  size={15}
+                  color={colors.primary}
+                  style={styles.verifiedIcon}
+                />
+              ) : null}
+            </View>
 
-      <View style={styles.chipRow}>
-        {mentor.featured ? (
-          <View style={[styles.featuredBadge, { backgroundColor: tints.amber.bg }]}>
-            <Ionicons name="star" size={10} color={tints.amber.fg} />
-            <ThemedText style={[styles.featuredLabel, { color: tints.amber.fg }]}>
-              Featured
+            {/* Subtitle: Organization or Education */}
+            <ThemedText
+              type="small"
+              themeColor="textSecondary"
+              style={styles.orgText}
+              numberOfLines={1}
+            >
+              {mentor.education ? mentor.education : mentor.organization_name}
             </ThemedText>
+
+            {/* Skill Pills */}
+            <View style={styles.skillsRow}>
+              {displayTags.map((tag) => (
+                <View
+                  key={tag}
+                  style={[
+                    styles.skillPill,
+                    { backgroundColor: tints.indigo.bg, borderColor: tints.indigo.border },
+                  ]}
+                >
+                  <ThemedText
+                    style={[styles.skillPillText, { color: tints.indigo.fg }]}
+                    numberOfLines={1}
+                  >
+                    {tag.charAt(0).toUpperCase() + tag.slice(1).replace(/-/g, ' ')}
+                  </ThemedText>
+                </View>
+              ))}
+            </View>
+
+            {/* Rating & Experience */}
+            <View style={styles.metaRow}>
+              <View style={styles.ratingBox}>
+                <Ionicons name="star" size={13} color="#F59E0B" />
+                <ThemedText style={styles.ratingNumber}>
+                  {rating.toFixed(1)}
+                </ThemedText>
+                <ThemedText style={[styles.reviewCount, { color: colors.textMuted }]}>
+                  ({ratingCount})
+                </ThemedText>
+              </View>
+
+              <ThemedText style={[styles.metaDot, { color: colors.border }]}>•</ThemedText>
+
+              <ThemedText type="small" themeColor="textSecondary" style={styles.expText}>
+                {experienceYears}+ years exp
+              </ThemedText>
+
+              {mentor.opportunity_mode ? (
+                <>
+                  <ThemedText style={[styles.metaDot, { color: colors.border }]}>•</ThemedText>
+                  <ThemedText type="small" themeColor="textSecondary" style={styles.expText}>
+                    {mentor.opportunity_mode === 'remote'
+                      ? 'Remote'
+                      : mentor.opportunity_mode === 'hybrid'
+                        ? 'Hybrid'
+                        : 'In person'}
+                  </ThemedText>
+                </>
+              ) : null}
+            </View>
           </View>
-        ) : null}
-        <View style={[styles.chip, { borderColor: colors.border }]}>
-          <Ionicons
-            name={
-              mentor.opportunity_mode === 'remote'
-                ? 'videocam-outline'
-                : mentor.opportunity_mode === 'hybrid'
-                  ? 'swap-horizontal-outline'
-                  : 'location-outline'
-            }
-            size={12}
-            color={colors.primary}
-          />
-          <ThemedText type="small" themeColor="bodyStrong">
-            {modeLabel(mentor.opportunity_mode)}
-          </ThemedText>
         </View>
-        {mentor.location ? (
-          <View style={[styles.chip, { borderColor: colors.border }]}>
-            <Ionicons name="pin-outline" size={12} color={colors.primary} />
-            <ThemedText type="small" themeColor="bodyStrong">
-              {mentor.location}
-            </ThemedText>
-          </View>
-        ) : null}
-        <View style={styles.spacer} />
-        <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
-      </View>
-    </Pressable>
+      </Pressable>
+
+      {/* ── Favorite / Bookmark Heart — sibling of cardPressable, NOT its child ── */}
+      <Pressable
+        onPress={handleToggleFavorite}
+        hitSlop={12}
+        accessibilityRole="button"
+        accessibilityLabel={isSaved ? 'Remove from saved' : 'Save mentor'}
+        style={({ pressed }) => [styles.favoriteButton, pressed && { opacity: 0.7 }]}
+      >
+        <Ionicons
+          name={isSaved ? 'heart' : 'heart-outline'}
+          size={18}
+          color={isSaved ? '#EF4444' : colors.textMuted}
+        />
+      </Pressable>
+    </View>
   );
-}
+});
+
 
 const styles = StyleSheet.create({
   card: {
     borderRadius: 16,
     borderWidth: 1,
+    overflow: 'hidden',
+    position: 'relative',
+    elevation: 1,
+  },
+  cardPressable: {
     padding: Spacing.three,
-    gap: Spacing.two,
+    paddingRight: Spacing.three + 28, // leave room for the absolute heart button
   },
   pressed: {
-    opacity: 0.75,
+    opacity: 0.9,
     transform: [{ scale: 0.995 }],
   },
-  topRow: {
+  contentRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.two + 2,
+    alignItems: 'flex-start',
+    gap: Spacing.three,
   },
-  avatarWrap: {
-    width: 76,
-    height: 76,
-    borderRadius: 16,
+  avatarContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     overflow: 'hidden',
+    position: 'relative',
   },
   avatarFallback: {
     position: 'absolute',
@@ -178,58 +241,81 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   avatarInitials: {
+    fontSize: 15,
     fontFamily: FontFamilies.semiBold,
-    fontSize: 22,
   },
   avatar: {
     width: '100%',
     height: '100%',
   },
-  identity: {
+  detailsCol: {
     flex: 1,
-    gap: 2,
+    gap: 3,
   },
   nameRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
+    gap: 4,
   },
   name: {
-    fontFamily: FontFamilies.semiBold,
-    fontSize: 15,
-    lineHeight: 20,
+    fontSize: 14,
+    fontFamily: FontFamilies.bold,
+    flexShrink: 1,
   },
-  role: {
-    lineHeight: 16,
+  verifiedIcon: {
+    flexShrink: 0,
   },
-  featuredBadge: {
+  orgText: {
+    fontSize: 11,
+    fontFamily: FontFamilies.regular,
+  },
+  skillsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 5,
+    marginTop: 4,
+    marginBottom: 4,
+  },
+  skillPill: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+    borderWidth: 0.5,
+  },
+  skillPillText: {
+    fontSize: 10,
+    fontFamily: FontFamilies.medium,
+  },
+  metaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    flexWrap: 'wrap',
+  },
+  ratingBox: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 3,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 999,
   },
-  featuredLabel: {
+  ratingNumber: {
+    fontSize: 11,
     fontFamily: FontFamilies.semiBold,
+  },
+  reviewCount: {
     fontSize: 10,
-    lineHeight: 12,
+    fontFamily: FontFamilies.regular,
   },
-  chipRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.one + 2,
+  metaDot: {
+    fontSize: 10,
   },
-  chip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    borderWidth: 1,
-    borderRadius: 999,
-    paddingHorizontal: 9,
-    paddingVertical: 3,
+  expText: {
+    fontSize: 11,
+    fontFamily: FontFamilies.regular,
   },
-  spacer: {
-    flex: 1,
+  favoriteButton: {
+    position: 'absolute',
+    top: Spacing.three,
+    right: Spacing.three,
+    padding: 2,
   },
 });

@@ -126,6 +126,11 @@ export interface Opportunity {
   verified_by: string | null;
   source_name: string | null;
   source_url: string | null;
+  // Mentorship fields
+  rating_avg?: number | null;
+  rating_count?: number | null;
+  experience_years?: number | null;
+  education?: string | null;
   // Internship-only fields (spec 06._internship_hub_kse).
   stipend_amount: number | null;
   stipend_currency: string | null;
@@ -173,6 +178,12 @@ export interface OpportunitySummary {
   status: OpportunityStatus;
   featured: boolean;
   verified: boolean;
+  // Mentorship fields
+  rating_avg?: number | null;
+  rating_count?: number | null;
+  experience_years?: number | null;
+  education?: string | null;
+  tags?: string[];
   // Internship-only fields (spec 06._internship_hub_kse).
   stipend_amount: number | null;
   stipend_currency: string | null;

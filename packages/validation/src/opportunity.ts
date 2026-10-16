@@ -343,3 +343,16 @@ export const opportunityFormSchema = z.object({
 });
 
 export type OpportunityFormValues = z.infer<typeof opportunityFormSchema>;
+
+export const mentorSessionRequestSchema = z.object({
+  topic: z.string().trim().min(2, 'Please enter a topic').max(200, 'Topic too long'),
+  message: z.string().trim().min(5, 'Please tell the mentor what you need help with').max(2000, 'Message too long'),
+  preferred_date: z.string().optional(),
+  preferred_time: z.string().trim().max(100).optional(),
+  session_mode: z.enum(['online', 'offline']),
+  contact_email: z.string().email('Please enter a valid email').optional().or(z.literal('')),
+  contact_phone: z.string().trim().max(20).optional().or(z.literal('')),
+  request_type: z.enum(['session', 'message']),
+});
+
+export type MentorSessionRequestValues = z.infer<typeof mentorSessionRequestSchema>;

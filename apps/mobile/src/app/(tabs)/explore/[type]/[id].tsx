@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as WebBrowser from 'expo-web-browser';
 import { Image } from 'expo-image';
-import { useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
@@ -56,6 +56,16 @@ export default function OpportunityDetailScreen() {
       analytics.opportunityViewed(trackedId, query.data.type);
     }
   }, [trackedId, query.data?.type]);
+
+  // Redirect to dedicated mentor profile if type is mentorship
+  useEffect(() => {
+    if (id && (type === 'mentorship' || query.data?.type === 'mentorship')) {
+      router.replace({
+        pathname: '/(tabs)/explore/mentorship/[id]' as any,
+        params: { id },
+      });
+    }
+  }, [id, type, query.data?.type]);
 
   if (query.isPending) {
     return (
