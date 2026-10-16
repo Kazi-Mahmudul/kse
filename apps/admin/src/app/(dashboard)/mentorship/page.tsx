@@ -95,10 +95,11 @@ export default async function MentorshipPage({
       </div>
 
       {/* ── KPI tiles ─────────────────────────────────────────────────────── */}
-      <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7">
+      <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-8">
         {[
           { label: 'Total mentors', value: kpis.totalMentors, href: '/mentorship', tone: '' },
           { label: 'Published', value: kpis.publishedMentors, href: '/mentorship?status=published', tone: 'text-emerald-700' },
+          { label: 'Applications', value: kpis.pendingApplications, href: '/mentorship/applications', tone: kpis.pendingApplications > 0 ? 'text-amber-600 font-bold' : '' },
           { label: 'Pending sessions', value: kpis.pendingSessionRequests, href: '/mentorship/sessions?status=pending', tone: kpis.pendingSessionRequests > 0 ? 'text-amber-600' : '' },
           { label: 'Confirmed sessions', value: kpis.confirmedSessions, href: '/mentorship/sessions?status=confirmed', tone: '' },
           { label: 'Open questions', value: kpis.openQuestions, href: '/mentorship/questions?status=pending', tone: kpis.openQuestions > 0 ? 'text-amber-600' : '' },
@@ -122,6 +123,7 @@ export default async function MentorshipPage({
       <div className="mt-6 flex gap-1 border-b border-zinc-200">
         {[
           { href: '/mentorship', label: 'Mentors' },
+          { href: '/mentorship/applications', label: `Applications ${kpis.pendingApplications > 0 ? `(${kpis.pendingApplications} new)` : ''}` },
           { href: '/mentorship/sessions', label: `Sessions ${kpis.pendingSessionRequests > 0 ? `(${kpis.pendingSessionRequests} pending)` : ''}` },
           { href: '/mentorship/questions', label: `Questions ${kpis.openQuestions > 0 ? `(${kpis.openQuestions} open)` : ''}` },
           { href: '/mentorship/discussions', label: 'Discussions' },

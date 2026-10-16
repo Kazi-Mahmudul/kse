@@ -69,6 +69,7 @@ export interface AdminDiscussionRow {
 export interface MentorshipKpis {
   totalMentors: number;
   publishedMentors: number;
+  pendingApplications: number;
   pendingSessionRequests: number;
   confirmedSessions: number;
   openQuestions: number;
@@ -86,6 +87,7 @@ export async function getMentorshipKpis(): Promise<MentorshipKpis> {
   const [
     totalRes,
     publishedRes,
+    pendingAppsRes,
     pendingSessionsRes,
     confirmedSessionsRes,
     openQuestionsRes,
@@ -94,6 +96,7 @@ export async function getMentorshipKpis(): Promise<MentorshipKpis> {
   ] = await Promise.all([
     admin.from('opportunities').select('id', { count: 'exact', head: true }).eq('type', 'mentorship'),
     admin.from('opportunities').select('id', { count: 'exact', head: true }).eq('type', 'mentorship').eq('status', 'published'),
+    admin.from('mentor_applications').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
     admin.from('mentorship_requests').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
     admin.from('mentorship_requests').select('id', { count: 'exact', head: true }).in('status', ['accepted', 'confirmed']),
     admin.from('mentor_questions').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
@@ -104,6 +107,7 @@ export async function getMentorshipKpis(): Promise<MentorshipKpis> {
   return {
     totalMentors: totalRes.count ?? 0,
     publishedMentors: publishedRes.count ?? 0,
+    pendingApplications: pendingAppsRes.count ?? 0,
     pendingSessionRequests: pendingSessionsRes.count ?? 0,
     confirmedSessions: confirmedSessionsRes.count ?? 0,
     openQuestions: openQuestionsRes.count ?? 0,
@@ -459,3 +463,48 @@ export async function getMentorshipCategories(): Promise<
 }
 
 export { PAGE_SIZE };
+
+// ─── Mentor Applications ───────────────────────────────────────────────────────
+
+export interface AdminMentorApplicationRow {
+  id: string;
+  user_id: string;
+  full_name: string;
+  email: string;
+  phone: string | null;
+  organization: string;
+  designation: string;
+  experience_years: number;
+  education: string;
+  expertise_areas: string[];
+  bio: string;
+  linkedin_url: string | null;
+  session_mode: string;
+  status: 'pending' | 'approved' | 'rejected';
+  admin_note: string | null;
+  opportunity_id: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export async function getMentorApplications(opts: {
+  status?: string;
+  page?: number;
+}): Promise<{ rows: AdminMentorApplicationRow[]; total: number }> {
+  const admin = createAdminClient();
+  const page = opts.page ?? 1;
+  const from = (page - 1) * PAGE_SIZE;
+
+  let query = admin
+    .from('mentor_applications')
+    .select('*', { count: 'exact' })
+    .order('created_at', { ascending: false })
+    .range(from, from + PAGE_SIZE - 1);
+
+  if (opts.status && opts.status !== 'all') {
+    query = query.eq('status', opts.status);
+  }
+
+  const { data, count } = await query;
+  return { rows: (data ?? []) as AdminMentorApplicationRow[], total: count ?? 0 };
+}

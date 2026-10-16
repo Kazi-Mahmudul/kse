@@ -4,6 +4,8 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { FontFamilies, Spacing } from '@/constants/theme';
+import { useMyMentorApplication } from '@/features/mentorship/queries';
+import type { MentorApplication } from '@/features/mentorship/types';
 import { useMyResumes } from '@/features/portfolio/queries';
 import { useMySkillIds } from '@/features/profile/queries';
 import { useMyApplications } from '@/features/scholarships/queries';
@@ -14,7 +16,7 @@ import { useTints } from '@/hooks/use-tints';
 import type { IconName } from '@/types/icon';
 import { formatDate } from '@/lib/dates';
 
-type RowGroup = 'quick' | 'stuff' | 'tutor';
+type RowGroup = 'quick' | 'stuff' | 'tutor' | 'mentor';
 
 interface RowSpec {
   key: string;
@@ -27,6 +29,7 @@ interface RowSpec {
     | '/(tabs)/saved'
     | '/(tabs)/portfolio'
     | '/(tabs)/profile/become-tutor'
+    | '/(tabs)/profile/become-mentor'
     | '/(tabs)/profile/scholarships';
   group: RowGroup;
 }
@@ -35,6 +38,7 @@ const GROUP_LABELS: Record<RowGroup, string> = {
   quick: 'Quick actions',
   stuff: 'My stuff',
   tutor: 'Become a tutor',
+  mentor: 'Become a mentor',
 };
 
 /**
@@ -99,9 +103,20 @@ export function ProfileMenuList() {
   const savedQuery = useSavedOpportunityIds();
   const tutorApplicationQuery = useMyTutorApplication();
   const applicationsQuery = useMyApplications();
+  const mentorApplicationQuery = useMyMentorApplication();
 
   const skillCount = skillIdsQuery.data?.length ?? 0;
   const skillSubtitle = `${skillCount} ${skillCount === 1 ? 'Skill' : 'Skills'} Added`;
+
+  const mentorApp = mentorApplicationQuery.data as MentorApplication | null | undefined;
+  const mentorSubtitle =
+    mentorApp?.status === 'approved'
+      ? 'Verified mentor — open portal'
+      : mentorApp?.status === 'pending'
+        ? 'Application under review'
+        : mentorApp?.status === 'rejected'
+          ? 'Not approved — apply again'
+          : 'Apply & get listed';
 
   const rows: RowSpec[] = [
     {
@@ -149,14 +164,24 @@ export function ProfileMenuList() {
       href: '/(tabs)/profile/become-tutor',
       group: 'tutor',
     },
+    {
+      key: 'mentor',
+      icon: 'ribbon-outline',
+      tint: 'indigo',
+      title: 'Become a Mentor',
+      subtitle: mentorSubtitle,
+      href: '/(tabs)/profile/become-mentor',
+      group: 'mentor',
+    },
   ];
 
   // Group rows into clusters for rendering with one kicker per group.
-  const groups: RowGroup[] = ['quick', 'stuff', 'tutor'];
+  const groups: RowGroup[] = ['quick', 'stuff', 'tutor', 'mentor'];
   const groupedRows: Record<RowGroup, RowSpec[]> = {
     quick: rows.filter((r) => r.group === 'quick'),
     stuff: rows.filter((r) => r.group === 'stuff'),
     tutor: rows.filter((r) => r.group === 'tutor'),
+    mentor: rows.filter((r) => r.group === 'mentor'),
   };
 
   return (
@@ -178,7 +203,7 @@ export function ProfileMenuList() {
                 return (
                   <Pressable
                     key={row.key}
-                    onPress={() => router.push(row.href)}
+                    onPress={() => router.push(row.href as any)}
                     accessibilityRole="button"
                     accessibilityLabel={`${row.title}, ${row.subtitle}`}
                     style={({ pressed }) => [

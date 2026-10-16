@@ -122,16 +122,33 @@ export default function MentorProfileScreen() {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
         >
-          {/* BEGIN: HeroHeader */}
-          <LinearGradient
-            colors={[colors.bannerFrom, colors.bannerVia, colors.bannerTo]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.heroCover}
-          >
-            {/* Background Decorative Circles */}
-            <View style={styles.heroGlowCircle} />
-            <View style={styles.heroGlowCircleSmall} />
+          {/* BEGIN: HeroHeader with Cover Photo */}
+          <View style={styles.heroCover}>
+            {mentor.cover_image_url ? (
+              <Image
+                source={{ uri: mentor.cover_image_url }}
+                style={StyleSheet.absoluteFill}
+                contentFit="cover"
+                transition={200}
+              />
+            ) : (
+              <LinearGradient
+                colors={[colors.bannerFrom, colors.bannerVia, colors.bannerTo]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={StyleSheet.absoluteFill}
+              >
+                {/* Background Decorative Circles */}
+                <View style={styles.heroGlowCircle} />
+                <View style={styles.heroGlowCircleSmall} />
+              </LinearGradient>
+            )}
+
+            {/* Gradient shadow overlay for crystal-clear readability of buttons and contrast */}
+            <LinearGradient
+              colors={['rgba(0,0,0,0.45)', 'rgba(0,0,0,0.05)', 'rgba(0,0,0,0.55)']}
+              style={StyleSheet.absoluteFill}
+            />
 
             {/* Top Navigation Controls */}
             <View style={styles.topNavControls}>
@@ -140,7 +157,7 @@ export default function MentorProfileScreen() {
                 hitSlop={10}
                 accessibilityRole="button"
                 accessibilityLabel="Go back"
-                style={[styles.navCircleBtn, { backgroundColor: 'rgba(0,0,0,0.25)' }]}
+                style={[styles.navCircleBtn, { backgroundColor: 'rgba(0,0,0,0.35)' }]}
               >
                 <Ionicons name="chevron-back" size={20} color="#ffffff" />
               </Pressable>
@@ -150,7 +167,7 @@ export default function MentorProfileScreen() {
                 hitSlop={10}
                 accessibilityRole="button"
                 accessibilityLabel={isSaved ? 'Remove from saved' : 'Save mentor'}
-                style={[styles.navCircleBtn, { backgroundColor: 'rgba(0,0,0,0.25)' }]}
+                style={[styles.navCircleBtn, { backgroundColor: 'rgba(0,0,0,0.35)' }]}
               >
                 <Ionicons
                   name={isSaved ? 'heart' : 'heart-outline'}
@@ -167,7 +184,7 @@ export default function MentorProfileScreen() {
                 <ThemedText style={styles.verifiedText}>Verified</ThemedText>
               </View>
             ) : null}
-          </LinearGradient>
+          </View>
           {/* END: HeroHeader */}
 
           {/* BEGIN: AvatarSection */}
@@ -478,7 +495,7 @@ const styles = StyleSheet.create({
     paddingBottom: 120,
   },
   heroCover: {
-    height: 155,
+    height: 165,
     width: '100%',
     position: 'relative',
     overflow: 'hidden',

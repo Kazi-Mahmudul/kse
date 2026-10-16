@@ -79,6 +79,7 @@ export async function createMentorAction(formData: FormData) {
   const source_url = (formData.get('source_url') as string | null)?.trim() || null;
   const source_name = (formData.get('source_name') as string | null)?.trim() || 'LinkedIn';
   const image_url = (formData.get('image_url') as string | null)?.trim() || null;
+  const cover_image_url = (formData.get('cover_image_url') as string | null)?.trim() || null;
   const status = (formData.get('status') as string | null) || 'published';
   const featured = formData.get('featured') === 'on' || formData.get('featured') === 'true';
   const verified = formData.get('verified') === 'on' || formData.get('verified') === 'true';
@@ -101,6 +102,7 @@ export async function createMentorAction(formData: FormData) {
     source_name,
     source_url,
     image_url,
+    cover_image_url,
     status,
     published_at,
     featured,
@@ -309,4 +311,111 @@ export async function deleteDiscussionAction(formData: FormData) {
   if (error) throw new Error(error.message);
 
   revalidatePath('/mentorship/discussions');
+}
+
+// ─── Mentor Applications ───────────────────────────────────────────────────────
+
+/**
+ * Approve or reject a mentor application.
+ * On approval: creates/updates an opportunity record for the mentor so they
+ * can be listed in the app, then links the application to that opportunity.
+ */
+export async function reviewMentorApplicationAction(formData: FormData) {
+  await requireStaff();
+  const admin = createAdminClient();
+
+  const applicationId = String(formData.get('application_id'));
+  const decision = String(formData.get('decision')) as 'approved' | 'rejected';
+  const adminNote = (formData.get('admin_note') as string | null)?.trim() || null;
+
+  if (!['approved', 'rejected'].includes(decision)) {
+    throw new Error('Invalid decision.');
+  }
+
+  // Fetch the application
+  const { data: application, error: appErr } = await admin
+    .from('mentor_applications')
+    .select('*')
+    .eq('id', applicationId)
+    .single();
+
+  if (appErr || !application) throw new Error('Application not found.');
+
+  let opportunityId: string | null = application.opportunity_id;
+
+  if (decision === 'approved') {
+    // If no opportunity exists yet, create one
+    if (!opportunityId) {
+      const { data: opp, error: oppErr } = await admin
+        .from('opportunities')
+        .insert({
+          title: application.full_name,
+          organization_name: application.organization,
+          type: 'mentorship',
+          status: 'published',
+          summary: application.bio.slice(0, 300),
+          description: application.bio,
+          education: `${application.designation} · ${application.organization}`,
+          experience_years: application.experience_years,
+          opportunity_mode: application.session_mode,
+          verified: true,
+          featured: false,
+        })
+        .select('id')
+        .single();
+
+      if (oppErr) throw new Error(`Failed to create mentor profile: ${oppErr.message}`);
+      opportunityId = opp.id;
+
+      // Sync expertise tags
+      if (application.expertise_areas?.length > 0) {
+        const tags = application.expertise_areas.map((t: string) => t.trim().toLowerCase()).filter(Boolean);
+        const { data: tagRows } = await admin
+          .from('tags')
+          .upsert(tags.map((name: string) => ({ name })), { onConflict: 'name' })
+          .select('id');
+        if (tagRows && tagRows.length > 0) {
+          await admin.from('opportunity_tags').insert(
+            tagRows.map((row: any) => ({ opportunity_id: opportunityId, tag_id: row.id })),
+          );
+        }
+      }
+    }
+
+    // Notify the applicant
+    await admin.from('notifications').insert({
+      user_id: application.user_id,
+      type: 'mentor_application_status',
+      title: 'Mentor Application Approved! 🎉',
+      body: 'Congratulations! Your mentor application has been approved. You are now listed as a verified mentor.',
+      data: { application_id: applicationId, opportunity_id: opportunityId },
+    });
+  } else {
+    // Rejected — notify applicant
+    await admin.from('notifications').insert({
+      user_id: application.user_id,
+      type: 'mentor_application_status',
+      title: 'Mentor Application Update',
+      body: adminNote
+        ? `Your mentor application was not approved. Admin note: "${adminNote}"`
+        : 'Your mentor application was not approved at this time. You may re-apply.',
+      data: { application_id: applicationId },
+    });
+  }
+
+  // Update the application record
+  const { error: updateErr } = await admin
+    .from('mentor_applications')
+    .update({
+      status: decision,
+      admin_note: adminNote,
+      opportunity_id: opportunityId,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', applicationId);
+
+  if (updateErr) throw new Error(updateErr.message);
+
+  revalidatePath('/mentorship/applications');
+  revalidatePath('/mentorship');
 }

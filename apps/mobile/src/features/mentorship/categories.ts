@@ -57,36 +57,6 @@ export const MENTOR_CATEGORIES: MentorCategory[] = [
     tags: ['tuition', 'academic', 'english', 'ielts'],
     serviceRoute: '/(tabs)/explore/tuition',
   },
-  {
-    id: 'mess-student-life',
-    name: 'Mess & Student Life',
-    slug: 'mess',
-    description: 'Mess, accommodation, daily life support',
-    icon: 'home-outline',
-    tint: 'teal',
-    tags: ['mess', 'student-life', 'career'],
-    serviceRoute: '/mess',
-  },
-  {
-    id: 'budget-shopping',
-    name: 'Budget Shopping',
-    slug: 'shopping',
-    description: 'Best deals, where to buy, discounts',
-    icon: 'cart-outline',
-    tint: 'amber',
-    tags: ['shopping', 'deals', 'freelancing'],
-    serviceRoute: '/hub',
-  },
-  {
-    id: 'more-services',
-    name: 'More Services',
-    slug: 'more',
-    description: 'Explore all student services and hubs',
-    icon: 'grid-outline',
-    tint: 'cyan',
-    tags: [],
-    serviceRoute: '/(tabs)/explore',
-  },
 ];
 
 export function findMentorCategory(slugOrId: string): MentorCategory | undefined {

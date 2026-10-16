@@ -51,6 +51,7 @@ const SUGGESTED_TAGS = [
 
 export function MentorForm({ categories }: { categories: CategoryOption[] }) {
   const [imageUrl, setImageUrl] = useState('');
+  const [coverImageUrl, setCoverImageUrl] = useState('');
   const [tags, setTags] = useState<string[]>([
     'career',
     'interview-prep',
@@ -178,6 +179,58 @@ export function MentorForm({ categories }: { categories: CategoryOption[] }) {
                   key={p.label}
                   type="button"
                   onClick={() => setImageUrl(p.url)}
+                  className="rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-0.5 text-[11px] text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 transition"
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Cover Photo URL & Presets */}
+          <div className="sm:col-span-2 space-y-2 pt-2 border-t border-zinc-100">
+            <label className="block text-xs font-medium text-zinc-700">
+              Cover Photo URL (Banner)
+            </label>
+            <div className="flex items-center gap-3">
+              <div className="h-12 w-20 rounded-lg border border-zinc-200 bg-zinc-100 flex items-center justify-center overflow-hidden shrink-0">
+                {coverImageUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={coverImageUrl}
+                    alt="Cover Preview"
+                    className="h-full w-full object-cover"
+                    onError={(e) => {
+                      (e.target as HTMLElement).style.display = 'none';
+                    }}
+                  />
+                ) : (
+                  <span className="text-[11px] text-zinc-400">Cover</span>
+                )}
+              </div>
+              <input
+                type="url"
+                name="cover_image_url"
+                value={coverImageUrl}
+                onChange={(e) => setCoverImageUrl(e.target.value)}
+                placeholder="https://... cover image URL (optional)"
+                className="flex-1 rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600 outline-none"
+              />
+            </div>
+
+            {/* Quick cover presets */}
+            <div className="flex flex-wrap items-center gap-2 pt-1">
+              <span className="text-[11px] text-zinc-400">Cover presets:</span>
+              {[
+                { label: 'Modern Office', url: 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=1200&q=80' },
+                { label: 'Tech Workspace', url: 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=1200&q=80' },
+                { label: 'Campus & Library', url: 'https://images.unsplash.com/photo-1524178232363-1fb2b075b655?w=1200&q=80' },
+                { label: 'Data & Charts', url: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=1200&q=80' },
+              ].map((p) => (
+                <button
+                  key={p.label}
+                  type="button"
+                  onClick={() => setCoverImageUrl(p.url)}
                   className="rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-0.5 text-[11px] text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 transition"
                 >
                   {p.label}

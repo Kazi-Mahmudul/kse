@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
+import * as ImagePicker from 'expo-image-picker';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import {
@@ -16,12 +17,13 @@ import {
 import { ThemedText } from '@/components/themed-text';
 import { FontFamilies, Spacing } from '@/constants/theme';
 import { useMentor, useMentorMessages, useSendMentorMessage } from '@/features/mentorship/queries';
+import { uploadChatAttachment } from '@/features/mentorship/service';
 import type { MentorMessage } from '@/features/mentorship/types';
 import { useSmartBack } from '@/hooks/use-smart-back';
 import { useTheme } from '@/hooks/use-theme';
 import { useTints } from '@/hooks/use-tints';
-import { useAuthStore } from '@/store/auth-store';
 import { supabase } from '@/lib/supabase';
+import { useAuthStore } from '@/store/auth-store';
 
 function initials(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
@@ -38,18 +40,10 @@ function formatTime(iso: string): string {
   return `${h}:${m} ${ampm}`;
 }
 
-/**
- * Screen 7: Chat with Mentor (reference `7._chat_with_mentor`)
- *
- * - Header: back, mentor avatar + name + "Online · Usually replies in minutes"
- * - Message list: left-aligned mentor messages (grey bubble), right-aligned user messages (primary)
- * - Supabase Realtime subscription for live updates
- * - Bottom: attachment icon, text input, send button
- */
 export default function MentorChatScreen() {
   const colors = useTheme();
   const tints = useTints();
-  const goBack = useSmartBack('/(tabs)/explore/mentorship');
+  const goBack = useSmartBack('/(tabs)/explore/mentorship/chat');
   const { id } = useLocalSearchParams<{ id: string }>();
   const sessionUser = useAuthStore((s) => s.session?.user);
 
@@ -60,6 +54,11 @@ export default function MentorChatScreen() {
   const sendMutation = useSendMentorMessage();
 
   const [input, setInput] = useState('');
+  const [pendingAttachment, setPendingAttachment] = useState<{
+    uri: string;
+    mimeType: string;
+  } | null>(null);
+  const [uploadingAttachment, setUploadingAttachment] = useState(false);
   const listRef = useRef<FlatList>(null);
 
   // Scroll to bottom on new messages
@@ -94,28 +93,71 @@ export default function MentorChatScreen() {
     };
   }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const handlePickImage = async () => {
+    try {
+      const res = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        quality: 0.8,
+      });
+      if (!res.canceled && res.assets && res.assets[0]) {
+        setPendingAttachment({
+          uri: res.assets[0].uri,
+          mimeType: res.assets[0].mimeType || 'image/jpeg',
+        });
+      }
+    } catch (err) {
+      console.warn('Image picker error', err);
+    }
+  };
+
   const handleSend = async () => {
     const text = input.trim();
-    if (!text || !id || sendMutation.isPending) return;
-    setInput('');
-    await sendMutation.mutateAsync({ opportunityId: id, content: text });
+    if ((!text && !pendingAttachment) || !id || sendMutation.isPending || uploadingAttachment) return;
+
+    try {
+      let attachmentUrl: string | null = null;
+      if (pendingAttachment) {
+        setUploadingAttachment(true);
+        attachmentUrl = await uploadChatAttachment(
+          pendingAttachment.uri,
+          pendingAttachment.mimeType,
+        );
+      }
+
+      setInput('');
+      setPendingAttachment(null);
+
+      await sendMutation.mutateAsync({
+        opportunityId: id,
+        content: text,
+        attachmentUrl,
+        attachmentType: attachmentUrl ? 'image' : null,
+      });
+    } catch (err) {
+      console.error('Error sending message:', err);
+    } finally {
+      setUploadingAttachment(false);
+    }
   };
 
   const messages: MentorMessage[] = messagesQuery.data ?? [];
 
-  // ── Introductory greeting from the mentor (static, displayed above real messages) ──
-  const greeting = mentor
+  // ── Introductory greeting from the mentor (static) ──
+  const greeting: MentorMessage | null = mentor
     ? {
         id: '__greeting__',
-        content: `Hello! 👋\nHow can I help you today?`,
+        opportunity_id: mentor.id,
+        content: `Hello! 👋\nHow can I help you today? Feel free to ask any question or share what you'd like to discuss.`,
         sender_id: '__mentor__',
+        is_read: true,
         created_at: new Date(mentor.published_at ?? '2025-01-01').toISOString(),
       }
     : null;
 
-  const allItems = greeting
-    ? [greeting, ...messages]
-    : messages;
+  const allItems = greeting ? [greeting, ...messages] : messages;
+  const isSendDisabled =
+    (!input.trim() && !pendingAttachment) || sendMutation.isPending || uploadingAttachment;
 
   return (
     <>
@@ -160,11 +202,7 @@ export default function MentorChatScreen() {
           </View>
 
           <View style={styles.headerMeta}>
-            <ThemedText
-              themeColor="heading"
-              style={styles.headerName}
-              numberOfLines={1}
-            >
+            <ThemedText themeColor="heading" style={styles.headerName} numberOfLines={1}>
               {mentor?.title ?? 'Mentor'}
             </ThemedText>
             <ThemedText themeColor="textSecondary" style={styles.headerStatus}>
@@ -172,10 +210,6 @@ export default function MentorChatScreen() {
               Online · Usually replies in minutes
             </ThemedText>
           </View>
-
-          <Pressable hitSlop={10} style={styles.moreBtn}>
-            <Ionicons name="ellipsis-vertical" size={20} color={colors.textMuted} />
-          </Pressable>
         </View>
 
         {/* ── Messages ────────────────────────────────────────────────────── */}
@@ -192,8 +226,7 @@ export default function MentorChatScreen() {
             showsVerticalScrollIndicator={false}
             renderItem={({ item }) => {
               const isOwnMessage =
-                item.sender_id !== '__mentor__' &&
-                item.sender_id === sessionUser?.id;
+                item.sender_id !== '__mentor__' && item.sender_id === sessionUser?.id;
               const isMentorGreeting = item.sender_id === '__mentor__';
 
               if (isOwnMessage) {
@@ -201,9 +234,18 @@ export default function MentorChatScreen() {
                 return (
                   <View style={styles.userBubbleRow}>
                     <View style={[styles.userBubble, { backgroundColor: colors.primary }]}>
-                      <ThemedText style={styles.userBubbleText}>
-                        {item.content}
-                      </ThemedText>
+                      {item.attachment_url && (
+                        <View style={styles.bubbleImageWrap}>
+                          <Image
+                            source={{ uri: item.attachment_url }}
+                            style={styles.bubbleImage}
+                            contentFit="cover"
+                          />
+                        </View>
+                      )}
+                      {item.content ? (
+                        <ThemedText style={styles.userBubbleText}>{item.content}</ThemedText>
+                      ) : null}
                     </View>
                     <ThemedText
                       themeColor="textSecondary"
@@ -233,9 +275,20 @@ export default function MentorChatScreen() {
                         { backgroundColor: colors.background, borderColor: colors.border },
                       ]}
                     >
-                      <ThemedText themeColor="text" style={styles.mentorBubbleText}>
-                        {item.content}
-                      </ThemedText>
+                      {item.attachment_url && (
+                        <View style={styles.bubbleImageWrap}>
+                          <Image
+                            source={{ uri: item.attachment_url }}
+                            style={styles.bubbleImage}
+                            contentFit="cover"
+                          />
+                        </View>
+                      )}
+                      {item.content ? (
+                        <ThemedText themeColor="text" style={styles.mentorBubbleText}>
+                          {item.content}
+                        </ThemedText>
+                      ) : null}
                     </View>
                     <ThemedText themeColor="textSecondary" style={styles.timestamp}>
                       {formatTime(item.created_at)}
@@ -245,6 +298,37 @@ export default function MentorChatScreen() {
               );
             }}
           />
+        )}
+
+        {/* ── Pending Attachment Preview ──────────────────────────────────── */}
+        {pendingAttachment && (
+          <View
+            style={[
+              styles.attachmentPreviewStrip,
+              { backgroundColor: colors.background, borderTopColor: colors.border },
+            ]}
+          >
+            <Image
+              source={{ uri: pendingAttachment.uri }}
+              style={styles.previewThumb}
+              contentFit="cover"
+            />
+            <View style={styles.previewInfo}>
+              <ThemedText themeColor="heading" style={styles.previewTitle} numberOfLines={1}>
+                Image attached
+              </ThemedText>
+              <ThemedText themeColor="textSecondary" style={styles.previewSub}>
+                Ready to upload & send
+              </ThemedText>
+            </View>
+            <Pressable
+              onPress={() => setPendingAttachment(null)}
+              hitSlop={8}
+              style={styles.previewRemoveBtn}
+            >
+              <Ionicons name="close-circle" size={22} color={colors.textMuted} />
+            </Pressable>
+          </View>
         )}
 
         {/* ── Input bar ───────────────────────────────────────────────────── */}
@@ -257,14 +341,19 @@ export default function MentorChatScreen() {
             },
           ]}
         >
-          <Pressable hitSlop={8} style={styles.attachBtn}>
-            <Ionicons name="attach" size={22} color={colors.textMuted} />
+          <Pressable
+            onPress={handlePickImage}
+            disabled={uploadingAttachment}
+            hitSlop={8}
+            style={({ pressed }) => [styles.attachBtn, pressed && { opacity: 0.6 }]}
+          >
+            <Ionicons name="attach" size={24} color={colors.textMuted} />
           </Pressable>
 
           <TextInput
             value={input}
             onChangeText={setInput}
-            placeholder="Type a message..."
+            placeholder={pendingAttachment ? 'Add a caption...' : 'Type a message...'}
             placeholderTextColor={colors.textMuted}
             style={[
               styles.textInput,
@@ -282,16 +371,16 @@ export default function MentorChatScreen() {
 
           <Pressable
             onPress={handleSend}
-            disabled={!input.trim() || sendMutation.isPending}
+            disabled={isSendDisabled}
             accessibilityLabel="Send message"
             style={({ pressed }) => [
               styles.sendBtn,
               { backgroundColor: colors.primary },
-              (!input.trim() || sendMutation.isPending) && { opacity: 0.5 },
+              isSendDisabled && { opacity: 0.5 },
               pressed && { opacity: 0.8 },
             ]}
           >
-            {sendMutation.isPending ? (
+            {sendMutation.isPending || uploadingAttachment ? (
               <ActivityIndicator size="small" color="#fff" />
             ) : (
               <Ionicons name="send" size={16} color="#fff" />
@@ -339,7 +428,8 @@ const styles = StyleSheet.create({
   },
   headerAvatarImage: {
     position: 'absolute',
-    top: 0, left: 0,
+    top: 0,
+    left: 0,
     width: 40,
     height: 40,
     borderRadius: 20,
@@ -365,9 +455,6 @@ const styles = StyleSheet.create({
   headerStatus: {
     fontSize: 11,
     fontFamily: FontFamilies.regular,
-  },
-  moreBtn: {
-    padding: 4,
   },
   loadingCenter: {
     flex: 1,
@@ -434,6 +521,17 @@ const styles = StyleSheet.create({
     color: '#ffffff',
   },
 
+  bubbleImageWrap: {
+    borderRadius: 12,
+    overflow: 'hidden',
+    marginBottom: 6,
+  },
+  bubbleImage: {
+    width: 220,
+    height: 160,
+    borderRadius: 12,
+  },
+
   timestamp: {
     fontSize: 10,
     fontFamily: FontFamilies.regular,
@@ -442,6 +540,35 @@ const styles = StyleSheet.create({
   },
   timestampRight: {
     alignSelf: 'flex-end',
+  },
+
+  // Attachment preview strip
+  attachmentPreviewStrip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.three,
+    paddingVertical: 8,
+    borderTopWidth: 1,
+    gap: 10,
+  },
+  previewThumb: {
+    width: 44,
+    height: 44,
+    borderRadius: 8,
+  },
+  previewInfo: {
+    flex: 1,
+  },
+  previewTitle: {
+    fontFamily: FontFamilies.semiBold,
+    fontSize: 13,
+  },
+  previewSub: {
+    fontFamily: FontFamilies.regular,
+    fontSize: 11,
+  },
+  previewRemoveBtn: {
+    padding: 4,
   },
 
   // Input bar
@@ -455,7 +582,7 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
   },
   attachBtn: {
-    padding: 4,
+    padding: 6,
     paddingBottom: 8,
   },
   textInput: {

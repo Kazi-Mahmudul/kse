@@ -67,6 +67,7 @@ export default async function MentorQuestionsPage({
       <div className="flex gap-1 border-b border-zinc-200">
         {[
           { href: '/mentorship', label: 'Mentors' },
+          { href: '/mentorship/applications', label: 'Applications' },
           { href: '/mentorship/sessions', label: 'Sessions' },
           { href: '/mentorship/questions', label: 'Questions', active: true },
           { href: '/mentorship/discussions', label: 'Discussions' },
