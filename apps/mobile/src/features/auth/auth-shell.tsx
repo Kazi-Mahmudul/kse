@@ -32,7 +32,7 @@ export function AuthShell({
       {/* Background photograph — cover with a centre focus so the bridge
           and the graduates stay composed across portrait aspect ratios. */}
       <Image
-        source={require('@/assets/images/Graduates Celebrating by the Riverside Bridge.png')}
+        source={require('@/assets/images/graduates-bg.jpg')}
         style={StyleSheet.absoluteFill}
         contentFit="cover"
         contentPosition="center"
